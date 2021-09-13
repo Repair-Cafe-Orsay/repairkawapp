@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="row mb-3">
+    <a href="/new" class="col-3 btn btn-primary btn-lg" tabindex="-1" role="button" aria-disabled="true">New</a>
+  </div>
+  <div class="row mb-3">
+      <label class="col-sm-2 col-form-label">Réparateurs</label>
+      <div class="col-sm-3">
+        <select class="form-select" id="search_user" name="users">
+          <option value="" selected>Tous</option>
+        {% for user in users %}
+            <option value="{{user.id}}">{{user.name}}</option>
+        {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3"></div>
+      <label class="col-sm-2 col-form-label">Statut</label>
+      <div class="col-sm-2">
+        <select class="form-select" id="search_status" name="users">
+          <option value="all" selected>Tous</option>
+            <option value="opened">En cours</option>
+            <option value="closed">Clos</option>
+        </select>
+      </div>
+    </div>
+     
+    <table id="search_result_id" class="display">
+      <thead>
+          <tr>
+              <th></th>
+              <th>ID</th>
+              <th class="classStatus">Statut</th>
+              <th>Catégorie</th>
+              <th>Type</th>
+              <th>Marque</th>
+              <th>Visiteur</th>
+          </tr>
+      </thead>
+        <tbody>
+      </tbody>
+    </table> 
+    <script>
+      $('#search-button').click(function(event){
+        // Prevent redirection with AJAX for contact form
+        var form = $('#search-form');
+        var id = form.prop('id');
+        var name = form.prop('name');
+        var category = form.prop('category');
+        $.getJSON("{{url_for('api.repairsearch')}}",{
+                        id: id,
+                        name: name,
+                        category: category
+                    }, function(data) {
+                        console.log(data)
+                    });
+      });
+      $(document).ready( function () {
+            search_table = $('#search_result_id').DataTable({ajax: {url: '{{url_for('api.repairsearch')}}',
+                                                             dataSrc: "repairs",
+                                                             data: function(d) { d.user= $("#search_user").val(); d.status= $("#search_status").val()}},
+                                              "serverSide": true,
+                                              "searching": true,
+                                              "ordering":  false,
+                                              "stateSave": true,
+                                              columnDefs: [{
+                                                targets: 2,
+                                                className: "dt-center"
+                                              }],
+                                              "language": {
+                                                  "decimal":        "",
+                                                  "emptyTable":     "Pas de données disponibls",
+                                                  "info":           "Affiche de _START_ à _END_ sur _TOTAL_ entrées",
+                                                  "infoEmpty":      "Affiche 0 à 0 sur 0 entrées",
+                                                  "infoFiltered":   "(sur _MAX_ entrées au total)",
+                                                  "infoPostFix":    "",
+                                                  "thousands":      ",",
+                                                  "lengthMenu":     "Affiche _MENU_ entrées",
+                                                  "loadingRecords": "Chargement...",
+                                                  "processing":     "En cours...",
+                                                  "search":         "Recherche :",
+                                                  "zeroRecords":    "Aucune réparation ne correspond",
+                                                  "paginate": {
+                                                      "first":      "Premier",
+                                                      "last":       "Dernier",
+                                                      "next":       "Suivant",
+                                                      "previous":   "Précédent"
+                                                  }
+                                              },
+                                              columns: [ {"defaultContent": "<button>Voir</button>"},
+                                                         { data: 'id'},
+                                                         { data: 'close_status'},
+                                                         { data: 'category'},
+                                                         { data: 'otype'},
+                                                         { data: 'brand'},
+                                                         { data: 'name'}]});
+            $('#search_result_id tbody').on( 'click', 'button', function () {
+                  var data = search_table.row( $(this).parents('tr') ).data();
+                  window.location.href="/update/"+data.id;
+            })
+            $('#search_user').change(function () {
+                  search_table.ajax.reload()
+            })
+            $('#search_status').change(function () {
+                  search_table.ajax.reload()
+            })
+      } );
+    </script>
+    </form>
+  </div>
+
+{% endblock %}

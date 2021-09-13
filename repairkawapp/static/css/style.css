@@ -1,0 +1,299 @@
+html {
+  position: relative;
+  height: 100%;
+ -webkit-print-color-adjust: exact !important;
+}
+
+.form-signin {
+  width: 100%;
+  max-width: 330px;
+  padding: 15px;
+  margin: auto;
+}
+
+.form-signin .checkbox {
+  font-weight: 400;
+}
+
+.form-signin .form-floating:focus-within {
+  z-index: 2;
+}
+
+.form-signin input[type="email"] {
+  margin-bottom: -1px;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.form-signin input[type="password"] {
+  margin-bottom: 10px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+body {
+  .margin-bottom: 30px;
+}
+
+.header {
+  background-image: linear-gradient(180deg, #eee, #fff 100px, #fff);
+}
+
+.container {
+  max-width: 960px;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 30px; /* Set the fixed height of the footer here */
+  line-height: 30px; /* Vertically center the text there */
+  background-color: #f5f5f5;
+}
+
+.dropdown-category .dropdown-item {
+  width: 440px;
+}
+
+.dropdown-menu li {
+  clear: both;
+  color: rgba(0, 0, 0, 0.87);
+  cursor: pointer;
+  min-height: 50px;
+  line-height: 1.5rem;
+  min-width: 200px;
+  text-align: left;
+  text-transform: none;
+}
+
+.dropdown-category {
+  width: 500px;
+}
+
+.dropdown-menu li > a {
+    font-size: 16px;
+    color: #26a69a;
+    display: block;
+    line-height: 22px;
+    padding: 14px 16px;
+}
+
+.dropdown-menu [class*="product-icon-"] {
+  position: relative; }
+.dropdown-menu [class*="product-icon-"]:before {
+    content: "";
+    position: absolute;
+    left: 1rem;
+    top: 0.8rem; }
+.dropdown-menu [class*="product-icon-"] a {
+    margin-left: 3rem; }
+
+
+.product-icon-1689:before, .x-product-icon-1689 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -14em 0em;
+  display: inline-block; }
+
+.product-icon-1677:before, .x-product-icon-1677 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -18em 0em;
+  display: inline-block; }
+
+.product-icon-1679:before, .x-product-icon-1679 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -15em 0em;
+  display: inline-block; }
+
+.product-icon-1690:before, .x-product-icon-1690 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -17em 0em;
+  display: inline-block; }
+
+.product-icon-1691:before, .x-product-icon-1691 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -24em 0em;
+  display: inline-block; }
+
+.product-icon-1678:before, .x-product-icon-1678 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -20em 0em;
+  display: inline-block; }
+
+.product-icon-5343:before, .x-product-icon-5343 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -22em 0em;
+  display: inline-block; }
+
+.product-icon-1683:before, .x-product-icon-1683 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -23em 0em;
+  display: inline-block; }
+
+.product-icon-1685:before, .x-product-icon-1685 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -25em 0em;
+  display: inline-block; }
+
+.product-icon-1692:before, .x-product-icon-1692 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -19em 0em;
+  display: inline-block; }
+
+.product-icon-1693:before, .x-product-icon-1693 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -16em 0em;
+  display: inline-block; }
+
+.product-icon-1684:before, .x-product-icon-1684 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -21em 0em;
+  display: inline-block; }
+
+.product-icon-18666:before,
+.product-icon-18706:before, .x-product-icon-18666, .x-product-icon-18706 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -27em 0em;
+  display: inline-block; }
+
+.product-icon-18667:before,
+.product-icon-18707:before, .x-product-icon-18667, .x-product-icon-18707 {
+  font-size: 25px;
+  background-image: url(/static/img/icon_grid.svg);
+  background-size: 28em 5em;
+  width: 1em;
+  height: 1em;
+  background-position: -26em 0em;
+  display: inline-block; }
+
+span.bg-secondary {
+  color: white;
+}
+
+.repairstatus .card-header, .age .card-header {
+  color:  white;
+}
+
+.card-body-textarea {
+  padding: 0px;
+}
+
+.form-check-inline-wmarg {
+  margin-right: 6px;
+}
+.card-body-wmarg {
+  padding-top: 14px;
+  padding-bottom: 0px;
+}
+
+.input-group-wmarg {
+  margin-top:  1rem;
+}
+
+.card-header-wmarg {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.idbox {
+  position:  absolute;
+  z-index: 100;
+  top: 8px;
+  right:  8px;
+  width:  200px;
+  height: 16px;
+}
+
+.input-group > span, .card-header {
+  font-weight: bold;
+}
+
+.card-no-padding {
+  padding: 0px;
+}
+
+.card-no-padding .form-control {
+  border-radius: 0px;
+}
+
+.log {
+    background-color: #e1ecfd;
+    border-color: #1266f1;
+    padding: 10px;
+    border-left: 6px solid;
+    border-left-color: currentcolor;
+    border-radius: 5px;
+}
+
+#closeStatus {
+  font-weight: bold;
+}
+
+.img-wrapper {
+  position: relative;
+}
+
+.img-responsive {
+  width: 100%;
+  height: auto;
+}
+
+.img-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  text-align: right;
+  margin: 10px;
+}

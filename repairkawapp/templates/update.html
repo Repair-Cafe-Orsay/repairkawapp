@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1 class="fw-light text-center text-lg-start mt-4 mb-0">Fiche {{r['id']}} - {{r.close_status.label}}</h1>
+<hr class="mt-2 mb-3">
+<div class="row mb-3">
+<div class="card border-secondary col-sm-12 col-lg-6 update rounded g-0">
+  <div class="card-header text-center">
+    Description
+  </div>
+  <div class="card-body">
+<form class="row gy-1 needs-validation" novalidate  method="POST" action="/edit">
+  <div class="input-group">
+    <span class="input-group-text bg-secondary">Date</span>
+    <input type="string" class="form-control" id="exampleFormControlInput1" readonly name="date" value="{{r['created'].strftime('%Y-%m-%d %H:%M')}}" readonly>
+  </div>
+  <div class="input-group">
+    <span class="input-group-text bg-secondary">Nom </span>
+    <input type="name" class="form-control" id="exampleFormControlInput1" name="name" placeholder="Nom (Prénom)" required value="{{r['name']}}" readonly>
+    <div class="invalid-feedback">
+      Nom obligatoire !
+    </div>
+  </div>
+  <div class="input-group">
+    {% if r['email'] %}
+    <span class="input-group-text bg-secondary">Email</span>
+    <input type="email" class="form-control" id="exampleFormControlInput1" name="email" placeholder="name@example.com" value="{{r['email']}}" readonly>
+    {% endif %}
+    {% if r['phone'] %}
+    <span class="input-group-text bg-secondary">Téléphone</span>
+    <input type="text" class="form-control" id="exampleFormControlInput1" name="phone" placeholder="0612345678" oninput="check_phone(this)" value="{{r['phone']}}" readonly>
+    {% endif %}
+  </div>
+  <div class="input-group">
+      <span class="input-group-text bg-secondary product-icon-{{r['category'].rm_icon_id}}">
+        <div class="x-product-icon-1693" style="filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(157deg) brightness(107%) contrast(102%);"></div>&nbsp;
+        {{r['category'].name}}
+      </span>
+    <input class="form-control" style="display: none" id="category" name="category" required value="{{r['category'].id}}" readonly>
+    <input class="form-control" id="exampleFormControlInput1" name="otype" placeholder="Type de l'objet" required value="{{r['otype']}}" readonly>
+    <div class="invalid-feedback">
+        Type et Catégorie obligatoire !
+    </div>
+  </div>
+  <div class="input-group">
+        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">Marque</span>
+        <input style="text-transform: uppercase;" type="text" id="brand" name="brand" class="form-control" required placeholder="LAMARQUE / INCONNU" value="{{r['brand'].name}}" readonly>
+        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">Modèle</span>
+        <input type="text" class="form-control" name="model" readonly value="{{r['model']}}" readonly>
+  </div>
+  <div class="input-group input-group-sm">
+    {% if r['sn'] %}
+        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">SN</span>
+        <input style="text-transform: uppercase;" type="text" id="sn" name="sn" class="form-control" value="{{r['sn']}}" readonly>
+    {% endif %}
+    {% if r['year'] %}
+        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">Année</span>
+        <input type="number" min="1950" max="{{current_year}}" step="1" name="year" class="form-control col-1" value="{{r['year']}}" readonly>
+    {% endif %}
+    {% if r['value'] %}
+        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">Valeur neuf</span>
+        <input type="number" min="5" name="value" class="form-control col-1" value="{{r['value']}}" readonly>
+        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">€</span>
+    {% endif %}
+  </div>
+  <div class="input-group">
+    <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">État Initial</span>
+    <select class="form-select" name="initial_state" id="validationCustom04" required disabled>
+      <option disabled value="">Choisir...</option>
+    {% for state in states %}
+      {% if state.id == r['initial_state'].id %}
+        <option selected value="{{state.id}}">{{state.label}}</option>
+      {% else %}
+        <option value="{{state.id}}">{{state.label}}</option>
+      {% endif %}
+    {% endfor %}
+    </select>
+  </div>
+  <div class="input-group">
+      <span class="input-group-text bg-secondary">Problème</span>
+      <textarea class="form-control" name="description" required readonly>{{r['description']}}</textarea>
+  </div>
+
+  <div class="input-group">
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="validated" value="1" id="invalidCheck" required disabled {{r['validated'] and 'checked'}}>
+      <label class="form-check-label" for="invalidCheck">
+        Conditions acceptées
+      </label>
+      <div class="invalid-feedback">
+        Vous devez accepter avant de soumettre !
+      </div>
+    </div>
+  </div>
+</form>
+</div>
+</div>
+<div class="card border-secondary col-sm-12 col-lg-6 update rounded g-0">
+  <div class="card-header text-center">
+    Avancement
+  </div>
+  <div class="card-body">
+<form id="changeform" class="row gy-1 needs-validation" novalidate  method="POST" action="{{url_for('main.update_object',id=r['id'])}}">
+  <div class="input-group">
+    <span class="col-3 input-group-text bg-primary" id="inputGroup-sizing-default">État actuel</span>
+    <input type=string name="previous_state" hidden value="{{r['current_state'].id}}">
+    <select class="col-9 form-select" name="current_state" id="validationCustom04" required {{r.close_status.id>0 and "disabled"}}>
+      <option disabled value="">Choisir...</option>
+    {% for state in states %}
+      {% if state.id == r['current_state'].id %}
+        <option selected value="{{state.id}}">{{state.label}}</option>
+      {% else %}
+        <option value="{{state.id}}">{{state.label}}</option>
+      {% endif %}
+    {% endfor %}
+    </select>
+  </div>
+  <div class="input-group">
+    <span class="col-3 input-group-text bg-primary">Réparateurs</span>
+    <select class="col-9 form-select" size="3" name="users" multiple>
+    {% for user in r.users %}
+        <option value="{{user.id}}" selected>{{user.name}}</option>
+    {% endfor %}
+    {% for user in users %}
+      {% if user.id not in current_users %}
+        <option value="{{user.id}}">{{user.name}}</option>
+      {% endif %}
+    {% endfor %}
+    </select>
+    <select class="col-9 form-select" hidden name="previous_users" multiple>
+    {% for user in r.users %}
+        <option value="{{user.id}}" selected>{{user.name}}</option>
+    {% endfor %}
+    </select>
+  </div>
+  <div class="input-group">
+    <span class="col-3 input-group-text bg-primary">Localisation</span>
+    <input type=string class="form-control" name="previous_location" hidden value="{{r['location']}}">
+    <input type=string class="form-control" name="current_location" value="{{r['location']}}">
+  </div>
+  <div class="input-group">
+    <span class="col-3 input-group-text bg-primary">Note</span>
+    <textarea class="col-9" id="note" name="note" rows=5></textarea>
+  </div>
+   <div class="input-group">
+    <button class="btn btn-success" id="updateBtn">Mettre à jour</button>
+    <div style="margin-right:auto"></div>
+    <input id="closeChoice" name="closeChoice" hidden>
+    <div class="dropdown" id="closeDropdown">
+      <button class="btn btn-warning dropdown-toggle" id="close_button" type="button" data-bs-toggle="dropdown" data-bs-target="#ModalClose" disabled>
+        {% if r.close_status.id == 0 %}
+          Clore la fiche
+        {% else %}
+          Réouvrir la fiche
+        {% endif %}
+        <span class="caret"></span>
+      </button>
+      <ul class="dropdown-menu dropdown-category" id="close_list">
+    {% for status in closestatus %}
+      {% if (r.close_status.id ==0 and status.id == 0) or (r.close_status.id != 0 and status.id != 0) %}
+        <li style="display:none"><a class="dropdown-item dropdown-modal" href="#" onclick="openModal({{status.id}})">{{status.label}}</a></li>
+      {% else %}
+        <li><a class="dropdown-item dropdown-modal" href="#" onclick="openModal({{status.id}})">{{status.label}}</a></li>
+      {% endif %}
+    {% endfor %}
+      </ul>
+    </div>
+  </div>
+</form>
+</div>
+</div>
+</div>
+
+<div class="modal fade" id="ModalClose" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Confirmation</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Êtes-vous sûr(e) de vouloir
+        {% if r.close_status.id == 0 %}
+          clore
+        {% else %}
+          réouvrir
+        {% endif %}
+        cette fiche ?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Non</button>
+        <button type="button" id="closeStatusConfirm" class="btn btn-warning">Je confirme</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.close_choice = 0
+  $("#note").on("change keyup paste", function() {
+    if ($("#note").val().length==0) { $("#close_button").attr("disabled", "1"); }
+    else { $("#close_button").removeAttr("disabled"); }
+  });
+  function openModal(id) {
+    $("#closeStatusConfirm").html("Je confirme \""+$("#close_list a")[id].text+"\"");
+    window.close_choice = id
+    $("#ModalClose").modal("show");
+  };
+  $("#ModalClose").on('show.bs.modal', function (event) {
+    // Button that triggered the modal
+    var elt = event
+    // Extract info from data-bs-* attributes
+  });
+  $("#closeStatusConfirm").on("click", function(event) {
+    if (parseInt(window.close_choice) == 0) {
+      $("#ModalClose").modal("hide");
+    }
+    $("#closeChoice").val(window.close_choice);
+    console.log("-----", $("#closeChoice").val());
+    $("#changeform").submit();
+  });
+  $("#updateBtn").on("click", function(event) {
+    $("#closeChoice").val("");
+    $("#changeform").submit();
+  })
+</script>
+
+<div class="container">
+  <a id="photos"></a>
+  <h2 class="fw-light text-center text-lg-start mt-4 mb-0">Photos</h2>
+  <hr class="mt-2 mb-3">
+  <div class="row text-center text-lg-start" data-bs-toggle="modal" data-bs-target="#galleryModal">
+    {% for p in images %}
+    <div class="col-lg-3 col-md-4 col-6 oneimg" data-bs-target="#galleryCaroussel" data-bs-slide-to="{{p[0]}}">
+      <a href="#" class="d-block mb-4 h-100">
+        <div class="img-wrapper">
+          <img class="img-responsive img-fluid img-thumbnail" src="{{url_for('main.media_file', filename=p[2])}}" alt="">
+          <div class="img-overlay">
+            <button type="button" class="btn btn-danger" onclick="delete_image_dialog({{p[0]}},'{{p[1]}}')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"></path>
+                <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="modal fade" id="galleryModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="galleryCaroussel" class="carousel slide" data-bs-ride="carousel">
+          <div class="carousel-inner">
+          {% for p in images %}
+              <div class="carousel-item {{p[0]==0 and 'active' or ''}}">
+                <img class="d-block w-100" src="{{url_for('main.media_file', filename=p[1])}}" alt="">
+              </div>
+          {% endfor %}
+          </div>
+          <button class="carousel-control-prev" type="button" data-bs-target="#galleryCaroussel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#galleryCaroussel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+          </button>
+        </div>        
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="display: none" class="modal fade" id="confirmDeleteModal" aria-hidden="true" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalToggleLabel">Confirmation</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Vous êtes sur le point d'effacer l'image: <span id="confirmDeleteModalImage"></span> !
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteButton">Je confirme</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-3">
+<div id="alert_upload" class="alert alert-danger alert-dismissible fade show" role="alert" style="display: none" >
+  <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#exclamation-triangle-fill"/></svg><strong>Upload impossible !</strong>
+  <span id="error_upload"></span>
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="$('.alert').fadeOut()"></button>
+</div>
+<form id="upload-file" method="post" enctype="multipart/form-data">
+  <div class="input-group input-group-sm">
+      <input class="form-control" name="file" type="file" accept="image/*;capture=camera" capture>
+      <button class="button btn-success" id="upload-file-btn" type="button">Ajouter une photo</button>
+  </div>
+</form>
+<script type="text/javascript">
+  $(function() {
+    $('#upload-file-btn').click(function() {
+        var form_data = new FormData($('#upload-file')[0]);
+        $('#alert_upload').fadeOut();
+        $.ajax({
+            type: 'POST',
+            url: '{{url_for("api.post_file", repair_id=r.id)}}',
+            data: form_data,
+            contentType: false,
+            cache: false,
+            processData: false,
+            success: function(data) {
+                location.hash='photos'; location.reload();
+            },
+            error: function(xhr, ajaxOptions, thrownError) {
+              if (xhr.status == 403) {
+                $("#error_upload").html("Fichier incorrect");
+                $('#alert_upload').fadeIn();
+              }
+              else if (xhr.status == 409) {
+                $("#error_upload").html("Fichier déjà existant");
+                $('#alert_upload').fadeIn();
+              }
+            }
+        });
+    });
+});
+function delete_image_dialog(id, path) {
+  $("#confirmDeleteModalImage").html(path);
+  $("#confirmDeleteButton").attr("onclick", "delete_image("+id+",'"+path+"')");
+  $("#confirmDeleteModal").modal("show");
+  return false;
+}
+function delete_image(id, path) {
+  $.ajax({url: "/deleteimg/{{r.id}}/"+path}).done(function() {
+    console.log(id, path, $(".oneimg:nth("+id+")"));
+    $(".oneimg:nth("+id+")").hide();
+    $(".carousel-item:nth("+id+")").attr("ng-show", 1);
+    $("#confirmDeleteModal").modal("hide");
+    $("#galleryModal").modal("hide");
+    return false;
+  })
+}
+</script>
+</div>
+
+<div class="container">
+    <a id="notes"></a>
+    <h2 class="fw-light text-center text-lg-start mt-4 mb-0">Notes</h2>
+    <hr class="mt-2 mb-3">
+    {% for n in notes %}
+    <div class="row mb-3 note">
+      <div class="card border-secondary col-12 update rounded gx-0">
+        <div class="card-header small">
+          Mise à jour {{n.id}}, le {{n.date.strftime('%Y-%m-%d')}} à {{n.date.strftime('%H:%M')}} par {{n.user.name}}
+        </div>
+        <div class="card-body">
+            {% if n.log %}
+            <div class="log">{{n.log}}</div>
+            {% endif %}
+            {% if n.content %}
+                <u>Commentaire :</u> {{n.content}}
+            {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
