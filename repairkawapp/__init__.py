@@ -2,6 +2,7 @@ from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_thumbnails import Thumbnail
+import os
 
 db = SQLAlchemy()
 thumb = None
@@ -18,9 +19,9 @@ def create_app():
     app.config['PAGE_SIZE'] = 10
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
     app.config['ALLOWED_EXTENSIONS'] = ['jpg', 'jpeg', 'png']
-    app.config['UPLOAD_FOLDER'] = '/Users/jean/DEV/repaircafe/uploads'
-    app.config['THUMBNAIL_MEDIA_ROOT'] = '/Users/jean/DEV/repaircafe/uploads'
-    app.config['THUMBNAIL_MEDIA_THUMBNAIL_ROOT'] = '/Users/jean/DEV/repaircafe/uploads/cache'
+    app.config['UPLOAD_FOLDER'] = os.getcwd()+'/uploads'
+    app.config['THUMBNAIL_MEDIA_ROOT'] = os.getcwd()+'/uploads'
+    app.config['THUMBNAIL_MEDIA_THUMBNAIL_ROOT'] = os.getcwd()+'/uploads/cache'
     app.config['THUMBNAIL_MEDIA_URL'] = '/media/'
     app.config['THUMBNAIL_MEDIA_THUMBNAIL_URL'] = '/media/cache/'
 

@@ -1,9 +1,9 @@
 import os
 import glob
-from flask import current_app, Blueprint, request, jsonify
-from flask_login import login_user, logout_user, login_required
+from flask import current_app, Blueprint, request, jsonify, render_template
+from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
-from .models import Brand, Repair, User
+from .models import Brand, Repair, User, SpareStatus, SpareChange, Note, Log
 from . import db
 
 api = Blueprint('api', __name__)
@@ -11,6 +11,32 @@ api = Blueprint('api', __name__)
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
+
+@api.route('/new_spare/<string:repair_id>')
+@login_required
+def new_spare(repair_id):
+    print(request.args)
+    sp = SpareChange(
+        item=request.args.get("item"),
+        spare_status_id=request.args.get("status_id"),
+        source=request.args.get("source"),
+        note=request.args.get("note"),
+        repair_id=repair_id
+    )
+    db.session.add(sp)
+    l = Log(user_id=current_user.id, content="Ajout d'une pièce détachée", repair_id=repair_id)
+    db.session.add(l)
+    db.session.commit()
+    return jsonify({
+            "sparepart": render_template('sparepart.html',sp=sp, spare_statuses=SpareStatus.query.all()),
+            "log": render_template('log.html', log=l)})
+
+@api.route('/del_spare/<string:repair_id>')
+@login_required
+def del_spare(repair_id):
+    db.session.query(SpareChange).filter(SpareChange.id==request.args.get("id")).delete()
+    db.session.commit()
+    return jsonify(True)
 
 @api.route('/api/brandsearch', methods=['GET'])
 def brandsearch():
@@ -71,7 +97,7 @@ def repairsearch():
     if request.args.get('category'):
         repairs = repairs.filter_by(category_id=request.args.get('category'))
     nbFiltered = repairs.count()
-    repairs = repairs.order_by(Repair.created.desc()).paginate(
+    repairs = repairs.order_by(Repair.registered.desc()).paginate(
         page, length, False)
     json=jsonify({"repairs": [{"id":r.id,"name":r.name,"category":r.category.name,"otype":r.otype,
                     "brand": r.brand and r.brand.name or "", "close_status": r.close_status.label[0]}
