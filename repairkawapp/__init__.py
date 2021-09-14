@@ -14,7 +14,7 @@ def create_app():
     global thumb
 
     app.config['SECRET_KEY'] = 'secret-key-goes-here'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://user:password@localhost/repairkawapp?charset=utf8mb4'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
     app.config['PAGE_SIZE'] = 10
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
