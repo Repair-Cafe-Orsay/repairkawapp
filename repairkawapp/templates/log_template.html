@@ -1,0 +1,19 @@
+{% macro log_template(l) %}
+    <li>{{l.content}} ({{l.date.strftime('%Y-%m-%d')}} à {{l.date.strftime('%H:%M')}} par {{l.user.name}})</li>
+{% endmacro %}
+
+{% macro log_list(logs) %}
+    <ul id="log-list">
+        {% for l in logs %}
+            {{ log_template(l) }}
+        {% endfor %}
+    </ul>
+{% endmacro %}
+
+{% macro log_script() %}
+<script>
+    function add_log(log) {
+        $("#log-list").prepend(log);
+    }
+</script>
+{% endmacro %}
