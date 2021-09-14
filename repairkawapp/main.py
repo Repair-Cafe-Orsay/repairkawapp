@@ -107,14 +107,14 @@ def update_object(id):
         current_location = request.form.get('current_location')
         note = request.form.get('note')
         change = False
-        closeChoice = int(request.form.get('closeChoice') or 0)
+        closeChoice = int(request.form.get('closeChoice') or 1)
         if closeChoice:
             new_close_status = db.session.query(CloseStatus).filter_by(id=closeChoice).first()
             db.session.add(Log(user_id=current_user.id, repair_id=id,
                                content="Fermeture fiche (%s)" % new_close_status.label))
             r.close_status = db.session.query(CloseStatus).filter_by(id=closeChoice).first()
             change = True
-        elif r.close_status.id > 0:
+        elif r.close_status.id > 1:
             db.session.add(Log(user_id=current_user.id, repair_id=id,
                                content="Réouverture fiche"))
             r.close_status = db.session.query(CloseStatus).filter_by(id=closeChoice).first()
