@@ -1,0 +1,12 @@
+{% macro build_note(n) %}
+    <div class="row mb-3 note">
+      <div class="card border-secondary col-12 update rounded gx-0">
+        <div class="card-header small">
+          Mise à jour {{n.id}}, le {{n.date.strftime('%Y-%m-%d')}} à {{n.date.strftime('%H:%M')}} par {{n.user.name}}
+        </div>
+        <div class="card-body">
+            {{n.content}}
+        </div>
+      </div>
+    </div>
+{% endmacro %}
