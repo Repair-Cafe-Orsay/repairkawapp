@@ -40,12 +40,12 @@ with create_app().app_context():
     db.session.add(State(id=4, label="Fonctionne bien mais problème aspect majeur"))
     db.session.add(State(id=5, label="Fonctionne bien sans problème aspect majeur"))
 
-    db.session.add(CloseStatus(id=0, label="🛠 En cours..."))
-    db.session.add(CloseStatus(id=1, label="😊 Réparé !"))
-    db.session.add(CloseStatus(id=2, label="😬 Partiellement/Conseil"))
-    db.session.add(CloseStatus(id=3, label="😓 Non..."))
+    db.session.add(CloseStatus(label="🛠 En cours..."))
+    db.session.add(CloseStatus(label="😊 Réparé !"))
+    db.session.add(CloseStatus(label="😬 Partiellement/Conseil"))
+    db.session.add(CloseStatus(label="😓 Non..."))
 
-    db.session.add(SpareStatus(id=0, label="📌 Identifié"))
+    db.session.add(SpareStatus(label="📌 Identifié"))
     db.session.add(SpareStatus(label="🔍 En recherche"))
     db.session.add(SpareStatus(label="⏳ En attente"))
     db.session.add(SpareStatus(label="🛠 À remplacer"))
@@ -61,9 +61,10 @@ with create_app().app_context():
     		created=datetime(2021, 9, 11, 10, 00),
     		name="Jean Senellart",
 		    category_id = 1,
-		    brand_id=Brand.query.filter_by(name="PHILIPS")[0].id,
+		    brand_id= Brand.query.filter_by(name="PHILIPS")[0].id,
 		    initial_state_id=1,
 		    current_state_id=1,
+            close_status_id=1,
 		    otype="Perceuse",
 		    model="XM-3",
 		    description="ne fonctionne pas"))
