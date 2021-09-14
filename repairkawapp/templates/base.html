@@ -124,6 +124,42 @@
               $("#category").val($(this).attr("val"));
            });
         });
+  $(document).ready(function() {
+    $(function() {
+          // Javascript to enable link to tab
+          var hash = document.location.hash;
+          if (hash) {
+             var navTab = $('.nav-tabs a[href="'+hash+'"]');
+             if (navTab) {
+                  var theTab = new bootstrap.Tab(navTab);
+                  theTab.show();
+            }
+           }
+
+          // Change hash for page-reload
+          $('a[data-bs-toggle="tab"]').on('show.bs.tab', function (e) {
+            window.location.hash = e.target.hash;
+          });
+        });
+      'use strict'
+
+  // Fetch all the forms we want to apply custom Bootstrap validation styles to
+  var forms = document.querySelectorAll('.needs-validation')
+
+  // Loop over them and prevent submission
+  Array.prototype.slice.call(forms)
+    .forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+
+        form.classList.add('was-validated')
+      }, false)
+    })
+
+  })
 </script>
 </body>
 

@@ -218,7 +218,7 @@ body {
   background-position: -26em 0em;
   display: inline-block; }
 
-span.bg-secondary {
+label.bg-secondary, span.bg-secondary {
   color: white;
 }
 
@@ -296,4 +296,10 @@ span.bg-secondary {
   right: 0;
   text-align: right;
   margin: 10px;
+}
+
+.img-overlay-badge {
+  position: absolute;
+  top: -14px;
+  left: -8px;
 }

@@ -42,8 +42,9 @@ repair_user = db.Table('association_repair_user', db.Model.metadata,
 
 class Repair(db.Model):
     __tablename__ = 'repair'
-    id = db.Column(db.String(10), primary_key=True)
-    created = db.Column(db.DateTime(timezone=True), nullable=False)
+    id = db.Column(db.String(11), primary_key=True)
+    created = db.Column(db.Date(), nullable=False)
+    registered = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
     name = db.Column(db.String(200))
     email = db.Column(db.String(100))
     phone = db.Column(db.String(20))
@@ -75,7 +76,32 @@ class Note(db.Model):
     user = db.relationship("User")
     date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
     content = db.Column(db.Text)
-    log = db.Column(db.Text)
+    repair_id = db.Column(db.Integer, db.ForeignKey('repair.id'), nullable=False)
+    repair = db.relationship("Repair", foreign_keys=[repair_id])
+
+class Log(db.Model):
+    __tablename__ = 'log'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship("User")
+    date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
+    content = db.Column(db.Text)
+    repair_id = db.Column(db.Integer, db.ForeignKey('repair.id'), nullable=False)
+    repair = db.relationship("Repair", foreign_keys=[repair_id])
+
+class SpareStatus(db.Model):
+    __tablename__ = 'sparestatus'
+    id = db.Column(db.Integer, primary_key=True)
+    label = db.Column(db.String(50), nullable=False, unique=True)
+
+class SpareChange(db.Model):
+    __tablename__ = 'sparechange'
+    id = db.Column(db.Integer, primary_key=True)
+    item = db.Column(db.String(100), nullable=False)
+    source = db.Column(db.String(200))
+    note = db.Column(db.Text, default="")
+    spare_status_id = db.Column(db.Integer, db.ForeignKey('sparestatus.id'), nullable=False, default=0)
+    spare_status = db.relationship("SpareStatus", foreign_keys=[spare_status_id])
     repair_id = db.Column(db.Integer, db.ForeignKey('repair.id'), nullable=False)
     repair = db.relationship("Repair", foreign_keys=[repair_id])
 

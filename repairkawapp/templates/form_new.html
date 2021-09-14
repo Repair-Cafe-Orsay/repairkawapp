@@ -3,8 +3,11 @@
 {% block content %}
 <form class="row gy-3 needs-validation" novalidate  method="POST" action="/new">
   <div class="input-group">
-    <span class="input-group-text bg-secondary">Date</span>
-    <input {% if not to_print %}type="date"{% endif %} class="form-control" id="exampleFormControlInput1" name="date" value="{% if not to_print %}{{today}}{% endif %}">
+    <span class="input-group-text bg-secondary col-2">Date</span>
+    <input {% if not to_print %}type="date"{% endif %} class="form-control"name="date" value="{% if not to_print %}{{today}}{% endif %}">
+    <div class="col-2"></div>
+    <span class="input-group-text bg-secondary col-2">ID Manuel</span>
+    <input type="number" class="form-control" name="manual_id" placeholder="Facultatif">
   </div>
   <div class="input-group">
     <span class="input-group-text bg-secondary">Nom</span>
