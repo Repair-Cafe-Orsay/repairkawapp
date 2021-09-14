@@ -1,5 +1,5 @@
 from repairkawapp import db, create_app
-from repairkawapp.models import Category, Brand, User, State, Repair, CloseStatus
+from repairkawapp.models import Category, Brand, User, State, Repair, CloseStatus, SpareStatus
 from werkzeug.security import generate_password_hash
 from datetime import datetime
 
@@ -44,6 +44,12 @@ with create_app().app_context():
     db.session.add(CloseStatus(id=1, label="😊 Réparé !"))
     db.session.add(CloseStatus(id=2, label="😬 Partiellement/Conseil"))
     db.session.add(CloseStatus(id=3, label="😓 Non..."))
+
+    db.session.add(SpareStatus(id=0, label="📌 Identifié"))
+    db.session.add(SpareStatus(label="🔍 En recherche"))
+    db.session.add(SpareStatus(label="⏳ En attente"))
+    db.session.add(SpareStatus(label="🛠 À remplacer"))
+    db.session.add(SpareStatus(label="👌 Remplacé"))
 
     with open("data/brand.txt") as f:
         for line in f:
