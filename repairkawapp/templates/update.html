@@ -1,4 +1,7 @@
 {% extends "base.html" %}
+{% from "sparepart_template.html" import sparepart_list %}
+{% from "log_template.html" import log_list %}
+{% from "note_template.html" import build_note %}
 
 {% block content %}
 
@@ -13,7 +16,7 @@
 <form class="row gy-1 needs-validation" novalidate  method="POST" action="/edit">
   <div class="input-group">
     <span class="input-group-text bg-secondary">Date</span>
-    <input type="string" class="form-control" id="exampleFormControlInput1" readonly name="date" value="{{r['created'].strftime('%Y-%m-%d %H:%M')}}" readonly>
+    <input type="string" class="form-control" id="exampleFormControlInput1" readonly name="date" value="{{r['created'].strftime('%Y-%m-%d')}}" readonly>
   </div>
   <div class="input-group">
     <span class="input-group-text bg-secondary">Nom </span>
@@ -217,7 +220,6 @@
       $("#ModalClose").modal("hide");
     }
     $("#closeChoice").val(window.close_choice);
-    console.log("-----", $("#closeChoice").val());
     $("#changeform").submit();
   });
   $("#updateBtn").on("click", function(event) {
@@ -225,31 +227,6 @@
     $("#changeform").submit();
   })
 </script>
-
-<div class="container">
-  <a id="photos"></a>
-  <h2 class="fw-light text-center text-lg-start mt-4 mb-0">Photos</h2>
-  <hr class="mt-2 mb-3">
-  <div class="row text-center text-lg-start" data-bs-toggle="modal" data-bs-target="#galleryModal">
-    {% for p in images %}
-    <div class="col-lg-3 col-md-4 col-6 oneimg" data-bs-target="#galleryCaroussel" data-bs-slide-to="{{p[0]}}">
-      <a href="#" class="d-block mb-4 h-100">
-        <div class="img-wrapper">
-          <img class="img-responsive img-fluid img-thumbnail" src="{{url_for('main.media_file', filename=p[2])}}" alt="">
-          <div class="img-overlay">
-            <button type="button" class="btn btn-danger" onclick="delete_image_dialog({{p[0]}},'{{p[1]}}')">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
-                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"></path>
-                <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </a>
-    </div>
-    {% endfor %}
-  </div>
-</div>
 
 <div class="modal fade" id="galleryModal" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document">
@@ -301,86 +278,112 @@
   </div>
 </div>
 
-<div class="row mb-3">
-<div id="alert_upload" class="alert alert-danger alert-dismissible fade show" role="alert" style="display: none" >
-  <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#exclamation-triangle-fill"/></svg><strong>Upload impossible !</strong>
-  <span id="error_upload"></span>
-  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="$('.alert').fadeOut()"></button>
-</div>
-<form id="upload-file" method="post" enctype="multipart/form-data">
-  <div class="input-group input-group-sm">
-      <input class="form-control" name="file" type="file" accept="image/*;capture=camera" capture>
-      <button class="button btn-success" id="upload-file-btn" type="button">Ajouter une photo</button>
+<nav>
+<ul class="nav nav-tabs mb-3" id="nav-tab" role="tablist">
+  <li class="nav-item">
+    <a class="nav-link active" id="nav-notes-tab" data-bs-toggle="tab" data-bs-target="#nav-notes" type="button" role="tab" aria-controls="nav-notes" aria-selected="true" href="#notes">Notes</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="nav-pictures-tab" data-bs-toggle="tab" data-bs-target="#nav-pictures" type="button" role="tab" aria-controls="nav-pictures" aria-selected="true" href="#pictures">Photos</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="nav-spareparts-tab" data-bs-toggle="tab" data-bs-target="#nav-spareparts" type="button" role="tab" aria-controls="nav-spareparts" aria-selected="true" href="#spareparts">Pièces Détachées</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="nav-logs-tab" data-bs-toggle="tab" data-bs-target="#nav-logs" type="button" role="tab" aria-controls="nav-logs" aria-selected="true" href="#logs">Activité</a>
+  </li>
+</ul>
+</nav>
+
+<div class="tab-content" id="nav-tabContent">
+  <div class="tab-pane show active" id="nav-notes" role="tabpanel" aria-labelledby="nav-notes-tab">
+    {% for n in notes %}
+      {{ build_note(n) }}
+    {% endfor %}
   </div>
-</form>
-<script type="text/javascript">
-  $(function() {
-    $('#upload-file-btn').click(function() {
-        var form_data = new FormData($('#upload-file')[0]);
-        $('#alert_upload').fadeOut();
-        $.ajax({
-            type: 'POST',
-            url: '{{url_for("api.post_file", repair_id=r.id)}}',
-            data: form_data,
-            contentType: false,
-            cache: false,
-            processData: false,
-            success: function(data) {
-                location.hash='photos'; location.reload();
-            },
-            error: function(xhr, ajaxOptions, thrownError) {
-              if (xhr.status == 403) {
-                $("#error_upload").html("Fichier incorrect");
-                $('#alert_upload').fadeIn();
-              }
-              else if (xhr.status == 409) {
-                $("#error_upload").html("Fichier déjà existant");
-                $('#alert_upload').fadeIn();
-              }
-            }
+  <div class="tab-pane" id="nav-pictures" role="tabpanel" aria-labelledby="nav-pictures-tab">
+    <div class="row text-center text-lg-start" data-bs-toggle="modal" data-bs-target="#galleryModal">
+      {% for p in images %}
+      <div class="col-lg-3 col-md-4 col-6 oneimg" data-bs-target="#galleryCaroussel" data-bs-slide-to="{{p[0]}}">
+        <a href="#" class="d-block mb-4 h-100">
+          <div class="img-wrapper">
+            <img class="img-responsive img-fluid img-thumbnail" src="{{url_for('main.media_file', filename=p[2])}}" alt="">
+            <div class="img-overlay">
+              <button type="button" class="btn btn-danger" onclick="delete_image_dialog({{p[0]}},'{{p[1]}}')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                  <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"></path>
+                  <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    <div id="alert_upload" class="alert alert-danger alert-dismissible fade show" role="alert" style="display: none" >
+      <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#exclamation-triangle-fill"/></svg><strong>Upload impossible !</strong>
+      <span id="error_upload"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="$('.alert').fadeOut()"></button>
+    </div>
+    <form id="upload-file" method="post" enctype="multipart/form-data">
+      <div class="input-group input-group-sm">
+          <input class="form-control" name="file" type="file" accept="image/*;capture=camera" capture>
+          <button class="button btn-success" id="upload-file-btn" type="button">Ajouter une photo</button>
+      </div>
+    </form>
+    <script type="text/javascript">
+      $(function() {
+        $('#upload-file-btn').click(function() {
+            var form_data = new FormData($('#upload-file')[0]);
+            $('#alert_upload').fadeOut();
+            $.ajax({
+                type: 'POST',
+                url: '{{url_for("api.post_file", repair_id=r.id)}}',
+                data: form_data,
+                contentType: false,
+                cache: false,
+                processData: false,
+                success: function(data) {
+                    location.reload();
+                },
+                error: function(xhr, ajaxOptions, thrownError) {
+                  if (xhr.status == 403) {
+                    $("#error_upload").html("Fichier incorrect");
+                    $('#alert_upload').fadeIn();
+                  }
+                  else if (xhr.status == 409) {
+                    $("#error_upload").html("Fichier déjà existant");
+                    $('#alert_upload').fadeIn();
+                  }
+                }
+            });
         });
     });
-});
-function delete_image_dialog(id, path) {
-  $("#confirmDeleteModalImage").html(path);
-  $("#confirmDeleteButton").attr("onclick", "delete_image("+id+",'"+path+"')");
-  $("#confirmDeleteModal").modal("show");
-  return false;
-}
-function delete_image(id, path) {
-  $.ajax({url: "/deleteimg/{{r.id}}/"+path}).done(function() {
-    console.log(id, path, $(".oneimg:nth("+id+")"));
-    $(".oneimg:nth("+id+")").hide();
-    $(".carousel-item:nth("+id+")").attr("ng-show", 1);
-    $("#confirmDeleteModal").modal("hide");
-    $("#galleryModal").modal("hide");
-    return false;
-  })
-}
-</script>
-</div>
-
-<div class="container">
-    <a id="notes"></a>
-    <h2 class="fw-light text-center text-lg-start mt-4 mb-0">Notes</h2>
-    <hr class="mt-2 mb-3">
-    {% for n in notes %}
-    <div class="row mb-3 note">
-      <div class="card border-secondary col-12 update rounded gx-0">
-        <div class="card-header small">
-          Mise à jour {{n.id}}, le {{n.date.strftime('%Y-%m-%d')}} à {{n.date.strftime('%H:%M')}} par {{n.user.name}}
-        </div>
-        <div class="card-body">
-            {% if n.log %}
-            <div class="log">{{n.log}}</div>
-            {% endif %}
-            {% if n.content %}
-                <u>Commentaire :</u> {{n.content}}
-            {% endif %}
-        </div>
-      </div>
-    </div>
-    {% endfor %}
+    function delete_image_dialog(id, path) {
+      $("#confirmDeleteModalImage").html(path);
+      $("#confirmDeleteButton").attr("onclick", "delete_image("+id+",'"+path+"')");
+      $("#confirmDeleteModal").modal("show");
+      return false;
+    }
+    function delete_image(id, path) {
+      $.ajax({url: "/deleteimg/{{r.id}}/"+path}).done(function() {
+        console.log(id, path, $(".oneimg:nth("+id+")"));
+        $(".oneimg:nth("+id+")").hide();
+        $(".carousel-item:nth("+id+")").attr("ng-show", 1);
+        $("#confirmDeleteModal").modal("hide");
+        $("#galleryModal").modal("hide");
+        return false;
+      })
+    }
+    </script>
+  </div>
+  <div class="tab-pane" id="nav-spareparts" role="tabpanel" aria-labelledby="nav-spareparts-tab">
+      {{ sparepart_list(r, splist, spare_statuses) }}
+  </div>
+  <div class="tab-pane" id="nav-logs" role="tabpanel" aria-labelledby="nav-logs-tab">
+      {{ log_list(logs) }}
+  </div>
 </div>
 
 {% endblock %}
