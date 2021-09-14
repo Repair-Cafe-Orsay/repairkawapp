@@ -1,0 +1,101 @@
+{% macro sparepart_template(id, sp, spare_statuses, mode) %}
+<div class="card mb-3" id="spare-card-{{id}}">
+<div class="card-body img-wrapper">
+<div class="img-responsive">
+<form id="spare-form-{{id}}" class="row gy-1 needs-validation" novalidate>
+    <div class="input-group input-group-sm ">
+        <label class="input-group-text bg-secondary col-1">Pièce</label>
+        <input class="form-control" id="spare-new-item-{{id}}" placeholder="Description de la pièce" required {% if mode == "view" %}readonly{% endif %} {% if mode != "new" %}value="{{sp.item}}"{% endif %} autocomplete="off">
+        <div class="col-1"></div>
+        <label class="input-group-text bg-secondary col-1">Statut</label>
+        <span class="col-3">
+            <select class="form-select form-select-sm" id="spare-new-status-{{id}}" {% if mode == "view" %}disabled{% endif %}>
+                {% for spt in spare_statuses %}
+                    <option value="{{spt.id}}" {% if mode != "new" and spt.id == sp.spare_status.id %}selected{% endif %}>{{spt.label}}</option>
+                {% endfor %}
+            </select>
+        </span>
+    </div>
+    <div class="input-group input-group-sm">
+        <label class="input-group-text bg-secondary col-1">Source</label>
+        <input class="form-control" type="string" id="spare-new-source-{{id}}" placeholder="Origine de la pièce détachée" {% if mode == "view" %}readonly{% endif %} {% if mode != "new" %}value="{{sp.source}}"{% endif %} autocomplete="off">
+    </div>
+    <div class="input-group input-group-sm">
+        <label class="col-1 input-group-text bg-secondary">Note</label>
+        <textarea class="form-control"  id="spare-new-note-{{id}}" rows=2 {% if mode == "view" %}readonly{% endif %} autocomplete="off">{% if mode != "new" %}{{sp.note}}{% endif %}</textarea>
+    </div>
+    <div class="input-group input-group-sm">
+        {% if mode == "view" %}
+        <button class="btn btn-danger delete-spare" onclick="del_part({{id}})">Effacer</button>
+        <button style="margin-left: auto;" class="btn btn-primary" id="updateBtn-{{id}}">Editer</button>
+        {% else %}
+            {% if mode == "new" %}
+            <button style="margin-left: auto;" class="btn btn-success" id="new-spare-{{id}}">Nouveau</button>
+            {% else %}
+            <button style="margin-left: auto;" class="btn btn-warning" id="updateBtn-{{id}}">Mettre à jour</button>
+            {% endif %}
+        {% endif %}
+    </div>
+</form>
+</div>
+{% if mode != "new" %}
+<div class="img-overlay-badge">
+    <span class="badge bg-info badge-label">{{id}}</span>
+</div>
+{% endif %}
+</div>
+</div>
+{% endmacro %}
+
+{% from "log_template.html" import log_script %}
+
+{% macro sparepart_list(r, splist, spare_statuses) %}
+    <div id="spare-list">
+        {% for sp in splist %}
+            {{ sparepart_template(sp.id, sp, spare_statuses, "view") }}
+        {% endfor %} 
+        {{ sparepart_template(0, {}, spare_statuses, "new") }}
+    </div>
+    <script type="text/javascript">
+      function del_part(id) {
+        $.ajax({
+            type: 'GET',
+            url: '{{url_for("api.del_spare", repair_id=r.id)}}',
+            data: { id: id },
+            success: function(data) {
+                $("#spare-card-"+id).remove();
+            }});
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+      }
+      $("#new-spare-0").on("click", 
+          function(event) {
+            if (!$("#spare-new-item-0")[0].checkValidity()) {
+              return true;
+            }
+            $.ajax({
+                type: 'GET',
+                url: '{{url_for("api.new_spare", repair_id=r.id)}}',
+                data: { item: $("#spare-new-item-0").val(),
+                        status_id: $("#spare-new-status-0").val(),
+                        source: $("#spare-new-source-0").val(),
+                        note: $("#spare-new-note-0").val()
+                },
+                success: function(data) {
+                    $(data["sparepart"]).insertBefore($("#spare-card-0"))
+                    $("#spare-new-item-0").val("");
+                    $("#spare-new-status-0").val("0");
+                    $("#spare-new-source-0").val("");
+                    $("#spare-new-note-0").val("");
+                    add_log(data["log"])
+                },
+                error: function(xhr, ajaxOptions, thrownError) {
+                }
+            });
+            return false;
+    });
+    </script>
+    {{ log_script() }}
+{% endmacro %}
+
