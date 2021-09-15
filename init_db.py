@@ -56,17 +56,4 @@ with create_app().app_context():
             line = line.strip()
             db.session.add(Brand(name=line))
 
-    db.session.add(Repair(
-    		id="210911-001",
-    		created=datetime(2021, 9, 11, 10, 00),
-    		name="Jean Senellart",
-		    category_id = 1,
-		    brand_id= Brand.query.filter_by(name="PHILIPS")[0].id,
-		    initial_state_id=1,
-		    current_state_id=1,
-            close_status_id=1,
-		    otype="Perceuse",
-		    model="XM-3",
-		    description="ne fonctionne pas"))
-
     db.session.commit()
