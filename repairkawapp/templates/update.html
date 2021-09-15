@@ -15,11 +15,11 @@
   <div class="card-body">
 <form class="row gy-1 needs-validation" novalidate  method="POST" action="/edit">
   <div class="input-group">
-    <span class="input-group-text bg-secondary">Date</span>
+    <span class="input-group-text bg-secondary col-2">Date</span>
     <input type="string" class="form-control" id="exampleFormControlInput1" readonly name="date" value="{{r['created'].strftime('%Y-%m-%d')}}" readonly>
   </div>
   <div class="input-group">
-    <span class="input-group-text bg-secondary">Nom </span>
+    <span class="input-group-text bg-secondary col-2">Nom</span>
     <input type="name" class="form-control" id="exampleFormControlInput1" name="name" placeholder="Nom (Prénom)" required value="{{r['name']}}" readonly>
     <div class="invalid-feedback">
       Nom obligatoire !
@@ -27,11 +27,11 @@
   </div>
   <div class="input-group">
     {% if r['email'] %}
-    <span class="input-group-text bg-secondary">Email</span>
+    <span class="input-group-text bg-secondary col-2">Email</span>
     <input type="email" class="form-control" id="exampleFormControlInput1" name="email" placeholder="name@example.com" value="{{r['email']}}" readonly>
     {% endif %}
     {% if r['phone'] %}
-    <span class="input-group-text bg-secondary">Téléphone</span>
+    <span class="input-group-text bg-secondary col-2">Téléphone</span>
     <input type="text" class="form-control" id="exampleFormControlInput1" name="phone" placeholder="0612345678" oninput="check_phone(this)" value="{{r['phone']}}" readonly>
     {% endif %}
   </div>
@@ -47,9 +47,9 @@
     </div>
   </div>
   <div class="input-group">
-        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">Marque</span>
+        <span class="input-group-text bg-secondary col-2" id="inputGroup-sizing-default">Marque</span>
         <input style="text-transform: uppercase;" type="text" id="brand" name="brand" class="form-control" required placeholder="LAMARQUE / INCONNU" value="{{r['brand'].name}}" readonly>
-        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">Modèle</span>
+        <span class="input-group-text bg-secondary col-2" id="inputGroup-sizing-default">Modèle</span>
         <input type="text" class="form-control" name="model" readonly value="{{r['model']}}" readonly>
   </div>
   <div class="input-group input-group-sm">
@@ -68,7 +68,7 @@
     {% endif %}
   </div>
   <div class="input-group">
-    <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">État Initial</span>
+    <span class="input-group-text bg-secondary col-3" id="inputGroup-sizing-default">État Initial</span>
     <select class="form-select" name="initial_state" id="validationCustom04" required disabled>
       <option disabled value="">Choisir...</option>
     {% for state in states %}
@@ -81,7 +81,7 @@
     </select>
   </div>
   <div class="input-group">
-      <span class="input-group-text bg-secondary">Problème</span>
+      <span class="input-group-text bg-secondary col-3">Problème</span>
       <textarea class="form-control" name="description" required readonly>{{r['description']}}</textarea>
   </div>
 
@@ -108,7 +108,7 @@
   <div class="input-group">
     <span class="col-3 input-group-text bg-primary" id="inputGroup-sizing-default">État actuel</span>
     <input type=string name="previous_state" hidden value="{{r['current_state'].id}}">
-    <select class="col-9 form-select" name="current_state" id="validationCustom04" required {{r.close_status.id>0 and "disabled"}}>
+    <select class="col-9 form-select" name="current_state" id="validationCustom04" required {{r.close_status.id>1 and "disabled"}}>
       <option disabled value="">Choisir...</option>
     {% for state in states %}
       {% if state.id == r['current_state'].id %}
@@ -152,7 +152,7 @@
     <input id="closeChoice" name="closeChoice" hidden>
     <div class="dropdown" id="closeDropdown">
       <button class="btn btn-warning dropdown-toggle" id="close_button" type="button" data-bs-toggle="dropdown" data-bs-target="#ModalClose" disabled>
-        {% if r.close_status.id == 0 %}
+        {% if r.close_status.id == 1 %}
           Clore la fiche
         {% else %}
           Réouvrir la fiche
@@ -161,7 +161,7 @@
       </button>
       <ul class="dropdown-menu dropdown-category" id="close_list">
     {% for status in closestatus %}
-      {% if (r.close_status.id ==0 and status.id == 0) or (r.close_status.id != 0 and status.id != 0) %}
+      {% if (r.close_status.id == 1 and status.id == 1) or (r.close_status.id != 1 and status.id != 1) %}
         <li style="display:none"><a class="dropdown-item dropdown-modal" href="#" onclick="openModal({{status.id}})">{{status.label}}</a></li>
       {% else %}
         <li><a class="dropdown-item dropdown-modal" href="#" onclick="openModal({{status.id}})">{{status.label}}</a></li>
@@ -184,7 +184,7 @@
       </div>
       <div class="modal-body">
         Êtes-vous sûr(e) de vouloir
-        {% if r.close_status.id == 0 %}
+        {% if r.close_status.id == 1 %}
           clore
         {% else %}
           réouvrir
@@ -260,37 +260,47 @@
   </div>
 </div>
 
-<div style="display: none" class="modal fade" id="confirmDeleteModal" aria-hidden="true" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalToggleLabel">Confirmation</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        Vous êtes sur le point d'effacer l'image: <span id="confirmDeleteModalImage"></span> !
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-        <button type="button" class="btn btn-danger" id="confirmDeleteButton">Je confirme</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <nav>
 <ul class="nav nav-tabs mb-3" id="nav-tab" role="tablist">
   <li class="nav-item">
-    <a class="nav-link active" id="nav-notes-tab" data-bs-toggle="tab" data-bs-target="#nav-notes" type="button" role="tab" aria-controls="nav-notes" aria-selected="true" href="#notes">Notes</a>
+    <a class="nav-link active position-relative" id="nav-notes-tab" data-bs-toggle="tab" data-bs-target="#nav-notes" type="button" role="tab" aria-controls="nav-notes" aria-selected="true" href="#notes">
+      Notes
+      {% if notes.count() %}
+      <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info">
+          {{notes.count()}}
+      </span>
+      {% endif %}
+  </a>
   </li>
   <li class="nav-item">
-    <a class="nav-link" id="nav-pictures-tab" data-bs-toggle="tab" data-bs-target="#nav-pictures" type="button" role="tab" aria-controls="nav-pictures" aria-selected="true" href="#pictures">Photos</a>
+    <a class="nav-link position-relative" id="nav-pictures-tab" data-bs-toggle="tab" data-bs-target="#nav-pictures" type="button" role="tab" aria-controls="nav-pictures" aria-selected="true" href="#pictures">
+      Photos
+      {% if images|length %}
+      <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info">
+          {{images|length}}
+      </span>
+      {% endif %}
+    </a>
   </li>
   <li class="nav-item">
-    <a class="nav-link" id="nav-spareparts-tab" data-bs-toggle="tab" data-bs-target="#nav-spareparts" type="button" role="tab" aria-controls="nav-spareparts" aria-selected="true" href="#spareparts">Pièces Détachées</a>
+    <a class="nav-link position-relative" id="nav-spareparts-tab" data-bs-toggle="tab" data-bs-target="#nav-spareparts" type="button" role="tab" aria-controls="nav-spareparts" aria-selected="true" href="#spareparts">
+      Pièces Détachées
+      {% if splist.count() %}
+      <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info">
+          {{splist.count()}}
+      </span>
+      {% endif %}
+    </a>
   </li>
   <li class="nav-item">
-    <a class="nav-link" id="nav-logs-tab" data-bs-toggle="tab" data-bs-target="#nav-logs" type="button" role="tab" aria-controls="nav-logs" aria-selected="true" href="#logs">Activité</a>
+    <a class="nav-link position-relative" id="nav-logs-tab" data-bs-toggle="tab" data-bs-target="#nav-logs" type="button" role="tab" aria-controls="nav-logs" aria-selected="true" href="#logs">
+      Activité
+      {% if logs.count() %}
+      <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info">
+          {{logs.count()}}
+      </span>
+      {% endif %}
+    </a>
   </li>
 </ul>
 </nav>
@@ -309,7 +319,7 @@
           <div class="img-wrapper">
             <img class="img-responsive img-fluid img-thumbnail" src="{{url_for('main.media_file', filename=p[2])}}" alt="">
             <div class="img-overlay">
-              <button type="button" class="btn btn-danger" onclick="delete_image_dialog({{p[0]}},'{{p[1]}}')">
+              <button type="button" class="btn btn-danger" onclick="delete_image({{p[0]}},'{{p[1]}}')">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                   <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"></path>
                   <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"></path>
@@ -360,21 +370,29 @@
             });
         });
     });
-    function delete_image_dialog(id, path) {
-      $("#confirmDeleteModalImage").html(path);
-      $("#confirmDeleteButton").attr("onclick", "delete_image("+id+",'"+path+"')");
-      $("#confirmDeleteModal").modal("show");
-      return false;
-    }
     function delete_image(id, path) {
-      $.ajax({url: "/deleteimg/{{r.id}}/"+path}).done(function() {
-        console.log(id, path, $(".oneimg:nth("+id+")"));
-        $(".oneimg:nth("+id+")").hide();
-        $(".carousel-item:nth("+id+")").attr("ng-show", 1);
-        $("#confirmDeleteModal").modal("hide");
-        $("#galleryModal").modal("hide");
+
+        $.confirm({
+            title: 'Confirmation !',
+            content: 'Voulez-vous effacer cette Image ?',
+            buttons: {
+                Oui: {
+                    action: function () {
+                      $.ajax({url: "/deleteimg/{{r.id}}/"+path}).done(function() {
+                        $(".oneimg:nth("+id+")").hide();
+                        $(".carousel-item:nth("+id+")").attr("ng-show", 1);
+                        $("#galleryModal").modal("hide");
+                        return false;
+                      })
+                    },
+                    btnClass: 'btn-red'
+                },
+                Non: {}
+            }
+        });
+        event.preventDefault();
+        event.stopPropagation();
         return false;
-      })
     }
     </script>
   </div>

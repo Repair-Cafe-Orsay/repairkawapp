@@ -40,7 +40,7 @@
 </div>
 {% if mode != "new" %}
 <div class="img-overlay-badge">
-    <span class="badge bg-info badge-label">{{id}}</span>
+    <span class="badge bg-info badge-label">Pièce #{{id}}</span>
 </div>
 {% endif %}
 </div>
@@ -58,16 +58,28 @@
     </div>
     <script type="text/javascript">
       function del_part(id) {
-        $.ajax({
-            type: 'GET',
-            url: '{{url_for("api.del_spare", repair_id=r.id)}}',
-            data: { id: id },
-            success: function(data) {
-                $("#spare-card-"+id).remove();
-            }});
-            event.preventDefault();
-            event.stopPropagation();
-            return false;
+        $.confirm({
+            title: 'Confirmation !',
+            content: 'Voulez-vous effacer cette Fiche Pièce ?',
+            buttons: {
+                Oui: {
+                    action: function () {
+                        $.ajax({
+                            type: 'GET',
+                            url: '{{url_for("api.del_spare", repair_id=r.id)}}',
+                            data: { id: id },
+                            success: function(data) {
+                                $("#spare-card-"+id).remove();
+                            }})
+                    },
+                    btnClass: 'btn-red'
+                },
+                Non: {}
+            }
+        });
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
       }
       $("#new-spare-0").on("click", 
           function(event) {
