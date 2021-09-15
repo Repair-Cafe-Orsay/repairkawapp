@@ -152,7 +152,6 @@ def get_update(id):
     images_idx = []
     for p in images:
         images_idx.append((len(images_idx), p.split("/")[-1], "cache/"+thumb.get_thumbnail(p.split("/")[-1], "200x200").split("/")[-1]))
-    print(list(SpareChange.query.filter_by(repair_id=id).order_by(SpareChange.id.asc())))
     return render_template('update.html',
                            name=current_user.name,
                            categories=Category.query.all(),
