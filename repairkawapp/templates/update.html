@@ -151,7 +151,7 @@
     <div style="margin-right:auto"></div>
     <input id="closeChoice" name="closeChoice" hidden>
     <div class="dropdown" id="closeDropdown">
-      <button class="btn btn-warning dropdown-toggle" id="close_button" type="button" data-bs-toggle="dropdown" data-bs-target="#ModalClose" disabled>
+      <button class="btn btn-warning dropdown-toggle" id="close_button" type="button" data-bs-toggle="dropdown" disabled>
         {% if r.close_status.id == 1 %}
           Clore la fiche
         {% else %}
@@ -162,9 +162,9 @@
       <ul class="dropdown-menu dropdown-category" id="close_list">
     {% for status in closestatus %}
       {% if (r.close_status.id == 1 and status.id == 1) or (r.close_status.id != 1 and status.id != 1) %}
-        <li style="display:none"><a class="dropdown-item dropdown-modal" href="#" onclick="openModal({{status.id}})">{{status.label}}</a></li>
+        <li style="display:none"><a class="dropdown-item dropdown-modal" href="#" onclick="closeTicket({{status.id}})">{{status.label}}</a></li>
       {% else %}
-        <li><a class="dropdown-item dropdown-modal" href="#" onclick="openModal({{status.id}})">{{status.label}}</a></li>
+        <li><a class="dropdown-item dropdown-modal" href="#" onclick="closeTicket({{status.id}})">{{status.label}}</a></li>
       {% endif %}
     {% endfor %}
       </ul>
@@ -175,53 +175,16 @@
 </div>
 </div>
 
-<div class="modal fade" id="ModalClose" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">Confirmation</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        Êtes-vous sûr(e) de vouloir
-        {% if r.close_status.id == 1 %}
-          clore
-        {% else %}
-          réouvrir
-        {% endif %}
-        cette fiche ?
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Non</button>
-        <button type="button" id="closeStatusConfirm" class="btn btn-warning">Je confirme</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script>
   window.close_choice = 0
   $("#note").on("change keyup paste", function() {
     if ($("#note").val().length==0) { $("#close_button").attr("disabled", "1"); }
     else { $("#close_button").removeAttr("disabled"); }
   });
-  function openModal(id) {
-    $("#closeStatusConfirm").html("Je confirme \""+$("#close_list a")[id].text+"\"");
-    window.close_choice = id
-    $("#ModalClose").modal("show");
-  };
-  $("#ModalClose").on('show.bs.modal', function (event) {
-    // Button that triggered the modal
-    var elt = event
-    // Extract info from data-bs-* attributes
-  });
-  $("#closeStatusConfirm").on("click", function(event) {
-    if (parseInt(window.close_choice) == 0) {
-      $("#ModalClose").modal("hide");
-    }
-    $("#closeChoice").val(window.close_choice);
+  function closeTicket(id) {
+    $("#closeChoice").val(id);
     $("#changeform").submit();
-  });
+  };
   $("#updateBtn").on("click", function(event) {
     $("#closeChoice").val("");
     $("#changeform").submit();
