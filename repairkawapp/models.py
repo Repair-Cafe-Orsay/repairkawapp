@@ -65,7 +65,7 @@ class Repair(db.Model):
     validated = db.Column(db.Boolean)
     users = db.relationship("User",
                             secondary=repair_user)
-    close_status_id = db.Column(db.Integer, db.ForeignKey('closestatus.id'), nullable=False, default=0)
+    close_status_id = db.Column(db.Integer, db.ForeignKey('closestatus.id'), nullable=False, default=1)
     close_status = db.relationship("CloseStatus", foreign_keys=[close_status_id])
     location = db.Column(db.String(50), default="")
 

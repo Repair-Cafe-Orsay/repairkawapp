@@ -2,9 +2,10 @@ import os
 import glob
 from flask import current_app, Blueprint, request, jsonify, render_template
 from flask_login import login_user, logout_user, login_required, current_user
+from flask_mail import Message
 from werkzeug.utils import secure_filename
 from .models import Brand, Repair, User, SpareStatus, SpareChange, Note, Log
-from . import db
+from . import db, mail
 
 api = Blueprint('api', __name__)
 
@@ -110,3 +111,14 @@ def repairsearch():
                     "next_num": repairs.next_num,
                     "prev_num": repairs.prev_num})
     return json
+
+@api.route('/sendmail')
+def sendmail():
+    msg = Message( 
+                'Hello', 
+                sender ='app@repaircafe-orsay.org', 
+                recipients = ['jean@repaircafe-orsay.org'] 
+    ) 
+    msg.body = 'Hello Flask message sent from Flask-Mail'
+    mail.send(msg)
+    return jsonify(True)

@@ -40,16 +40,16 @@ with create_app().app_context():
     db.session.add(State(id=4, label="Fonctionne bien mais problème aspect majeur"))
     db.session.add(State(id=5, label="Fonctionne bien sans problème aspect majeur"))
 
-    db.session.add(CloseStatus(label="🛠 En cours..."))
-    db.session.add(CloseStatus(label="😊 Réparé !"))
-    db.session.add(CloseStatus(label="😬 Partiellement/Conseil"))
-    db.session.add(CloseStatus(label="😓 Non..."))
+    db.session.add(CloseStatus(id=1, label="🛠 En cours..."))
+    db.session.add(CloseStatus(id=2, label="😊 Réparé !"))
+    db.session.add(CloseStatus(id=3, label="😬 Partiellement/Conseil"))
+    db.session.add(CloseStatus(id=4, label="😓 Non..."))
 
-    db.session.add(SpareStatus(label="📌 Identifié"))
-    db.session.add(SpareStatus(label="🔍 En recherche"))
-    db.session.add(SpareStatus(label="⏳ En attente"))
-    db.session.add(SpareStatus(label="🛠 À remplacer"))
-    db.session.add(SpareStatus(label="👌 Remplacé"))
+    db.session.add(SpareStatus(id=1, label="📌 Identifié"))
+    db.session.add(SpareStatus(id=2, label="🔍 En recherche"))
+    db.session.add(SpareStatus(id=3, label="⏳ En attente"))
+    db.session.add(SpareStatus(id=4, label="🛠 À remplacer"))
+    db.session.add(SpareStatus(id=5, label="👌 Remplacé"))
 
     with open("data/brand.txt") as f:
         for line in f:
