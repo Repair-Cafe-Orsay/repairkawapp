@@ -6,18 +6,12 @@ from datetime import datetime
 with create_app().app_context():
     db.create_all()
 
-    db.session.add(User(email="jean@senellart.com",
-                        name="Jean S",
-                        password=generate_password_hash("password", method='sha256')))
-    db.session.add(User(email="agathe@senellart.com",
-                        name="Agathe S",
-                        password=generate_password_hash("password", method='sha256')))
-    db.session.add(User(email="-1",
-                        name="Arnaud B",
-                        password=generate_password_hash("password", method='sha256')))
-    db.session.add(User(email="-2",
-                        name="Bertrand R",
-                        password=generate_password_hash("password", method='sha256')))
+    with open("data/users.txt") as f:
+        for line in f:
+            (email, name) = line.strip().split("\t")
+            db.session.add(User(email=email,
+                                name=name,
+                                password=generate_password_hash("password-rco", method='sha256')))
 
     db.session.add(Category(rm_icon_id=1678, name="Électroménager"))
     db.session.add(Category(rm_icon_id=5343, name="Article ménager non électrique"))
