@@ -1,11 +1,11 @@
 from flask import Flask
 from flask_login import LoginManager
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy, BaseQuery
 from flask_thumbnails import Thumbnail
 from flask_mail import Mail
 import os
 
-db = SQLAlchemy()
+db = SQLAlchemy(query_class=BaseQuery)
 thumb = None
 mail = None
 
