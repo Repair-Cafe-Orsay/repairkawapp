@@ -30,7 +30,7 @@ def new_spare(repair_id):
     db.session.commit()
     return jsonify({
             "sparepart": render_template('sparepart.html',sp=sp,
-                                          spare_statuses=SpareStatus.query.order_by(SpareStatus.name).all()),
+                                          spare_statuses=SpareStatus.query.order_by(SpareStatus.id).all()),
             "log": render_template('log.html', log=l)})
 
 @api.route('/del_spare/<string:repair_id>')
