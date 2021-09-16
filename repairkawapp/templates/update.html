@@ -5,7 +5,7 @@
 
 {% block content %}
 
-<h1 class="fw-light text-center text-lg-start mt-4 mb-0">Fiche {{r['id']}} - {{r.close_status.label}}</h1>
+<h1 class="fw-light text-center text-lg-start mt-4 mb-0">Fiche {{r['display_id']}} - {{r.close_status.label}}</h1>
 <hr class="mt-2 mb-3">
 <div class="row mb-3">
 <div class="card border-secondary col-sm-12 col-lg-6 update rounded g-0">
@@ -104,11 +104,11 @@
     Avancement
   </div>
   <div class="card-body">
-<form id="changeform" class="row gy-1 needs-validation" novalidate  method="POST" action="{{url_for('main.update_object',id=r['id'])}}">
+<form id="changeform" class="row gy-1 needs-validation" novalidate  method="POST" action="{{url_for('main.update_object',id=r['display_id'])}}">
   <div class="input-group">
     <span class="col-3 input-group-text bg-primary" id="inputGroup-sizing-default">État actuel</span>
     <input type=string name="previous_state" hidden value="{{r['current_state'].id}}">
-    <select class="col-9 form-select" name="current_state" id="validationCustom04" required {{r.close_status.id>1 and "disabled"}}>
+    <select class="col-9 form-select" name="current_state" required>
       <option disabled value="">Choisir...</option>
     {% for state in states %}
       {% if state.id == r['current_state'].id %}
@@ -176,7 +176,6 @@
 </div>
 
 <script>
-  window.close_choice = 0
   $("#note").on("change keyup paste", function() {
     if ($("#note").val().length==0) { $("#close_button").attr("disabled", "1"); }
     else { $("#close_button").removeAttr("disabled"); }
@@ -312,7 +311,7 @@
             $('#alert_upload').fadeOut();
             $.ajax({
                 type: 'POST',
-                url: '{{url_for("api.post_file", repair_id=r.id)}}',
+                url: '{{url_for("api.post_file", repair_id=r.display_id)}}',
                 data: form_data,
                 contentType: false,
                 cache: false,

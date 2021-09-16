@@ -29,7 +29,8 @@ def new_spare(repair_id):
     db.session.add(l)
     db.session.commit()
     return jsonify({
-            "sparepart": render_template('sparepart.html',sp=sp, spare_statuses=SpareStatus.query.all()),
+            "sparepart": render_template('sparepart.html',sp=sp,
+                                          spare_statuses=SpareStatus.query.order_by(SpareStatus.name).all()),
             "log": render_template('log.html', log=l)})
 
 @api.route('/del_spare/<string:repair_id>')
@@ -82,16 +83,16 @@ def repairsearch():
     status = request.args.get("status")
     if status != "all":
         if status == "opened":
-            repairs = repairs.filter_by(close_status_id=0)
+            repairs = repairs.filter_by(close_status_id=1)
         else:
-            repairs = repairs.filter(Repair.close_status_id > 0)
+            repairs = repairs.filter(Repair.close_status_id > 1)
     user = request.args.get("user")
     if user:
         repairs = repairs.join(User, Repair.users).filter_by(id=int(user))
 
     if searchValue:
         repairs = repairs.join(Brand)
-        repairs = repairs.filter(Repair.id.like(searchValue+'%')|
+        repairs = repairs.filter(Repair.display_id.like(searchValue+'%')|
                                  Repair.name.like('%'+searchValue+'%')|
                                  Repair.otype.like('%'+searchValue+'%')|
                                  Brand.name.like(searchValue+'%'))
@@ -99,7 +100,7 @@ def repairsearch():
         repairs = repairs.filter_by(category_id=request.args.get('category'))
     nbFiltered = repairs.count()
     repairs = repairs.order_by(Repair.registered.desc()).paginate(page, length, False)
-    json=jsonify({"repairs": [{"id":r.id,"name":r.name,"category":r.category.name,"otype":r.otype,
+    json=jsonify({"repairs": [{"id":r.display_id,"name":r.name,"category":r.category.name,"otype":r.otype,
                     "brand": r.brand and r.brand.name or "", "close_status": r.close_status.label[0]}
                                                        for r in repairs.items],
                  "draw": request.args.get('draw', 1, type=int),
