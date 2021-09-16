@@ -42,7 +42,8 @@ repair_user = db.Table('association_repair_user', db.Model.metadata,
 
 class Repair(db.Model):
     __tablename__ = 'repair'
-    id = db.Column(db.String(11), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    display_id = db.Column(db.String(11), unique=True)
     created = db.Column(db.Date(), nullable=False)
     registered = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
     name = db.Column(db.String(200))
@@ -76,7 +77,7 @@ class Note(db.Model):
     user = db.relationship("User")
     date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
     content = db.Column(db.Text)
-    repair_id = db.Column(db.String(11), db.ForeignKey('repair.id'), nullable=False)
+    repair_id = db.Column(db.Integer, db.ForeignKey('repair.id'), nullable=False)
     repair = db.relationship("Repair", foreign_keys=[repair_id])
 
 class Log(db.Model):
@@ -86,7 +87,7 @@ class Log(db.Model):
     user = db.relationship("User")
     date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
     content = db.Column(db.Text)
-    repair_id = db.Column(db.String(11), db.ForeignKey('repair.id'), nullable=False)
+    repair_id = db.Column(db.Integer, db.ForeignKey('repair.id'), nullable=False)
     repair = db.relationship("Repair", foreign_keys=[repair_id])
 
 class SpareStatus(db.Model):
@@ -102,7 +103,7 @@ class SpareChange(db.Model):
     note = db.Column(db.Text, default="")
     spare_status_id = db.Column(db.Integer, db.ForeignKey('sparestatus.id'), nullable=False, default=0)
     spare_status = db.relationship("SpareStatus", foreign_keys=[spare_status_id])
-    repair_id = db.Column(db.String(11), db.ForeignKey('repair.id'), nullable=False)
+    repair_id = db.Column(db.Integer, db.ForeignKey('repair.id'), nullable=False)
     repair = db.relationship("Repair", foreign_keys=[repair_id])
 
 class CloseStatus(db.Model):

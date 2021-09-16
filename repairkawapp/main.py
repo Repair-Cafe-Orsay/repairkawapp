@@ -16,8 +16,8 @@ LOCAL_TIMEZONE = pytz.timezone('Europe/Paris')
 def index():
     return render_template('index.html',
                            name=current_user.name,
-                           categories=Category.query.all(),
-                           users=User.query.all())
+                           categories=Category.query.order_by(Category.name).all(),
+                           users=User.query.order_by(User.name).all())
 
 @main.route('/profile')
 @login_required
@@ -28,8 +28,8 @@ def profile():
 @login_required
 def categories():
     return render_template('form_new.html', today=date.today(),
-                           categories=Category.query.all(),
-                           states=State.query.all(),
+                           categories=Category.query.order_by(Category.name).all(),
+                           states=State.query.order_by(State.id).all(),
                            name=current_user.name,
                            to_print=request.args.get("to_print"))
 
@@ -60,10 +60,10 @@ def post_new_object():
     date = datetime.strptime(request.form['date'], '%Y-%m-%d')
     value = request.form["value"] and float(request.form["value"]) or None
     year = request.form["year"] and int(request.form["year"]) or None
-    repair_id = get_repairid(date, request.form["manual_id"])
+    display_id = get_repairid(date, request.form["manual_id"])
 
     r = Repair(
-        id = repair_id,
+        display_id = display_id,
         created = date,
         name = request.form["name"],
         email = request.form["email"],
@@ -82,12 +82,12 @@ def post_new_object():
     )
 
     db.session.add(r)
-    n = Log(user_id=current_user.id, content="Création de la fiche", repair_id=r.id)
+    n = Log(user_id=current_user.id, content="Création de la fiche", repair=r)
     db.session.add(n)
 
     db.session.commit()
 
-    return redirect(url_for("main.update_object", id=r.id), code=302)
+    return redirect(url_for("main.update_object", id=r.display_id), code=302)
 
 @main.route('/media/<path:filename>')
 def media_file(filename):
@@ -96,7 +96,7 @@ def media_file(filename):
 @main.route('/update/<string:id>', methods=['POST'])
 @login_required
 def update_object(id):
-    r = db.session.query(Repair).filter_by(id=id).first()
+    r = db.session.query(Repair).filter_by(display_id=id).first()
 
     if request.method == 'POST':
         current_users = sorted(request.form.getlist('users'))
@@ -107,45 +107,46 @@ def update_object(id):
         current_location = request.form.get('current_location')
         note = request.form.get('note')
         change = False
-        closeChoice = int(request.form.get('closeChoice') or 1)
-        if closeChoice:
+        closeChoice = request.form.get('closeChoice')
+        closeChoice = closeChoice and int(request.form.get('closeChoice')) or 0
+        if closeChoice > 1:
             new_close_status = db.session.query(CloseStatus).filter_by(id=closeChoice).first()
-            db.session.add(Log(user_id=current_user.id, repair_id=id,
+            db.session.add(Log(user_id=current_user.id, repair=r,
                                content="Fermeture fiche (%s)" % new_close_status.label))
             r.close_status = db.session.query(CloseStatus).filter_by(id=closeChoice).first()
             change = True
-        elif r.close_status.id > 1:
-            db.session.add(Log(user_id=current_user.id, repair_id=id,
+        elif closeChoice == 1:
+            db.session.add(Log(user_id=current_user.id, repair=r,
                                content="Réouverture fiche"))
             r.close_status = db.session.query(CloseStatus).filter_by(id=closeChoice).first()
             change = True
         if current_users != previous_users: 
             r.users = [db.session.query(User).filter_by(id=uid).first() for uid in current_users]
-            db.session.add(Log(user_id=current_user.id, repair_id=id,
+            db.session.add(Log(user_id=current_user.id, repair=r,
                                content="Réparateurs changés (→ %s)" % ", ".join([u.name for u in r.users])))
             change = True
         if current_state is not None and previous_state != current_state:
             r.current_state_id=int(current_state)
-            db.session.add(Log(user_id=current_user.id, repair_id=id,
+            db.session.add(Log(user_id=current_user.id, repair=r,
                                content="Etat changé (→ %s)" % r.current_state.label))
             change = True
         if current_location != previous_location:
             r.location = current_location
-            db.session.add(Log(user_id=current_user.id, repair_id=id,
+            db.session.add(Log(user_id=current_user.id, repair=r,
                                content="Localisation changé (→ '%s')" % current_location))
             change = True
         if note:
-            n = Note(user_id=current_user.id, content=note, repair_id=id)
+            n = Note(user_id=current_user.id, content=note, repair=r)
             db.session.add(n)
             change = True
         if change:
             db.session.commit()
-    return redirect(url_for("main.get_update", id=r.id), code=302)
+    return redirect(url_for("main.get_update", id=r.display_id), code=302)
 
 @main.route('/update/<string:id>', methods=['GET'])
 @login_required
 def get_update(id):
-    r = db.session.query(Repair).filter_by(id=id).first()
+    r = db.session.query(Repair).filter_by(display_id=id).first()
 
     # get image list
     images = glob.glob(os.path.join(current_app.config['UPLOAD_FOLDER'], id+"_*"))
@@ -154,14 +155,14 @@ def get_update(id):
         images_idx.append((len(images_idx), p.split("/")[-1], "cache/"+thumb.get_thumbnail(p.split("/")[-1], "200x200").split("/")[-1]))
     return render_template('update.html',
                            name=current_user.name,
-                           categories=Category.query.all(),
-                           states=State.query.all(),
-                           users=User.query.all(),
-                           notes=Note.query.filter_by(repair_id=id).order_by(Note.id.desc()),
-                           logs=Log.query.filter_by(repair_id=id).order_by(Log.id.desc()),
+                           categories=Category.query.order_by(Category.name).all(),
+                           states=State.query.order_by(State.id).all(),
+                           users=User.query.order_by(User.name).all(),
+                           notes=Note.query.filter_by(repair=r).order_by(Note.id.desc()),
+                           logs=Log.query.filter_by(repair=r).order_by(Log.id.desc()),
                            r=r,
                            current_users=[u.id for u in r.users],
-                           closestatus=CloseStatus.query.all(),
+                           closestatus=CloseStatus.query.order_by(CloseStatus.id).all(),
                            images=images_idx,
-                           splist=SpareChange.query.filter_by(repair_id=id).order_by(SpareChange.id.asc()),
-                           spare_statuses=SpareStatus.query.all())
+                           splist=SpareChange.query.filter_by(repair=r).order_by(SpareChange.id.asc()),
+                           spare_statuses=SpareStatus.query.order_by(SpareStatus.id).all())
