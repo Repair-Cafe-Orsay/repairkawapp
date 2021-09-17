@@ -59,11 +59,11 @@ def get_repairid(date, manual_id):
             manual_id = ("0000"+manual_id)[-3:]
             incid = 0
             full_id = prefix+manual_id
-            while db.session.query(exists().where(Repair.display_id==full_id)).scalar():
+            while Repair.query.filter_by(display_id=full_id).first():
                 full_id = prefix+manual_id+chr(ord('a')+incid)
                 incid += 1
         return full_id
-    day_repairs = db.session.query(Repair).filter(Repair.display_id.like(prefix + '%'))
+    day_repairs = Repair.query.filter(Repair.display_id.like(prefix + '%'))
     return prefix + "%03d" % (day_repairs.count()+1) 
 
 @main.route('/new', methods=['POST'])
@@ -80,18 +80,17 @@ def post_object():
     value = request.form["value"] and int(request.form["value"]) or None
     weight = request.form["weight"] and int(request.form["weight"]) or None
     year = request.form["year"] and int(request.form["year"]) or None
-    age = request.form["age"] and int(request.form["age"]) or None
-    
+    age = request.form.get("age") and int(request.form["age"]) or None
+
     if not rid:
+        display_id = get_repairid(date, request.form["manual_id"])
         r = Repair()
         db.session.add(r)
         r.current_state = initial_state
     else:
         r = db.session.query(Repair).filter_by(id=rid).first()
-
-    if date is None:
         date = r.created
-    display_id = get_repairid(date, request.form["manual_id"])
+        display_id = get_repairid(date, request.form["manual_id"])
 
     if not rid:
         n = Log(user_id=current_user.id, content="Création de la fiche", repair=r)
