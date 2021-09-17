@@ -1,0 +1,247 @@
+{% macro repair_view(r, states) %}
+<form class="row gy-1 needs-validation">
+  <div class="input-group">
+    <span class="input-group-text bg-secondary col-2">Date</span>
+    <input type="string" class="form-control" readonly value="{{r['created']}}" readonly>
+  </div>
+  <div class="input-group">
+    <span class="input-group-text bg-secondary col-2">Nom</span>
+    <input type="name" class="form-control" placeholder="Nom (Prénom)" required value="{{r['name']}}" readonly>
+  </div>
+  <div class="input-group">
+    {% if r['email'] %}
+    <span class="input-group-text bg-secondary col-2">Email</span>
+    <input type="email" class="form-control" placeholder="name@example.com" value="{{r['email']}}" readonly>
+    {% endif %}
+    {% if r['phone'] %}
+    <span class="input-group-text bg-secondary col-2">Téléphone</span>
+    <input type="text" class="form-control" placeholder="0612345678" oninput="check_phone(this)" value="{{r['phone']}}" readonly>
+    {% endif %}
+  </div>
+  <div class="input-group">
+      <span class="input-group-text bg-secondary product-icon-{{r['category'].rm_icon_id}}">
+        <div class="x-product-icon-1693" style="filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(157deg) brightness(107%) contrast(102%);"></div>&nbsp;
+        {{r['category'].name}}
+      </span>
+    <input class="form-control" style="display: none" id="category" required value="{{r['category'].id}}" readonly>
+    <input class="form-control" placeholder="Type de l'objet" required value="{{r['otype']}}" readonly>
+  </div>
+  <div class="input-group">
+        <span class="input-group-text bg-secondary col-2" id="inputGroup-sizing-default">Marque</span>
+        <input style="text-transform: uppercase;" type="text" id="brand" class="form-control" required placeholder="LAMARQUE / INCONNU" value="{{r['brand'].name}}" readonly>
+        <span class="input-group-text bg-secondary col-2">Modèle</span>
+        <input type="text" class="form-control" readonly value="{{r['model']}}" readonly>
+  </div>
+  <div class="input-group input-group-sm">
+    {% if r['serial_number'] %}
+        <input style="text-transform: uppercase;" type="text" id="sn" class="form-control" value="SN: {{r['serial_number']}}" readonly>
+    {% endif %}
+    {% if r['year'] %}
+        <input type="string" min="1950" max="{{current_year}}" step="1" class="form-control col-1" value="YE: {{r['year']}}" readonly>
+    {% endif %}
+    {% if r['value'] %}
+        <input type="string" min="5" class="form-control col-1" value="{{r['value']}}€" readonly>
+    {% endif %}
+    {% if r['weight'] %}
+        <input type="string" min="5" name="weight" class="form-control col-1" value="{{r and r['weight']}}g" readonly>
+    {% endif %}
+  </div>
+  <div class="input-group">
+    <span class="input-group-text bg-secondary col-3">État Initial</span>
+    <select class="form-select" required disabled>
+      <option disabled value="">Choisir...</option>
+    {% for state in states %}
+      {% if state.id == r['initial_state'].id %}
+        <option selected value="{{state.id}}">{{state.label}}</option>
+      {% else %}
+        <option value="{{state.id}}">{{state.label}}</option>
+      {% endif %}
+    {% endfor %}
+    </select>
+  </div>
+  <div class="input-group">
+      <span class="input-group-text bg-secondary col-3">Problème</span>
+      <textarea class="form-control" required readonly>{{r['description']}}</textarea>
+  </div>
+
+  <div class="input-group">
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" value="1" id="invalidCheck" required disabled {{r['validated'] and 'checked'}}>
+      <label class="form-check-label" for="invalidCheck">
+        Conditions acceptées
+      </label>
+    </div>
+  </div>
+  <div class="input-group">
+    <a style="margin-left: auto" class="btn btn-warning" href="{{url_for('main.edit_repair', repair_id=r.display_id)}}">Modifier</a>
+  </div>
+</form>
+{% endmacro %}
+
+{% macro repair_newedit(r, states, categories, today) %}
+<form class="row gy-3 needs-validation" novalidate  method="POST" action="{{url_for('main.post_object')}}">
+  <input type="string" hidden name="rid" value="{{r and r['id'] or ''}}">
+  <div class="input-group">
+    <span class="input-group-text bg-secondary col-2">Date</span>
+    <input type="date" class="form-control" name="date" value="{{today or r['created']}}" {{r and 'disabled' or ''}}>
+    <div class="col-2"></div>
+    <span class="input-group-text bg-secondary col-2">ID Manuel</span>
+    <input type="string" class="form-control" name="manual_id" placeholder="Facultatif" id="input_manual_id" value="{{r.display_id and r.display_id[7:] or ''}}">
+  </div>
+  <div class="input-group">
+    <span class="input-group-text bg-secondary">Nom</span>
+    <input type="name" class="form-control" name="name" placeholder="Nom (Prénom)" required value="{{r and r['name']}}">
+    <div class="invalid-feedback">
+      Nom obligatoire !
+    </div>
+  </div>
+  <div class="input-group">
+    <span class="input-group-text bg-secondary">Tranche d'âge</span>
+    <div class="form-control">
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="age" value="1" {{r and r['age']==1 and 'checked' or ''}}>
+          <label class="form-check-label" for="inlineRadio1">0-20</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="age" value="2" {{r and r['age']==2 and 'checked' or ''}}>
+          <label class="form-check-label" for="inlineRadio2">21-40</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="age" value="3" {{r and r['age']==3 and 'checked' or ''}}>
+          <label class="form-check-label" for="inlineRadio3">41-60</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="age" value="4" {{r and r['age']==4 and 'checked' or ''}}>
+          <label class="form-check-label" for="inlineRadio3">61+</label>
+        </div>
+    </div>
+  </div>
+  <div class="input-group">
+    <span class="input-group-text bg-secondary">Email</span>
+    <input type="email" class="form-control" id="exampleFormControlInput1" name="email" placeholder="name@example.com" value="{{r and r['email']}}">
+  </div>
+  <div class="input-group">
+    <span class="input-group-text bg-secondary">Téléphone</span>
+    <input type="text" class="form-control" id="exampleFormControlInput1" name="phone" placeholder="0612345678" oninput="check_phone(this)" value="{{r and r['phone']}}">
+  </div>
+  <div class="input-group">
+     <div class="dropdown" id="categoryDropdown">
+      <button class="btnCategory btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown">
+        Catégorie
+        <span class="caret"></span>
+      </button>
+      <ul id="categorySelect" class="dropdown-menu dropdown-category">
+    {% for category in categories %}
+        <li class="product-icon-{{category.rm_icon_id}}">
+          <a class="dropdown-item {{r and r.category.id==category.id and 'cselected' or ''}}" href="#" val={{category.id}}>{{category.name}}</a>
+        </li>
+    {% endfor %}
+      </ul>
+    </div>
+    <input hidden id="category" name="category" required>
+  </div>
+  <div class="input-group">
+    <span class="input-group-text bg-secondary">Type</span>
+    <input class="form-control" id="exampleFormControlInput1" name="otype" placeholder="Type de l'objet" required value="{{r and r['otype']}}">
+    <div class="invalid-feedback">
+        Type et Catégorie obligatoire !
+    </div>
+    <script>
+      /* reloading the page remove the value */
+      if ($("#category").val()) {
+        $("#categoryDropdown button").text($("#categoryDropdown li a[val="+$("#category").val()+"]").text())
+      }
+    </script>
+  </div>
+  <div class="input-group">
+        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">Marque</span>
+        <input style="text-transform: uppercase;" type="text" name="brand" class="form-control" required placeholder="LAMARQUE / INCONNU" value="{{r and r['brand'].name}}">
+        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">Modèle</span>
+        <input type="text" class="form-control" name="model" value="{{r and r['model']}}">
+  </div>
+  <div class="input-group justify-content-around">
+    <div class="card col-3 update rounded">
+      <div class="card-header bg-secondary text-center">
+        SN
+      </div>
+      <div class="card-body card-no-padding">
+        <input style="text-transform: uppercase;" type="text" name="sn" class="form-control" placeholder="SERIAL NUMBER" value="{{r and r['serial_number']}}">
+      </div>
+    </div>
+    <div class="card col-3 update rounded">
+      <div class="card-header bg-secondary text-center">
+        Année
+      </div>
+      <div class="card-body card-no-padding">
+        <input type="number" min="1950" max="{{current_year}}" step="1" name="year" class="form-control col-1" value="{{r and r['year']}}">
+      </div>
+    </div>
+    <div class="card col-3 update rounded">
+      <div class="card-header bg-secondary text-center">
+        Valeur (équivalent neuf)
+      </div>
+      <div class="card-body card-no-padding">
+        <input type="number" min="5" name="value" class="form-control col-1" value="{{r and r['value']}}">
+      </div>
+    </div>
+    <div class="card col-3 update rounded">
+      <div class="card-header bg-secondary text-center">
+        Poids (grammes)
+      </div>
+      <div class="card-body card-no-padding">
+        <input type="number" min="5" name="weight" class="form-control col-1" value="{{r and r['weight']}}">
+      </div>
+    </div>
+  </div>
+  <div class="input-group">
+    <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">État Initial</span>
+    <select class="form-select" name="initial_state" required>
+      <option selected disabled value="">Choisir...</option>
+    {% for state in states %}
+      {% if r and state.id==r['initial_state'].id %}
+        <option selected value="{{state.id}}">{{state.label}}</option>
+      {% else %}
+        <option value="{{state.id}}">{{state.label}}</option>
+      {% endif %}
+    {% endfor %}
+    </select>
+  </div>
+  <div class="input-group justify-content-around repairstatus">
+    <div class="card col-12 update rounded">
+      <div class="card-header bg-secondary text-center">
+        Problème
+      </div>
+      <div class="card-body card-body-textarea">
+        <textarea class="form-control" name="description" required rows=5>{{r and r['description']}}</textarea>
+      </div>
+    </div>
+  </div>
+  
+  <div class="input-group">
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="validated" value="1" id="invalidCheck" required {{r and r['validated'] and 'checked' or ''}}>
+      <label class="form-check-label" for="invalidCheck">
+        Accepter les conditions
+      </label>
+      <div class="invalid-feedback">
+        Vous devez accepter avant de soumettre !
+      </div>
+    </div>
+  </div>
+
+  <div class="input-group">
+    <button class="btn btn-success" type="submit">Envoyer</button>
+  </div>
+
+</form>
+<script type="text/javascript">
+  $('#input_manual_id').on("change keyup paste", function() {
+    if(!$(this).val().match(/^\d{0,3}([^0-9]|)$/))
+    {
+        this.setCustomValidity('Too long');
+    }
+    else
+        this.setCustomValidity('');
+  });
+</script>
+{% endmacro %}

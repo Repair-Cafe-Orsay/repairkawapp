@@ -49,6 +49,7 @@ class Repair(db.Model):
     name = db.Column(db.String(200))
     email = db.Column(db.String(100))
     phone = db.Column(db.String(20))
+    age = db.Column(db.Integer)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
     category = db.relationship("Category")
     brand_id = db.Column(db.Integer, db.ForeignKey('brand.id'), nullable=False)
@@ -61,14 +62,16 @@ class Repair(db.Model):
     model = db.Column(db.String(50), nullable=False)
     serial_number = db.Column(db.String(50))
     year = db.Column(db.Integer)
-    value = db.Column(db.Float)
+    value = db.Column(db.Integer)
+    weight = db.Column(db.Integer)
     description = db.Column(db.Text)
     validated = db.Column(db.Boolean)
     users = db.relationship("User",
                             secondary=repair_user)
     close_status_id = db.Column(db.Integer, db.ForeignKey('closestatus.id'), nullable=False, default=1)
     close_status = db.relationship("CloseStatus", foreign_keys=[close_status_id])
-    location = db.Column(db.String(50), default="")
+    location = db.Column(db.String(50), default="Local")
+
 
 class Note(db.Model):
     __tablename__ = 'note'

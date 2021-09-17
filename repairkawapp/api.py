@@ -88,7 +88,10 @@ def repairsearch():
             repairs = repairs.filter(Repair.close_status_id > 1)
     user = request.args.get("user")
     if user:
-        repairs = repairs.join(User, Repair.users).filter_by(id=int(user))
+        if int(user):
+            repairs = repairs.join(User, Repair.users).filter_by(id=int(user))
+        else:
+            repairs = repairs.outerjoin(User, Repair.users).filter(User.id==None)
 
     if searchValue:
         repairs = repairs.join(Brand)
