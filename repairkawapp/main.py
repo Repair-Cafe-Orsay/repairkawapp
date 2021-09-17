@@ -26,12 +26,22 @@ def profile():
 
 @main.route('/new')
 @login_required
-def categories():
+def new_repair():
     return render_template('form_new.html', today=date.today(),
                            categories=Category.query.order_by(Category.name).all(),
                            states=State.query.order_by(State.id).all(),
                            name=current_user.name,
-                           to_print=request.args.get("to_print"))
+                           r="")
+
+@main.route('/edit/<string:repair_id>')
+@login_required
+def edit_repair(repair_id):
+    return render_template('form_new.html', today=date.today(),
+                           categories=Category.query.order_by(Category.name).all(),
+                           states=State.query.order_by(State.id).all(),
+                           name=current_user.name,
+                           r=db.session.query(Repair).filter_by(display_id=repair_id).first())
+
 
 def get_or_create_brand(brand_name):
     brand = db.session.query(Brand).filter_by(name=brand_name).first()
@@ -42,48 +52,71 @@ def get_or_create_brand(brand_name):
 def get_repairid(date, manual_id):
     prefix = "%02d%02d%02d-" % (date.year-2000, date.month, date.day)
     if manual_id:
-        full_id = prefix+"%03d"%int(manual_id)
-        incid = 0
-        while db.session.query(exists().where(Repair.id==full_id)).scalar():
-            full_id = prefix+"%03d"%int(manual_id) + chr(ord('a')+incid)
-            incid += 1
+        if not manual_id.isdigit():
+            manual_id = ("0000"+manual_id)[-4:]
+            full_id = prefix+manual_id
+        else:
+            manual_id = ("0000"+manual_id)[-3:]
+            incid = 0
+            full_id = prefix+manual_id
+            while db.session.query(exists().where(Repair.display_id==full_id)).scalar():
+                full_id = prefix+manual_id+chr(ord('a')+incid)
+                incid += 1
         return full_id
-    day_repairs = db.session.query(Repair).filter(Repair.id.like(prefix + '%'))
+    day_repairs = db.session.query(Repair).filter(Repair.display_id.like(prefix + '%'))
     return prefix + "%03d" % (day_repairs.count()+1) 
 
 @main.route('/new', methods=['POST'])
 @login_required
-def post_new_object():
+def post_object():
+    rid = request.form.get('rid')
     brand = get_or_create_brand(request.form['brand'])
     category = db.session.query(Category).filter_by(id=request.form["category"]).first()
     initial_state = db.session.query(State).filter_by(id=request.form["initial_state"]).first()
-    date = datetime.strptime(request.form['date'], '%Y-%m-%d')
-    value = request.form["value"] and float(request.form["value"]) or None
+    if request.form.get('date'):
+        date = datetime.strptime(request.form['date'], '%Y-%m-%d')
+    else:
+        date = None
+    value = request.form["value"] and int(request.form["value"]) or None
+    weight = request.form["weight"] and int(request.form["weight"]) or None
     year = request.form["year"] and int(request.form["year"]) or None
+    age = request.form["age"] and int(request.form["age"]) or None
+    
+    if not rid:
+        r = Repair()
+        db.session.add(r)
+        r.current_state = initial_state
+    else:
+        r = db.session.query(Repair).filter_by(id=rid).first()
+
+    if date is None:
+        date = r.created
     display_id = get_repairid(date, request.form["manual_id"])
 
-    r = Repair(
-        display_id = display_id,
-        created = date,
-        name = request.form["name"],
-        email = request.form["email"],
-        phone = request.form["phone"],
-        category = category,
-        brand = brand,
-        initial_state = initial_state,
-        current_state = initial_state,
-        otype = request.form["otype"],
-        model = request.form["model"],
-        serial_number = request.form["sn"],
-        year = year,
-        value = value,
-        description = request.form["description"],
-        validated = request.form["validated"] != '',
-    )
+    if not rid:
+        n = Log(user_id=current_user.id, content="Création de la fiche", repair=r)
+    else:
+        n = Log(user_id=current_user.id, content="Modification de la fiche", repair=r)
 
-    db.session.add(r)
-    n = Log(user_id=current_user.id, content="Création de la fiche", repair=r)
     db.session.add(n)
+
+    r.display_id = display_id
+    r.created = date
+    r.age = age
+    r.name = request.form["name"]
+    r.email = request.form["email"]
+    r.phone = request.form["phone"]
+    r.category = category
+    r.brand = brand
+    r.initial_state = initial_state
+    r.otype = request.form["otype"]
+    r.model = request.form["model"]
+    r.serial_number = request.form["sn"]
+    r.year = year
+    r.value = value
+    r.weight = weight
+    r.description = request.form["description"]
+    r.validated = request.form["validated"] != ''
 
     db.session.commit()
 
@@ -147,7 +180,6 @@ def update_object(id):
 @login_required
 def get_update(id):
     r = db.session.query(Repair).filter_by(display_id=id).first()
-
     # get image list
     images = glob.glob(os.path.join(current_app.config['UPLOAD_FOLDER'], id+"_*"))
     images_idx = []

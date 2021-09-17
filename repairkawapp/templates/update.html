@@ -2,6 +2,7 @@
 {% from "sparepart_template.html" import sparepart_list %}
 {% from "log_template.html" import log_list %}
 {% from "note_template.html" import build_note %}
+{% from "repair_template.html" import repair_view %}
 
 {% block content %}
 
@@ -13,91 +14,8 @@
     Description
   </div>
   <div class="card-body">
-<form class="row gy-1 needs-validation" novalidate  method="POST" action="/edit">
-  <div class="input-group">
-    <span class="input-group-text bg-secondary col-2">Date</span>
-    <input type="string" class="form-control" id="exampleFormControlInput1" readonly name="date" value="{{r['created'].strftime('%Y-%m-%d')}}" readonly>
+{{ repair_view(r, states) }}
   </div>
-  <div class="input-group">
-    <span class="input-group-text bg-secondary col-2">Nom</span>
-    <input type="name" class="form-control" id="exampleFormControlInput1" name="name" placeholder="Nom (Prénom)" required value="{{r['name']}}" readonly>
-    <div class="invalid-feedback">
-      Nom obligatoire !
-    </div>
-  </div>
-  <div class="input-group">
-    {% if r['email'] %}
-    <span class="input-group-text bg-secondary col-2">Email</span>
-    <input type="email" class="form-control" id="exampleFormControlInput1" name="email" placeholder="name@example.com" value="{{r['email']}}" readonly>
-    {% endif %}
-    {% if r['phone'] %}
-    <span class="input-group-text bg-secondary col-2">Téléphone</span>
-    <input type="text" class="form-control" id="exampleFormControlInput1" name="phone" placeholder="0612345678" oninput="check_phone(this)" value="{{r['phone']}}" readonly>
-    {% endif %}
-  </div>
-  <div class="input-group">
-      <span class="input-group-text bg-secondary product-icon-{{r['category'].rm_icon_id}}">
-        <div class="x-product-icon-1693" style="filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(157deg) brightness(107%) contrast(102%);"></div>&nbsp;
-        {{r['category'].name}}
-      </span>
-    <input class="form-control" style="display: none" id="category" name="category" required value="{{r['category'].id}}" readonly>
-    <input class="form-control" id="exampleFormControlInput1" name="otype" placeholder="Type de l'objet" required value="{{r['otype']}}" readonly>
-    <div class="invalid-feedback">
-        Type et Catégorie obligatoire !
-    </div>
-  </div>
-  <div class="input-group">
-        <span class="input-group-text bg-secondary col-2" id="inputGroup-sizing-default">Marque</span>
-        <input style="text-transform: uppercase;" type="text" id="brand" name="brand" class="form-control" required placeholder="LAMARQUE / INCONNU" value="{{r['brand'].name}}" readonly>
-        <span class="input-group-text bg-secondary col-2" id="inputGroup-sizing-default">Modèle</span>
-        <input type="text" class="form-control" name="model" readonly value="{{r['model']}}" readonly>
-  </div>
-  <div class="input-group input-group-sm">
-    {% if r['sn'] %}
-        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">SN</span>
-        <input style="text-transform: uppercase;" type="text" id="sn" name="sn" class="form-control" value="{{r['sn']}}" readonly>
-    {% endif %}
-    {% if r['year'] %}
-        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">Année</span>
-        <input type="number" min="1950" max="{{current_year}}" step="1" name="year" class="form-control col-1" value="{{r['year']}}" readonly>
-    {% endif %}
-    {% if r['value'] %}
-        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">Valeur neuf</span>
-        <input type="number" min="5" name="value" class="form-control col-1" value="{{r['value']}}" readonly>
-        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">€</span>
-    {% endif %}
-  </div>
-  <div class="input-group">
-    <span class="input-group-text bg-secondary col-3" id="inputGroup-sizing-default">État Initial</span>
-    <select class="form-select" name="initial_state" id="validationCustom04" required disabled>
-      <option disabled value="">Choisir...</option>
-    {% for state in states %}
-      {% if state.id == r['initial_state'].id %}
-        <option selected value="{{state.id}}">{{state.label}}</option>
-      {% else %}
-        <option value="{{state.id}}">{{state.label}}</option>
-      {% endif %}
-    {% endfor %}
-    </select>
-  </div>
-  <div class="input-group">
-      <span class="input-group-text bg-secondary col-3">Problème</span>
-      <textarea class="form-control" name="description" required readonly>{{r['description']}}</textarea>
-  </div>
-
-  <div class="input-group">
-    <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="validated" value="1" id="invalidCheck" required disabled {{r['validated'] and 'checked'}}>
-      <label class="form-check-label" for="invalidCheck">
-        Conditions acceptées
-      </label>
-      <div class="invalid-feedback">
-        Vous devez accepter avant de soumettre !
-      </div>
-    </div>
-  </div>
-</form>
-</div>
 </div>
 <div class="card border-secondary col-sm-12 col-lg-6 update rounded g-0">
   <div class="card-header text-center">
@@ -138,7 +56,7 @@
     </select>
   </div>
   <div class="input-group">
-    <span class="col-3 input-group-text bg-primary">Localisation</span>
+    <span class="col-3 input-group-text bg-primary" data-toggle="tooltip" data-placement="top" title="Local, Rendu, Chez Jean">Localisation</span>
     <input type=string class="form-control" name="previous_location" hidden value="{{r['location']}}">
     <input type=string class="form-control" name="current_location" value="{{r['location']}}">
   </div>
