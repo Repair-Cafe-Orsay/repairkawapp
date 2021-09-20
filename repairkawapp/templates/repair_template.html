@@ -230,11 +230,32 @@
   </div>
 
   <div class="input-group">
-    <button class="btn btn-success" type="submit">Envoyer</button>
+    {% if r %}
+    <a class="btn btn-danger" onclick="delete_repair()">Effacer</a>
+    {% endif %}
+    <button style="margin-left:auto" class="btn btn-success" type="submit">Envoyer</button>
   </div>
 
 </form>
 <script type="text/javascript">
+  function delete_repair() {
+    $.confirm({
+            title: 'Confirmation !',
+            content: 'Voulez-vous effacer cette fiche ?',
+            buttons: {
+                Oui: {
+                    action: function () {
+                      window.location = "{{url_for('main.del_repair', repair_id=r.display_id)}}"
+                    },
+                    btnClass: 'btn-red'
+                },
+                Non: {}
+            }
+        });
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+  }
   $('#input_manual_id').on("change keyup paste", function() {
     if(!$(this).val().match(/^\d{0,3}([^0-9]|)$/))
     {

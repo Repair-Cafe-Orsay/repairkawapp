@@ -43,6 +43,13 @@ def edit_repair(repair_id):
                            r=db.session.query(Repair).filter_by(display_id=repair_id).first())
 
 
+@main.route('/del/<string:repair_id>')
+@login_required
+def del_repair(repair_id):
+    r = db.session.query(Repair).filter_by(display_id=repair_id).delete()
+    db.session().commit()
+    return redirect(url_for("main.index"), code=302)
+
 def get_or_create_brand(brand_name):
     brand = db.session.query(Brand).filter_by(name=brand_name).first()
     if not brand:
