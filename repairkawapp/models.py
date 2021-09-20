@@ -80,7 +80,7 @@ class Note(db.Model):
     user = db.relationship("User")
     date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
     content = db.Column(db.Text)
-    repair_id = db.Column(db.Integer, db.ForeignKey('repair.id'), nullable=False)
+    repair_id = db.Column(db.Integer, db.ForeignKey('repair.id', ondelete='CASCADE'), nullable=False)
     repair = db.relationship("Repair", foreign_keys=[repair_id])
 
 class Log(db.Model):
@@ -90,7 +90,7 @@ class Log(db.Model):
     user = db.relationship("User")
     date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
     content = db.Column(db.Text)
-    repair_id = db.Column(db.Integer, db.ForeignKey('repair.id'), nullable=False)
+    repair_id = db.Column(db.Integer, db.ForeignKey('repair.id', ondelete='CASCADE'), nullable=False)
     repair = db.relationship("Repair", foreign_keys=[repair_id])
 
 class SpareStatus(db.Model):
