@@ -56,7 +56,7 @@ def get_or_create_brand(brand_name):
        brand = Brand(name=brand_name)
     return brand
 
-def get_repairid(date, manual_id):
+def get_repairid(date, manual_id, existing_id=None):
     prefix = "%02d%02d%02d-" % (date.year-2000, date.month, date.day)
     if manual_id:
         if not manual_id.isdigit():
@@ -66,6 +66,8 @@ def get_repairid(date, manual_id):
             manual_id = ("0000"+manual_id)[-3:]
             incid = 0
             full_id = prefix+manual_id
+            if full_id == existing_id:
+                return full_id
             while Repair.query.filter_by(display_id=full_id).first():
                 full_id = prefix+manual_id+chr(ord('a')+incid)
                 incid += 1
@@ -97,7 +99,7 @@ def post_object():
     else:
         r = db.session.query(Repair).filter_by(id=rid).first()
         date = r.created
-        display_id = get_repairid(date, request.form["manual_id"])
+        display_id = get_repairid(date, request.form["manual_id"], r.display_id)
 
     if not rid:
         n = Log(user_id=current_user.id, content="Création de la fiche", repair=r)
