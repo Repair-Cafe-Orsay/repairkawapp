@@ -75,8 +75,8 @@ def post_file(repair_id):
 
 @api.route('/api/repairsearch')
 def repairsearch():
-    page = request.args.get('start', 0, type=int) + 1
     length = request.args.get('length', current_app.config['PAGE_SIZE'], type=int)
+    page = (request.args.get('start', 0, type=int)/length)+1
     searchValue = request.args.get('search[value]')
     repairs = Repair.query
 
