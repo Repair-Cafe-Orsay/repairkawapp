@@ -78,7 +78,7 @@ def repairsearch():
     page = request.args.get('start', 0, type=int) + 1
     length = request.args.get('length', current_app.config['PAGE_SIZE'], type=int)
     searchValue = request.args.get('search[value]')
-    repairs = db.session.query(Repair)
+    repairs = Repair.query
 
     status = request.args.get("status")
     if status != "all":
