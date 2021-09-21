@@ -353,7 +353,9 @@ label.bg-secondary, span.bg-secondary {
   border-radius:4px;
 }
 
-
+.form-floating > label {
+    padding: 1rem 1.5rem;
+}
 
 .right-container {
   display: none;
