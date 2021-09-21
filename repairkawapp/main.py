@@ -199,7 +199,7 @@ def get_update(id):
                            states=State.query.order_by(State.id).all(),
                            users=User.query.order_by(User.name).all(),
                            notes=db.session.query(Note, Notification).filter_by(repair=r).order_by(Note.id.desc())\
-                                        .outerjoin(Notification, Notification.note_id==Note.id and Notification.user_id==current_user.id),
+                                        .outerjoin(Notification, Notification.note_id==Note.id & Notification.user_id==current_user.id),
                            logs=Log.query.filter_by(repair=r).order_by(Log.id.desc()),
                            r=r,
                            current_users=[u.id for u in r.users],
