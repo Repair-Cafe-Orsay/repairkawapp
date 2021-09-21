@@ -2,7 +2,7 @@ import glob
 import os
 from flask_login import login_required, current_user
 from datetime import date, datetime
-from sqlalchemy import exists
+from sqlalchemy import exists, and_
 import pytz
 from flask import current_app, Blueprint, render_template, request, redirect, url_for, send_from_directory
 from .models import Category, State, Repair, Brand, State, User, Note, CloseStatus, SpareStatus, SpareChange, Log, Notification
@@ -199,7 +199,7 @@ def get_update(id):
                            states=State.query.order_by(State.id).all(),
                            users=User.query.order_by(User.name).all(),
                            notes=db.session.query(Note, Notification).filter_by(repair=r).order_by(Note.id.desc())\
-                                        .outerjoin(Notification, Notification.note_id==Note.id & Notification.user_id==current_user.id),
+                                        .outerjoin(Notification, and_(Notification.note_id==Note.id, Notification.user_id==current_user.id)),
                            logs=Log.query.filter_by(repair=r).order_by(Log.id.desc()),
                            r=r,
                            current_users=[u.id for u in r.users],
