@@ -5,7 +5,7 @@ from datetime import date, datetime
 from sqlalchemy import exists
 import pytz
 from flask import current_app, Blueprint, render_template, request, redirect, url_for, send_from_directory
-from .models import Category, State, Repair, Brand, State, User, Note, CloseStatus, SpareStatus, SpareChange, Log
+from .models import Category, State, Repair, Brand, State, User, Note, CloseStatus, SpareStatus, SpareChange, Log, Notification
 from . import db, thumb
 
 main = Blueprint('main', __name__)
@@ -198,7 +198,8 @@ def get_update(id):
                            categories=Category.query.order_by(Category.name).all(),
                            states=State.query.order_by(State.id).all(),
                            users=User.query.order_by(User.name).all(),
-                           notes=Note.query.filter_by(repair=r).order_by(Note.id.desc()),
+                           notes=db.session.query(Note, Notification).filter_by(repair=r).order_by(Note.id.desc())\
+                                        .outerjoin(Notification, Notification.note_id==Note.id and Notification.user_id==current_user.id),
                            logs=Log.query.filter_by(repair=r).order_by(Log.id.desc()),
                            r=r,
                            current_users=[u.id for u in r.users],

@@ -1,0 +1,6 @@
+{% for notif in notifs %}
+<div class="notification-item">
+	<h4 class="item-title">{{notif.note.repair.display_id}}</h4>
+	<a class="item-info" href="/update/{{notif.note.repair.display_id}}#note-{{notif.note.id}}">{{notif.note.content}}</a>
+</div>
+{% endfor %}

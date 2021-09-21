@@ -1,6 +1,7 @@
 from flask_login import UserMixin
 from sqlalchemy.sql import func
 from . import db
+import enum
 
 class User(UserMixin, db.Model):
     __tablename__ = 'user'
@@ -92,6 +93,20 @@ class Log(db.Model):
     content = db.Column(db.Text)
     repair_id = db.Column(db.Integer, db.ForeignKey('repair.id', ondelete='CASCADE'), nullable=False)
     repair = db.relationship("Repair", foreign_keys=[repair_id])
+
+class NotificationType(enum.Enum):
+    todo = 1
+    mention = 2
+
+class Notification(db.Model):
+    __tablename__ = 'notification'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship("User")
+    deadline = db.Column(db.DateTime(timezone=True))
+    note_id = db.Column(db.Integer, db.ForeignKey('note.id', ondelete='CASCADE'), nullable=False)
+    note = db.relationship("Note")
+    notification_type = db.Column(db.Enum(NotificationType))
 
 class SpareStatus(db.Model):
     __tablename__ = 'sparestatus'

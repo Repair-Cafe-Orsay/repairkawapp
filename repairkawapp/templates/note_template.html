@@ -1,12 +1,43 @@
 {% macro build_note(n) %}
-    <div class="row mb-3 note">
+    <div class="row mb-3 note" id="note-{{n[0].id}}">
       <div class="card border-secondary col-12 update rounded gx-0">
-        <div class="card-header small">
-          Mise à jour {{n.id}}, le {{n.date.strftime('%Y-%m-%d')}} à {{n.date.strftime('%H:%M')}} par {{n.user.name}}
+        <div class="card-header small d-flex">
+              Mise à jour {{n[0].id}}, le {{n[0].date.strftime('%Y-%m-%d')}} à {{n[0].date.strftime('%H:%M')}} par {{n[0].user.name}}
+              <!-- <button type="button" class="btn btn-sm btn-danger float-right ms-auto">Effacer</button> -->
+              <button id="btn_del_notif_{{n[0].id}}" type="button" class="ms-auto btn_{{n[0].id}} btn btn-sm btn-warning ms-1 {{ not n[1] and 'collapse' }}" onclick="del_notification({{n[0].id}},{{n[1].id}})">Ne me rappelle plus!</button>
+              <button type="button" class="ms-auto btn_{{n[0].id}} btn btn-sm btn-primary ms-1 {{ n[1] and 'collapse' }}" onclick="add_todo({{n[0].id}})">Rappelle-moi!</button>
         </div>
         <div class="card-body">
-            {{n.content}}
+            {{n[0].content}}
         </div>
       </div>
     </div>
+{% endmacro %}
+
+{% macro note_scripts() %}
+    <script>
+      function add_todo(noteid) {
+        $.ajax({
+          type: 'GET',
+          url: '{{url_for("api.add_todo")}}',
+          data: {'note_id': noteid},
+          success: function(data) {
+            $(".btn_"+noteid).toggle();
+            $("#btn_del_notif_"+noteid).attr("onclick", "del_notification("+noteid+","+data+")");
+            set_notif(get_notif_count()+1);
+          }
+        })
+      }
+      function del_notification(noteid, notifid) {
+        $.ajax({
+          type: 'GET',
+          url: '{{url_for("api.del_notification")}}',
+          data: {'notification_id': notifid},
+          success: function(data) {
+            $(".btn_"+noteid).toggle();
+            set_notif(get_notif_count()-1);
+          }
+        })
+      }
+    </script>
 {% endmacro %}
