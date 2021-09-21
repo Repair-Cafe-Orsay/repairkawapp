@@ -4,7 +4,7 @@ from flask import current_app, Blueprint, request, jsonify, render_template
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_mail import Message
 from werkzeug.utils import secure_filename
-from .models import Brand, Repair, User, SpareStatus, SpareChange, Note, Log
+from .models import Brand, Repair, User, SpareStatus, SpareChange, Note, Log, Notification, NotificationType
 from . import db, mail
 
 api = Blueprint('api', __name__)
@@ -16,7 +16,6 @@ def allowed_file(filename):
 @api.route('/new_spare/<string:repair_id>')
 @login_required
 def new_spare(repair_id):
-    print(request.args)
     sp = SpareChange(
         item=request.args.get("item"),
         spare_status_id=request.args.get("status_id"),
@@ -72,6 +71,41 @@ def post_file(repair_id):
         else:
             return jsonify("unauthorized file"), 403
     return jsonify(None)
+
+@api.route('/api/add_todo')
+def add_todo():
+    note_id = request.args.get("note_id")
+    if not note_id:
+        return jsonify(False), 500
+    existing_notification = Notification.query.filter_by(note_id=note_id).filter_by(user_id=current_user.id).count()
+    if existing_notification:
+        return jsonify(False), 500
+
+    notification = Notification(
+        note_id=note_id,
+        user_id=current_user.id,
+        notification_type=NotificationType.todo
+    )
+    db.session.add(notification)
+    db.session.commit()
+
+    return jsonify(notification.id)
+
+@api.route('/api/del_notification')
+def del_notification():
+    notification_id = request.args.get("notification_id")
+    Notification.query.filter_by(id=notification_id).delete()
+    db.session.commit()
+
+    return jsonify(None)
+
+@api.route('/api/get_notifcount')
+def get_notifcount():
+    return jsonify(Notification.query.filter_by(user_id=current_user.id).count())
+
+@api.route('/api/get_notifs')
+def get_notifs():
+    return render_template('notif_list.html', notifs=Notification.query.filter_by(user_id=current_user.id).all())
 
 @api.route('/api/repairsearch')
 def repairsearch():

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "sparepart_template.html" import sparepart_list %}
 {% from "log_template.html" import log_list %}
-{% from "note_template.html" import build_note %}
+{% from "note_template.html" import build_note, note_scripts %}
 {% from "repair_template.html" import repair_view %}
 
 {% block content %}
@@ -190,6 +190,7 @@
     {% for n in notes %}
       {{ build_note(n) }}
     {% endfor %}
+    {{ note_scripts() }}
   </div>
   <div class="tab-pane" id="nav-pictures" role="tabpanel" aria-labelledby="nav-pictures-tab">
     <div class="row text-center text-lg-start" data-bs-toggle="modal" data-bs-target="#galleryModal">

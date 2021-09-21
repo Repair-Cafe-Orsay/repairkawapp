@@ -1,8 +1,21 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang=fr>
 
-{% block content %}
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="/static/img/favicon.ico" type="image/vnd.microsoft.icon">
+    <title>RepairKawapp</title>
+    <link href="/static/bootstrap-5.1.1-dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
 
-  <div class="text-center">
+<body>
+
+<div class="left-container">
+
+  <div class="text-center content">
+      <img width="100%" src="/static/img/LogoAnimate.gif">
         {% with messages = get_flashed_messages() %}
         {% if messages %}
             <div class="alert alert-danger">
@@ -31,5 +44,8 @@
     <button class="w-100 btn btn-lg btn-primary" type="submit">Sign in</button>
   </form>
 </div>
+</div>
+<div class="right-container">
+</div>
 
-{% endblock %}
+</body>

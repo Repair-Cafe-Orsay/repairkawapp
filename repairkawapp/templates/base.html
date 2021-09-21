@@ -33,7 +33,7 @@
 <div class="container py-3">
     <header>
         <div class="d-flex flex-column flex-md-row pb-3 mb-4 border-bottom">
-          <div class="align-items-center text-dark text-decoration-none col-8">
+          <div class="align-items-center text-dark text-decoration-none col-7">
               <img width="50" height="50" src="/static/img/RC-LogoButton-Orsay.png" style="margin-right:10px">
               <span class="fs-4">Repair Café Orsay</span>
           </div>
@@ -45,6 +45,21 @@
             <a class="me-3 py-2 text-dark text-decoration-none" href="{{ url_for('auth.signup') }}">Sign Up</a>
                 {% endif %}
                 {% if current_user.is_authenticated %}
+                <div class="dropdown dropdown-notif md-inline-flex">
+                  <button id="notif_button" role="button" data-bs-toggle="dropdown" class="btn border-info" onclick="get_notifs()">
+                    Notifications <span class="badge bg-danger collapse">0</span>
+                  </button>
+                  
+                  <ul class="dropdown-menu notifications" role="menu" aria-labelledby="notif_button">
+                    
+                    <div class="notification-heading"><h4 class="menu-title">Notifications</h4>
+                    </div>
+                    <li class="divider"></li>
+                   <div id="notifications-wrapper">
+
+                   </div>
+                  </ul>
+                </div>
                 <button type="button" class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown">{{ name }}</button>
                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
                     <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">Profile</a></li>
@@ -128,11 +143,14 @@
         });
   $(document).ready(function() {
     $(function() {
-          // Javascript to enable link to tab
           var hash = document.location.hash;
           if (hash) {
+             if (hash.startsWith("#note-")) {
+               hash = "#notes"
+             }
              var navTab = $('.nav-tabs a[href="'+hash+'"]');
-             if (navTab) {
+             console.log(hash, navTab.length)
+             if (navTab.length) {
                   var theTab = new bootstrap.Tab(navTab);
                   theTab.show();
             }
@@ -162,8 +180,46 @@
       })
 
       $("#categorySelect a.cselected").click();
-
+      update_notifs();
   })
+
+  function get_notif_count() {
+    return parseInt($("#notif_button span").text())
+  }
+
+  function set_notif(count) {
+    $("#notif_button span").html(count);
+    if (count > 0) {
+      $("#notif_button span").show();
+      $("#notif_button").prop("disabled", false);
+    } else {
+      $("#notif_button span").hide();
+      $("#notif_button").prop("disabled", true);
+    }
+  }
+
+  function get_notifs() {
+    $.ajax({
+      type: 'GET',
+      url: '{{url_for("api.get_notifs")}}',
+      success: function(data) {
+        $("#notifications-wrapper").html(data)
+      }
+    });
+    $("#notifications-wrapper").html("")
+    return true;
+  }
+
+  function update_notifs() {
+      $.ajax({
+        type: 'GET',
+        url: '{{url_for("api.get_notifcount")}}',
+        success: function(data) {
+          set_notif(data);
+        }
+      })
+  }
+
   //$(function () {
   //  $('[data-toggle="tooltip"]').tooltip()
   //})
