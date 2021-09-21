@@ -139,12 +139,15 @@
       </ul>
     </div>
     <input hidden id="category" name="category" required>
+    <div class="invalid-feedback">
+        Catégorie obligatoire !
+    </div>
   </div>
   <div class="input-group">
     <span class="input-group-text bg-secondary">Type</span>
     <input class="form-control" id="exampleFormControlInput1" name="otype" placeholder="Type de l'objet" required value="{{r and r['otype']}}">
     <div class="invalid-feedback">
-        Type et Catégorie obligatoire !
+        Type obligatoire !
     </div>
     <script>
       /* reloading the page remove the value */
@@ -206,15 +209,9 @@
     {% endfor %}
     </select>
   </div>
-  <div class="input-group justify-content-around repairstatus">
-    <div class="card col-12 update rounded">
-      <div class="card-header bg-secondary text-center">
-        Problème
-      </div>
-      <div class="card-body card-body-textarea">
-        <textarea class="form-control" name="description" required rows=5>{{r and r['description']}}</textarea>
-      </div>
-    </div>
+  <div class="form-floating">
+        <textarea id="floatingTextareaPb" class="form-control" name="description" required style="height: 100px">{{r and r['description']}}</textarea>
+        <label for="floatingTextareaPb">Problème</label>
   </div>
   
   <div class="input-group">
