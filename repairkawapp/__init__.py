@@ -3,33 +3,31 @@ from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_thumbnails import Thumbnail
 from flask_mail import Mail
+from itsdangerous.url_safe import URLSafeSerializer
 import os
+import json
 
 db = SQLAlchemy()
 thumb = None
 mail = None
+serializer = None
 
 def create_app():
 # init SQLAlchemy so we can use it later in our models
     app = Flask(__name__)
 
-    app.config['SECRET_KEY'] = 'secret-key-goes-here'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://user:password@localhost/repairkawapp?charset=utf8mb4'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-    app.config['PAGE_SIZE'] = 10
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-    app.config['ALLOWED_EXTENSIONS'] = ['jpg', 'jpeg', 'png']
-    app.config['UPLOAD_FOLDER'] = os.getcwd()+'/uploads'
+    app.config.from_file("config.json", load=json.load)
 
-    global thumb    
-    app.config['THUMBNAIL_MEDIA_ROOT'] = os.getcwd()+'/uploads'
-    app.config['THUMBNAIL_MEDIA_THUMBNAIL_ROOT'] = os.getcwd()+'/uploads/cache'
-    app.config['THUMBNAIL_MEDIA_URL'] = '/media/'
-    app.config['THUMBNAIL_MEDIA_THUMBNAIL_URL'] = '/media/cache/'
+    global serializer
+    serializer = URLSafeSerializer(app.config['URL_SERIALIZER_SECRET'], salt="chpassword")
+
+    global thumb
     thumb = Thumbnail(app)
 
 
     global mail
+    mail = Mail(app) 
+
     db.init_app(app)
 
     login_manager = LoginManager()
