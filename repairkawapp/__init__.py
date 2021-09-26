@@ -3,7 +3,7 @@ from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_thumbnails import Thumbnail
 from flask_mail import Mail
-from itsdangerous.url_safe import URLSafeSerializer
+from itsdangerous import URLSafeSerializer
 import os
 import json
 
