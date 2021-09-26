@@ -1,0 +1,21 @@
+{
+	"APP_URL": "http://localhost:5000",
+	"SECRET_KEY": "the-secret-key-for-password-hashing",
+	"SQLALCHEMY_DATABASE_URI": "mysql+pymysql://user:password@localhost/repairkawapp?charset=utf8mb4",
+	"SQLALCHEMY_TRACK_MODIFICATIONS": true,
+	"PAGE_SIZE": 10,
+	"MAX_CONTENT_LENGTH": 16777216,
+	"ALLOWED_EXTENSIONS": ["jpg", "jpeg", "png"],
+	"UPLOAD_FOLDER": "PATHTO/repairkawapp/uploads",
+	"URL_SERIALIZER_SECRET": "url-sanitizer-secret-for-tokens",
+	"THUMBNAIL_MEDIA_ROOT": "PATHTO/repairkawapp/uploads",
+	"THUMBNAIL_MEDIA_THUMBNAIL_ROOT": "PATHTO/uploads/cache",
+	"THUMBNAIL_MEDIA_URL": "/media/",
+	"THUMBNAIL_MEDIA_THUMBNAIL_URL": "/media/cache/",
+    "MAIL_SERVER": "MAIL_SERVER",
+    "MAIL_PORT": 465,
+    "MAIL_USERNAME": "USER",
+    "MAIL_PASSWORD": "PASSWORD",
+    "MAIL_USE_TLS": false,
+    "MAIL_USE_SSL": true
+}

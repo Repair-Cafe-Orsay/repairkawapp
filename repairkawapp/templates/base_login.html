@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang=fr>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="/static/img/favicon.ico" type="image/vnd.microsoft.icon">
+    <title>RepairKawapp</title>
+    <link href="/static/bootstrap-5.1.1-dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+    <script src="/static/js/jquery-2.2.0.min.js"></script>
+</head>
+
+<body>
+
+    <main>
+      <div class="left-container">
+
+        <div class="text-center content">
+            <img class="mb-5" width="100%" src="/static/img/LogoAnimate.gif">
+              {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                  <div class="alert alert-danger">
+                      {{ messages[0] }}
+                  </div>
+              {% endif %}
+              {% endwith %}
+
+               {% block content %}
+               {% endblock %}
+        </div>
+      </div>
+      <div class="right-container">
+      </div>
+    </main>
+
+</body>
+
+</html>

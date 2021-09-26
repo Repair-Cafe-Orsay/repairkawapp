@@ -1,45 +1,21 @@
-<!DOCTYPE html>
-<html lang=fr>
+{% extends "base_login.html" %}
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" href="/static/img/favicon.ico" type="image/vnd.microsoft.icon">
-    <title>RepairKawapp</title>
-    <link href="/static/bootstrap-5.1.1-dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/static/css/style.css" rel="stylesheet">
-</head>
+{% block content %}
 
-<body>
-
-<div class="left-container">
-
-  <div class="text-center content">
-      <img class="mb-5" width="100%" src="/static/img/LogoAnimate.gif">
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="alert alert-danger">
-                {{ messages[0] }}
-            </div>
-        {% endif %}
-        {% endwith %}
-  <form class="form-signin" method="POST" action="/login">
+  <form class="form-signin" method="POST" action="{{url_for('auth.login_post')}}">
     <h1 class="h3 mb-3 fw-normal">Connectez-vous</h1>
 
     <div class="form-floating">
-      <input type="email" name="email" class="form-control" id="floatingInput" placeholder="name@example.com">
+      <input type="email" name="email" class="form-control" placeholder="name@example.com">
       <label for="floatingInput">Courriel</label>
     </div>
     <div class="form-floating mb-5">
-      <input type="password" name="password" class="form-control" id="floatingPassword" placeholder="Password" style="cursor: auto;">
+      <input type="password" name="password" class="form-control" placeholder="Password" style="cursor: auto;">
       <label for="floatingPassword">Mot de Passe</label>
     </div>
 
     <button class="w-100 btn btn-lg btn-primary" type="submit">Connexion</button>
   </form>
-</div>
-</div>
-<div class="right-container">
-</div>
+  <a href="{{url_for('auth.forgot_password')}}">Mot de passe oublié 😰</a>
 
-</body>
+{% endblock %}
