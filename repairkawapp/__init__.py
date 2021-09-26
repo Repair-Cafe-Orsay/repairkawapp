@@ -16,7 +16,10 @@ def create_app():
 # init SQLAlchemy so we can use it later in our models
     app = Flask(__name__)
 
-    app.config.from_file("config.json", load=json.load)
+    with open("config.json") as json_file:
+        config_json = json.load(json_file)
+        for k, v in config_json.items():
+            app.config[k] = v
 
     global serializer
     serializer = URLSafeSerializer(app.config['URL_SERIALIZER_SECRET'], salt="chpassword")
