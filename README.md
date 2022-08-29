@@ -1,5 +1,5 @@
 # repairkawapp
-Application for RCO
+Application for Repair Café - initially developped for/by the Repair Café Orsay
 
 # Installation
 
