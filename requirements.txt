@@ -1,0 +1,9 @@
+flask
+flask_login
+flask_sqlalchemy
+flask_thumbnails
+Pillow
+flask_mail
+pytz
+pymysql
+

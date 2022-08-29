@@ -1,0 +1,2 @@
+# for the first import add email/name for the users to import - tab-separated
+jean@repaircafe-orsay.org	Jean Senellart

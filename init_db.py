@@ -8,10 +8,11 @@ with create_app().app_context():
 
     with open("data/users.txt") as f:
         for line in f:
-            (email, name) = line.strip().split("\t")
-            db.session.add(User(email=email,
-                                name=name,
-                                password=generate_password_hash("password-rco", method='sha256')))
+            if not line.startswith("#"):
+                (email, name) = line.strip().split("\t")
+                db.session.add(User(email=email,
+                                    name=name,
+                                    password=generate_password_hash("password-rco", method='sha256')))
 
     db.session.add(Category(rm_icon_id=1678, name="A - Électroménager"))
     db.session.add(Category(rm_icon_id=5343, name="B - Article ménager non électrique"))
