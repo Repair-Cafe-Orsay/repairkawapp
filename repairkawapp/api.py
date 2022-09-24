@@ -1,10 +1,12 @@
+from datetime import datetime
 import os
 import glob
 from flask import current_app, Blueprint, request, jsonify, render_template
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_mail import Message
 from werkzeug.utils import secure_filename
-from .models import Brand, Repair, User, SpareStatus, SpareChange, Note, Log, Notification, NotificationType
+from sqlalchemy import func, distinct
+from .models import Brand, Repair, User, SpareStatus, SpareChange, Note, Log, Notification, NotificationType, CloseStatus, Category
 from . import db, mail
 
 api = Blueprint('api', __name__)
@@ -148,6 +150,43 @@ def repairsearch():
                     "next_num": repairs.next_num,
                     "prev_num": repairs.prev_num})
     return json
+
+all_categories = []
+all_status = []
+@api.route('/api/stats')
+def stats():
+    try:
+        date_from = datetime.strptime(request.args.get('from'), "%Y-%m-%d")
+        date_to = datetime.strptime(request.args.get('to'), "%Y-%m-%d")
+    except:
+        return {}
+    global all_categories
+    if not all_categories:
+        for c in Category.query.all():
+            all_categories.append((c.name, c.rm_icon_id))
+    if not all_status:
+        for s in CloseStatus.query.order_by(CloseStatus.id).all():
+            all_status.append(s.label[0])
+    repairs_status = db.session.query(func.count(Repair.close_status_id), Repair.close_status_id, CloseStatus.label)\
+                 .outerjoin(CloseStatus, Repair.close_status_id==CloseStatus.id)
+    repairs_status = repairs_status.filter(Repair.created >= date_from)
+    repairs_status = repairs_status.filter(Repair.created <= date_to)
+    all_repairs_close_status = repairs_status.group_by(Repair.close_status_id).all()
+    repairs_category = db.session.query(Category.name, func.count(Repair.category_id), Category.rm_icon_id)\
+                 .outerjoin(Repair, Repair.category_id==Category.id)
+    repairs_category = repairs_category.filter(Repair.created >= date_from)
+    repairs_category = repairs_category.filter(Repair.created <= date_to)
+    all_repairs_category = repairs_category.group_by(Category.id).all()
+    visitors = db.session.query(func.count(distinct(Repair.email)))
+    visitors = visitors.filter(Repair.created >= date_from)
+    visitors = visitors.filter(Repair.created <= date_to)
+    return jsonify({'from': date_from, 'to': date_to,
+                    'categories': all_categories,
+                    'status': all_status,
+                    'count_by_status': {id: [status, count] for (count, id, status) in all_repairs_close_status},
+                    'count_by_category': {category: (count, icon_id) for (category, count, icon_id) in all_repairs_category},
+                    'visitors': visitors.all()[0][0],
+                    'total': sum(count for count, _, _ in all_repairs_close_status)})
 
 @api.route('/sendmail')
 def sendmail():
