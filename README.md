@@ -29,6 +29,10 @@ post values. Ideally this should be prefered to static page generation.
 authentication should take the decorator `@login_required`
   * `repairkawap/main.py` - main pages routes
 
+Flask application initialization is defined in `repairkawapp/__init__.py` and is dynamically called when `flask` or `wsgi` load the module
+through the `create_app` function.
+
+
 ## Templates
 Pages templates are build by routes (essentially in `main.py`) and use jinja templating engine: see https://jinja.palletsprojects.com/en/3.1.x/templates/ 
 for a full documentation. Templates are in `repairkawap/templates/` and are defining in cascade and blocks. All pages inherits from `base.html`- and some templates like
