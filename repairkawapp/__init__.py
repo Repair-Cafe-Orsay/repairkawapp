@@ -4,33 +4,37 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_thumbnails import Thumbnail
 from flask_mail import Mail
 from itsdangerous import URLSafeSerializer
-import os
 import json
 
 db = SQLAlchemy()
+
+# thumbnail engine used for all uploaded images
 thumb = None
+# mail server
 mail = None
+# url serializer
 serializer = None
 
 def create_app():
-# init SQLAlchemy so we can use it later in our models
     app = Flask(__name__)
 
+    # read the main configuration file to configure the flask application
     with open("config.json") as json_file:
         config_json = json.load(json_file)
         for k, v in config_json.items():
             app.config[k] = v
 
+    # utilities
     global serializer
     serializer = URLSafeSerializer(app.config['URL_SERIALIZER_SECRET'], salt="chpassword")
 
     global thumb
     thumb = Thumbnail(app)
 
-
     global mail
     mail = Mail(app) 
 
+    # initialization of database
     db.init_app(app)
 
     login_manager = LoginManager()

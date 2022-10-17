@@ -2,7 +2,7 @@ from datetime import datetime
 import os
 import glob
 from flask import current_app, Blueprint, request, jsonify, render_template
-from flask_login import login_user, logout_user, login_required, current_user
+from flask_login import login_required, current_user
 from flask_mail import Message
 from werkzeug.utils import secure_filename
 from sqlalchemy import func, distinct
@@ -18,6 +18,7 @@ def allowed_file(filename):
 @api.route('/new_spare/<string:repair_id>')
 @login_required
 def new_spare(repair_id):
+    r"""spare management - add a new spare part"""
     sp = SpareChange(
         item=request.args.get("item"),
         spare_status_id=request.args.get("status_id"),
@@ -37,12 +38,14 @@ def new_spare(repair_id):
 @api.route('/del_spare/<string:repair_id>')
 @login_required
 def del_spare(repair_id):
+    r"""spare management - remove a spare part"""
     db.session.query(SpareChange).filter(SpareChange.id==request.args.get("id")).delete()
     db.session.commit()
     return jsonify(True)
 
 @api.route('/api/brandsearch', methods=['GET'])
 def brandsearch():
+    r"""dynamic case-insensitive brand search for faster brand filling"""
     search = request.args.get('q')
     query = db.session.query(Brand.name).filter(Brand.name.like(str(search) + '%'))
     results = [mv[0] for mv in query.all()]
@@ -51,6 +54,7 @@ def brandsearch():
 @api.route('/deleteimg/<string:repair_id>/<path:path>', methods=['GET'])
 @login_required
 def del_file(repair_id, path):
+    r"""delete an image attached to a repair"""
     filename = os.path.join(current_app.config['UPLOAD_FOLDER'], path)
     if os.path.exists(filename):
         os.remove(filename)
@@ -62,6 +66,7 @@ def del_file(repair_id, path):
 @api.route('/uploadimg/<string:repair_id>', methods=['POST'])
 @login_required
 def post_file(repair_id):
+    r"""post an image"""
     file = request.files.get("file")
     if file:
         if allowed_file(file.filename):
@@ -76,6 +81,7 @@ def post_file(repair_id):
 
 @api.route('/api/add_todo')
 def add_todo():
+    r"""add a notification"""
     note_id = request.args.get("note_id")
     if not note_id:
         return jsonify(False), 500
@@ -95,6 +101,7 @@ def add_todo():
 
 @api.route('/api/del_notification')
 def del_notification():
+    r"""remove a notification"""
     notification_id = request.args.get("notification_id")
     Notification.query.filter_by(id=notification_id).delete()
     db.session.commit()
@@ -103,14 +110,22 @@ def del_notification():
 
 @api.route('/api/get_notifcount')
 def get_notifcount():
+    r"""cound of notifications associated to a user"""
     return jsonify(Notification.query.filter_by(user_id=current_user.id).count())
 
 @api.route('/api/get_notifs')
 def get_notifs():
+    r"""list of notifications associated to a user"""
     return render_template('notif_list.html', notifs=Notification.query.filter_by(user_id=current_user.id).all())
 
 @api.route('/api/repairsearch')
 def repairsearch():
+    r"""main function used by search page - parameters are:
+    * length: number of objects per page
+    * page: id of the current page
+    * searchValue: free text search form
+    * status: all/opened/closed
+    * user: possible user-id (repairer)"""
     length = request.args.get('length', current_app.config['PAGE_SIZE'], type=int)
     page = (request.args.get('start', 0, type=int)/length)+1
     searchValue = request.args.get('search[value]')
@@ -151,10 +166,14 @@ def repairsearch():
                     "prev_num": repairs.prev_num})
     return json
 
+# cached values for categories and status
 all_categories = []
 all_status = []
 @api.route('/api/stats')
 def stats():
+    r"""API to retrieve stats - do not need auth
+    for instance: http://127.0.0.1:5000/api/stats?from=01-01-2021&to=01-01-2022
+    """
     try:
         date_from = datetime.strptime(request.args.get('from'), "%Y-%m-%d")
         date_to = datetime.strptime(request.args.get('to'), "%Y-%m-%d")

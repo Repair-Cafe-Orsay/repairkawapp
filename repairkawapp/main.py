@@ -2,10 +2,10 @@ import glob
 import os
 from flask_login import login_required, current_user
 from datetime import date, datetime
-from sqlalchemy import exists, and_
+from sqlalchemy import and_
 import pytz
 from flask import current_app, Blueprint, render_template, request, redirect, url_for, send_from_directory
-from .models import Category, State, Repair, Brand, State, User, Note, CloseStatus, SpareStatus, SpareChange, Log, Notification
+from .models import Category, Repair, Brand, State, User, Note, CloseStatus, SpareStatus, SpareChange, Log, Notification
 from . import db, thumb
 
 main = Blueprint('main', __name__)
@@ -14,6 +14,7 @@ LOCAL_TIMEZONE = pytz.timezone('Europe/Paris')
 @main.route('/')
 @login_required
 def index():
+    r"""main page"""
     return render_template('index.html',
                            name=current_user.name,
                            categories=Category.query.order_by(Category.name).all(),
@@ -22,11 +23,13 @@ def index():
 @main.route('/profile')
 @login_required
 def profile():
+    r"""statistics"""
     return render_template('profile.html', name=current_user.name)
 
 @main.route('/new')
 @login_required
 def new_repair():
+    r"""new repair form"""
     return render_template('form_new.html', today=date.today(),
                            categories=Category.query.order_by(Category.name).all(),
                            states=State.query.order_by(State.id).all(),
@@ -36,6 +39,7 @@ def new_repair():
 @main.route('/edit/<string:repair_id>')
 @login_required
 def edit_repair(repair_id):
+    r"""edit repair form"""
     return render_template('form_new.html', today=date.today(),
                            categories=Category.query.order_by(Category.name).all(),
                            states=State.query.order_by(State.id).all(),
@@ -46,6 +50,7 @@ def edit_repair(repair_id):
 @main.route('/del/<string:repair_id>')
 @login_required
 def del_repair(repair_id):
+    r"""delete a repair form"""
     r = db.session.query(Repair).filter_by(display_id=repair_id).delete()
     db.session().commit()
     return redirect(url_for("main.index"), code=302)
@@ -57,6 +62,7 @@ def get_or_create_brand(brand_name):
     return brand
 
 def get_repairid(date, manual_id, existing_id=None):
+    r"""generate repair id"""
     prefix = "%02d%02d%02d-" % (date.year-2000, date.month, date.day)
     if manual_id:
         if not manual_id.isdigit():
@@ -78,6 +84,7 @@ def get_repairid(date, manual_id, existing_id=None):
 @main.route('/new', methods=['POST'])
 @login_required
 def post_object():
+    r"""post a new object"""
     rid = request.form.get('rid')
     brand = get_or_create_brand(request.form['brand'])
     category = db.session.query(Category).filter_by(id=request.form["category"]).first()
@@ -132,11 +139,13 @@ def post_object():
 
 @main.route('/media/<path:filename>')
 def media_file(filename):
+    r"""api to retrieve files without direct access to upload directory"""
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
 
 @main.route('/update/<string:id>', methods=['POST'])
 @login_required
 def update_object(id):
+    r"""post update on an object"""
     r = db.session.query(Repair).filter_by(display_id=id).first()
 
     if request.method == 'POST':
@@ -187,6 +196,7 @@ def update_object(id):
 @main.route('/update/<string:id>', methods=['GET'])
 @login_required
 def get_update(id):
+    r"""update page for an object"""
     r = db.session.query(Repair).filter_by(display_id=id).first()
     # get image list
     images = glob.glob(os.path.join(current_app.config['UPLOAD_FOLDER'], id+"_*"))
