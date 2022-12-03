@@ -153,7 +153,7 @@ def repairsearch():
     if request.args.get('category'):
         repairs = repairs.filter_by(category_id=request.args.get('category'))
     nbFiltered = repairs.count()
-    repairs = repairs.order_by(Repair.display_id.desc()).paginate(page, length, False)
+    repairs = repairs.order_by(Repair.display_id.desc()).paginate(page=page, per_page=length, error_out=False)
     json=jsonify({"repairs": [{"id":r.display_id,"name":r.name,"category":r.category.name,"otype":r.otype,
                     "brand": r.brand and r.brand.name or "", "close_status": r.close_status.label[0]}
                                                        for r in repairs.items],
