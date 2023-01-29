@@ -30,10 +30,16 @@ def profile():
 @login_required
 def new_repair():
     r"""new repair form"""
+    from_id=request.args.get("from_id")
+    from_user = {}
+    if from_id:
+        r = db.session.query(Repair).filter_by(display_id=from_id).first()
+        from_user = {"name": r.name, "email": r.email, "phone": r.phone, "age": r.age}
     return render_template('form_new.html', today=date.today(),
                            categories=Category.query.order_by(Category.name).all(),
                            states=State.query.order_by(State.id).all(),
                            name=current_user.name,
+                           from_user=from_user,
                            r="")
 
 @main.route('/edit/<string:repair_id>')
@@ -44,6 +50,7 @@ def edit_repair(repair_id):
                            categories=Category.query.order_by(Category.name).all(),
                            states=State.query.order_by(State.id).all(),
                            name=current_user.name,
+                           from_user={},
                            r=db.session.query(Repair).filter_by(display_id=repair_id).first())
 
 
