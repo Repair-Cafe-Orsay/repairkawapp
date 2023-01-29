@@ -73,12 +73,13 @@
     </div>
   </div>
   <div class="input-group">
+    <a style="margin-left: auto" class="btn btn-outline-primary" href="{{url_for('main.new_repair')}}?from_id={{r.display_id}}">Nouvelle Fiche</a>
     <a style="margin-left: auto" class="btn btn-warning" href="{{url_for('main.edit_repair', repair_id=r.display_id)}}">Modifier</a>
   </div>
 </form>
 {% endmacro %}
 
-{% macro repair_newedit(r, states, categories, today) %}
+{% macro repair_newedit(r, states, categories, today, from_user) %}
 <form class="row gy-3 needs-validation" novalidate  method="POST" action="{{url_for('main.post_object')}}">
   <input type="string" hidden name="rid" value="{{r and r['id'] or ''}}">
   <div class="input-group">
@@ -90,7 +91,7 @@
   </div>
   <div class="input-group">
     <span class="input-group-text bg-secondary">Nom</span>
-    <input type="name" class="form-control" name="name" placeholder="Nom (Prénom)" required value="{{r and r['name']}}">
+    <input type="name" class="form-control" name="name" placeholder="Nom (Prénom)" required value="{{r and r['name'] or from_user.get('name','')}}">
     <div class="invalid-feedback">
       Nom obligatoire !
     </div>
@@ -99,30 +100,30 @@
     <span class="input-group-text bg-secondary">Tranche d'âge</span>
     <div class="form-control">
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="age" value="1" {{r and r['age']==1 and 'checked' or ''}}>
+          <input class="form-check-input" type="radio" name="age" value="1" {{(r and r['age']==1 or from_user.get('age','')) and 'checked' or ''}}>
           <label class="form-check-label" for="inlineRadio1">0-20</label>
         </div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="age" value="2" {{r and r['age']==2 and 'checked' or ''}}>
+          <input class="form-check-input" type="radio" name="age" value="2" {{(r and r['age']==2 or from_user.get('age','')) and 'checked' or ''}}>
           <label class="form-check-label" for="inlineRadio2">21-40</label>
         </div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="age" value="3" {{r and r['age']==3 and 'checked' or ''}}>
+          <input class="form-check-input" type="radio" name="age" value="3" {{(r and r['age']==3 or from_user.get('age','')) and 'checked' or ''}}>
           <label class="form-check-label" for="inlineRadio3">41-60</label>
         </div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="age" value="4" {{r and r['age']==4 and 'checked' or ''}}>
+          <input class="form-check-input" type="radio" name="age" value="4" {{(r and r['age']==4 or from_user.get('age','')) and 'checked' or ''}}>
           <label class="form-check-label" for="inlineRadio3">61+</label>
         </div>
     </div>
   </div>
   <div class="input-group">
     <span class="input-group-text bg-secondary">Email</span>
-    <input type="email" class="form-control" name="email" placeholder="name@example.com" value="{{r and r['email']}}">
+    <input type="email" class="form-control" name="email" placeholder="name@example.com" value="{{r and r['email'] or from_user.get('email','')}}">
   </div>
   <div class="input-group">
     <span class="input-group-text bg-secondary">Téléphone</span>
-    <input type="text" class="form-control" name="phone" placeholder="0612345678" oninput="check_phone(this)" value="{{r and r['phone']}}">
+    <input type="text" class="form-control" name="phone" placeholder="0612345678" oninput="check_phone(this)" value="{{r and r['phone'] or from_user.get('phone','')}}">
   </div>
   <div class="input-group">
      <div class="dropdown" id="categoryDropdown">
