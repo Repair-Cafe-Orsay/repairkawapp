@@ -12,6 +12,7 @@
               <th>Courriel</th>
               <th>Admin</th>
               <th>Cotisation</th>
+              <th>Repair Cafés</th>
           </tr>
       </thead>
         <tbody>
@@ -21,7 +22,9 @@
                 <td>{{ user.name }}</td>
                 <td>{{ user.email }}</td>
                 <td>{{ user.admin and 'Oui' or '' }}</td>
-                <td>{{ user.last_membership!=None and user.last_membership or '' }}</td></tr>
+                <td>{{ user.last_membership!=None and user.last_membership or '' }}</td>
+                <td>{% for rc in user.repaircafes %}{% if rc!=user.repaircafes[0] and "+" or "" %}<br>{% endif %}
+                                                    {{ rc.name }}{% endfor %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -53,7 +56,8 @@
                               );
                               var title = $(cell).text();
                               if (title != '') {
-                                  $(cell).html('<input type="text" placeholder="' + title + '" />');
+                                  theclass = title == "Admin" ? "class='col-md-8'" : ""
+                                  $(cell).html('<input '+ theclass + ' type="text" placeholder="' + title + '" />');
                               }
 
                               // On every keypress in this input

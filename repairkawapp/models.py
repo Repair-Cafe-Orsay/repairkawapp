@@ -3,6 +3,16 @@ from sqlalchemy.sql import func
 from . import db
 import enum
 
+# many2many association between a user (repairer) and an object in the database
+repair_user = db.Table('association_repair_user', db.Model.metadata,
+                       db.Column('repair_id', db.ForeignKey('repair.id')),
+                       db.Column('user_id', db.ForeignKey('user.id'))
+)
+
+repaircafe_user = db.Table('association_repaircafe_user', db.Model.metadata,
+                       db.Column('repaircafe_id', db.ForeignKey('repaircafe.id')),
+                       db.Column('user_id', db.ForeignKey('user.id')))
+
 class User(UserMixin, db.Model):
     """User definition, inherit from UserMixin for authentication"""
     __tablename__ = 'user'
@@ -16,6 +26,8 @@ class User(UserMixin, db.Model):
     last_membership = db.Column(db.Integer, default=False)
     # incremental user id - used for authentication
     seqid = db.Column(db.Integer, default=0)
+    repaircafes = db.relationship("RepairCafe",
+                                  secondary=repaircafe_user)
 
 class Category(db.Model):
     """Category as defined on RepairMonitor"""
@@ -45,13 +57,6 @@ class State(db.Model):
 
     def __repr__(self):
         return '<State %r>' % self.label
-
-
-# many2many association between a user (repairer) and an object in the database
-repair_user = db.Table('association_repair_user', db.Model.metadata,
-                       db.Column('repair_id', db.ForeignKey('repair.id')),
-                       db.Column('user_id', db.ForeignKey('user.id'))
-)
 
 class Repair(db.Model):
     # the main repair form
@@ -97,6 +102,7 @@ class Repair(db.Model):
     close_status = db.relationship("CloseStatus", foreign_keys=[close_status_id])
     # where is the object
     location = db.Column(db.String(50), default="Local")
+    repaircafe_id = db.Column(db.Integer, db.ForeignKey('repaircafe.id'), nullable=False)
 
 
 class Note(db.Model):
@@ -156,3 +162,8 @@ class CloseStatus(db.Model):
     __tablename__ = 'closestatus'
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(50), nullable=False, unique=True)
+
+class RepairCafe(db.Model):
+    __tablename__ = 'repaircafe'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(45), nullable=False, unique=True)

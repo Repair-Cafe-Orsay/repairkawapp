@@ -23,6 +23,25 @@
     </div>
   </div>
   <div class="input-group">
+    <span class="col-3 input-group-text bg-info">Repair Cafés</span>
+    <select class="col-9 form-select" size="3" name="repaircafes" multiple>
+        {% for rc in u['repaircafes'] %}
+        <option value="{{rc.id}}" selected>{{rc.name}}</option>
+    {% endfor %}
+    {% for rc in repaircafes %}
+        {% if rc not in u['repaircafes'] %}
+        <option value="{{rc.id}}">{{rc.name}}</option>
+      {% endif %}
+    {% endfor %}
+    </select>
+    <select class="col-9 form-select" hidden name="previous_repaircafes" multiple>
+    {% for rc in u['repaircafes'] %}
+        <option value="{{rc.id}}" selected>{{rc.name}}</option>
+    {% endfor %}
+    </select>
+  </div>
+
+  <div class="input-group">
     <a style="margin-left: auto" class="btn btn-primary" href="{{url_for('admin.user_list')}}">Revenir à la liste</a>
     <button style="margin-left: auto" class="btn btn-outline-danger" type="submit">Modifier Utilisateur</button>
   </div>

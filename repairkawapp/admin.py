@@ -5,7 +5,7 @@ from datetime import date, datetime
 from sqlalchemy import and_
 import pytz
 from flask import current_app, Blueprint, render_template, request, redirect, url_for, send_from_directory
-from .models import Category, Repair, Brand, State, User, Note, CloseStatus, SpareStatus, SpareChange, Log, Notification
+from .models import RepairCafe, User
 from . import db, thumb
 
 admin = Blueprint('admin', __name__)
@@ -27,6 +27,8 @@ def user_edit(user_id):
     r"""main admin page"""
     u = db.session.query(User).filter_by(id=user_id).first()
     if request.method == 'POST':
+        repaircafes = request.form.getlist('repaircafes')
+        previous_repaircafes = request.form.getlist('previous_repaircafes')
         u.name = request.form.get('name')
         u.email = request.form.get('email')
         if request.form.get('last_membership'):
@@ -34,11 +36,14 @@ def user_edit(user_id):
         else:
             u.last_membership = None
         u.admin = request.form.get('admin', False) and True
+        if repaircafes != previous_repaircafes:
+            u.repaircafes = [db.session.query(RepairCafe).filter_by(id=rc_id).first() for rc_id in repaircafes]
         db.session.commit()
         return redirect(url_for("admin.user_list", email=u.email), code=302)
     else:
         return render_template('user_edit.html',
                                name=current_user.name,
+                               repaircafes=RepairCafe.query.order_by(RepairCafe.name).all(),
                                u=u)
 
 @admin.route('/admin/new', methods=['POST', 'GET'])
