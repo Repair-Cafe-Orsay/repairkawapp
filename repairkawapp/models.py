@@ -8,11 +8,12 @@ class User(UserMixin, db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     # user information
-    email = db.Column(db.String(100), unique=True)
+    email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(100))
     name = db.Column(db.String(100))
     # admin field
     admin = db.Column(db.Boolean, default=False)
+    last_membership = db.Column(db.Integer, default=False)
     # incremental user id - used for authentication
     seqid = db.Column(db.Integer, default=0)
 

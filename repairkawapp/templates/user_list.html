@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="row mb-3">
+    <a href="{{url_for('admin.user_new')}}" class="col-3 btn btn-primary btn-lg" tabindex="-1" role="button" aria-disabled="true">New</a>
+  </div>
+  <table id="user_table_id" class="display">
+      <thead>
+          <tr>
+              <th></th>
+              <th>Nom</th>
+              <th>Courriel</th>
+              <th>Admin</th>
+              <th>Cotisation</th>
+          </tr>
+      </thead>
+        <tbody>
+        {% for user in users %}
+            <tr user_id="{{ user.id }}">
+                <td><button>Voir</button></td>
+                <td>{{ user.name }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.admin and 'Oui' or '' }}</td>
+                <td>{{ user.last_membership!=None and user.last_membership or '' }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <script>
+          $(document).ready( function () {
+              $('#user_table_id thead tr')
+                .clone(true)
+                .addClass('filters')
+                .appendTo('#user_table_id thead');
+              user_table = $('#user_table_id').DataTable({
+                  paging: false,
+                  orderCellsTop: true,
+                  ordering: false,
+                  fixedHeader: true,
+                  "search": {"search": "{{filter_email or ''}}"},
+                  dom: 'fir',
+                  initComplete: function () {
+                      var api = this.api();
+
+                      // For each column
+                      api
+                          .columns()
+                          .eq(0)
+                          .each(function (colIdx) {
+                              // Set the header cell to contain the input element
+                              var cell = $('.filters th').eq(
+                                  $(api.column(colIdx).header()).index()
+                              );
+                              var title = $(cell).text();
+                              if (title != '') {
+                                  $(cell).html('<input type="text" placeholder="' + title + '" />');
+                              }
+
+                              // On every keypress in this input
+                              $(
+                                  'input',
+                                  $('.filters th').eq($(api.column(colIdx).header()).index())
+                              )
+                                  .off('keyup change')
+                                  .on('change', function (e) {
+                                      // Get the search value
+                                      $(this).attr('title', $(this).val());
+                                      var regexr = '({search})'; //$(this).parents('th').find('select').val();
+                                      var cursorPosition = this.selectionStart;
+                                      // Search the column for that value
+                                      api
+                                          .column(colIdx)
+                                          .search(
+                                              this.value != ''
+                                                  ? regexr.replace('{search}', '(((' + this.value + ')))')
+                                                  : '',
+                                              this.value != '',
+                                              this.value == ''
+                                          )
+                                          .draw();
+                                  })
+                                  .on('keyup', function (e) {
+                                      e.stopPropagation();
+                                      $(this).trigger('change');
+                                      $(this)
+                                          .focus()[0]
+                                          .setSelectionRange(cursorPosition, cursorPosition);
+                                  });
+                          });
+
+                  }
+              });
+              $('#user_table_id tbody').on( 'click', 'button', function () {
+                  var user_id = $(this).parents('tr').attr("user_id");
+                  window.location.href="/admin/edit/"+user_id;
+            })
+
+          })
+    </script>
+
+{% endblock %}
