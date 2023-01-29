@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form class="row gy-1 needs-validation" novalidate  method="POST" action="{{url_for('admin.user_edit', user_id=u['id'])}}">
+  <div class="input-group">
+    <span class="input-group-text bg-secondary col-3">Nom</span>
+    <input name="name", type="name" class="form-control" value="{{u['name']}}">
+  </div>
+  <div class="input-group">
+    <span class="input-group-text bg-secondary col-3">Courriel</span>
+    <input name="email", type="email" class="form-control" placeholder="email" required value="{{u['email']}}">
+  </div>
+  <div class="input-group">
+    <span class="input-group-text bg-secondary col-3">Dernière cotisation</span>
+    <input name="last_membership" type="number" min="2019" max="{{current_year}}" class="form-control" value="{{u['last_membership']}}">
+  </div>
+  <div class="input-group">
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="admin" value="1" id="adminUser" {{u['admin'] and 'checked' or ''}}>
+      <label class="form-check-label" for="adminUser">
+        Utilisateur Administrateur
+      </label>
+    </div>
+  </div>
+  <div class="input-group">
+    <a style="margin-left: auto" class="btn btn-primary" href="{{url_for('admin.user_list')}}">Revenir à la liste</a>
+    <button style="margin-left: auto" class="btn btn-outline-danger" type="submit">Modifier Utilisateur</button>
+  </div>
+</form>
+
+{% endblock %}
