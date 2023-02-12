@@ -40,7 +40,18 @@
         <div class="d-flex flex-column flex-md-row pb-3 mb-4 border-bottom">
           <div class="align-items-center text-dark text-decoration-none col-4">
               <img width="50" height="50" src="/static/img/RC-LogoButton-Orsay.png" style="margin-right:10px">
-              <span class="fs-4">Repair Café Orsay</span>
+              {% if repaircafes|length > 1 %}
+                  <button class="btn btn-outline-secondary btn-lg dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Repair Café Orsay
+                  </button>
+                  <ul class="dropdown-menu notifications" role="menu" aria-labelledby="notif_button">
+                    {% for rc in repaircafes %}
+                        <li>{{ rc.name }}</li>
+                    {% endfor %}
+                  </ul>
+              {% else %}
+                <span class="fs-4">Repair Café Orsay</span>
+              {% endif %}
           </div>
           {% if not to_print %}
           <nav class="md-inline-flex mt-2 mt-md-0 ms-md-auto">

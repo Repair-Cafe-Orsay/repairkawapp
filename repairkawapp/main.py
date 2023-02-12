@@ -4,27 +4,36 @@ from flask_login import login_required, current_user
 from datetime import date, datetime
 from sqlalchemy import and_
 import pytz
-from flask import current_app, Blueprint, render_template, request, redirect, url_for, send_from_directory
+from flask import current_app, Blueprint, render_template, request, redirect, url_for, send_from_directory, Response
 from .models import Category, Repair, Brand, State, User, Note, CloseStatus, SpareStatus, SpareChange, Log, Notification
 from . import db, thumb
 
 main = Blueprint('main', __name__)
 LOCAL_TIMEZONE = pytz.timezone('Europe/Paris')
 
-@main.route('/')
+@main.route('/<string:rca>/')
 @login_required
-def index():
+def index(rca):
     r"""main page"""
+    if rca not in [rc.acronym for rc in current_user.repaircafes]:
+        return Response('Accès non autorisé', 401)
     return render_template('index.html',
                            name=current_user.name,
+                           repaircafes=current_user.repaircafes,
                            categories=Category.query.order_by(Category.name).all(),
                            users=User.query.order_by(User.name).all())
+
+@main.route('/')
+@login_required
+def index_nrc():
+    r"""main page"""
+    return redirect(url_for("main.index", rc=current_user.repaircafes[0].acronym), code=302)
 
 @main.route('/profile')
 @login_required
 def profile():
     r"""statistics"""
-    return render_template('profile.html', name=current_user.name,
+    return render_template('profile.html', name=current_user.name, repaircafes=current_user.repaircafes,
                            last_membership_ok=current_user.last_membership==date.today().year)
 
 @main.route('/new')
@@ -40,6 +49,7 @@ def new_repair():
                            categories=Category.query.order_by(Category.name).all(),
                            states=State.query.order_by(State.id).all(),
                            name=current_user.name,
+                           repaircafes=current_user.repaircafes,
                            from_user=from_user,
                            r="")
 
@@ -51,6 +61,7 @@ def edit_repair(repair_id):
                            categories=Category.query.order_by(Category.name).all(),
                            states=State.query.order_by(State.id).all(),
                            name=current_user.name,
+                           repaircafes=current_user.repaircafes,
                            from_user={},
                            r=db.session.query(Repair).filter_by(display_id=repair_id).first())
 
@@ -213,6 +224,7 @@ def get_update(id):
         images_idx.append((len(images_idx), p.split("/")[-1], "cache/"+thumb.get_thumbnail(p.split("/")[-1], "200x200").split("/")[-1]))
     return render_template('update.html',
                            name=current_user.name,
+                           repaircafes=current_user.repaircafes,
                            categories=Category.query.order_by(Category.name).all(),
                            states=State.query.order_by(State.id).all(),
                            users=User.query.order_by(User.name).all(),

@@ -23,6 +23,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(100))
     # admin field
     admin = db.Column(db.Boolean, default=False)
+    super_admin = db.Column(db.Boolean, default=False)
     last_membership = db.Column(db.Integer, default=False)
     # incremental user id - used for authentication
     seqid = db.Column(db.Integer, default=0)
@@ -167,3 +168,4 @@ class RepairCafe(db.Model):
     __tablename__ = 'repaircafe'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(45), nullable=False, unique=True)
+    acronym = db.Column(db.String(45), nullable=False, unique=True)

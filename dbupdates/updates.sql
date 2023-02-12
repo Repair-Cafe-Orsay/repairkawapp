@@ -70,3 +70,13 @@ INSERT INTO `repairkawapp`.`association_repaircafe_user` (`repaircafe_id`,`user_
      (1,20);
 
 INSERT INTO `repairkawapp`.`repaircafe` (`name`) VALUES ('Répare Café Palaiseau');
+
+
+ALTER TABLE `repairkawapp`.`user`
+ADD COLUMN `super_admin` TINYINT(1) NULL DEFAULT 0 AFTER `admin`;
+
+UPDATE `repairkawapp`.`user` SET `super_admin` = '1' WHERE (`id` = '7');
+
+ALTER TABLE `repairkawapp`.`repaircafe`
+ADD COLUMN `acronym` VARCHAR(45) NOT NULL AFTER `name`,
+ADD UNIQUE INDEX `acronym_UNIQUE` (`acronym` ASC) VISIBLE;

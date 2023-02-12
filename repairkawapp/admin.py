@@ -1,12 +1,8 @@
-import glob
-import os
 from flask_login import login_required, current_user
-from datetime import date, datetime
-from sqlalchemy import and_
 import pytz
-from flask import current_app, Blueprint, render_template, request, redirect, url_for, send_from_directory
+from flask import Blueprint, render_template, request, redirect, url_for
 from .models import RepairCafe, User
-from . import db, thumb
+from . import db
 
 admin = Blueprint('admin', __name__)
 LOCAL_TIMEZONE = pytz.timezone('Europe/Paris')
@@ -16,10 +12,16 @@ LOCAL_TIMEZONE = pytz.timezone('Europe/Paris')
 def user_list():
     r"""main admin page"""
     email = request.args.get('email', None)
+    if current_user.super_admin:
+        users = User.query.order_by(User.last_membership.desc()).order_by(User.name).all()
+    else:
+        # TODO: join request to keep only users from listed repaircafes
+        users = User.query.order_by(User.last_membership.desc()).order_by(User.name).all()
     return render_template('user_list.html',
                            name=current_user.name,
                            filter_email=email,
-                           users=User.query.order_by(User.last_membership.desc()).order_by(User.name).all())
+                           repaircafes=current_user.repaircafes,
+                           users=users)
 
 @admin.route('/admin/edit/<string:user_id>', methods=['POST', 'GET'])
 @login_required
@@ -43,7 +45,8 @@ def user_edit(user_id):
     else:
         return render_template('user_edit.html',
                                name=current_user.name,
-                               repaircafes=RepairCafe.query.order_by(RepairCafe.name).all(),
+                               repaircafes=current_user.super_admin and RepairCafe.query.order_by(RepairCafe.name).all()
+                                           or current_user.repaircafes,
                                u=u)
 
 @admin.route('/admin/new', methods=['POST', 'GET'])
@@ -65,4 +68,5 @@ def user_new():
     else:
         return render_template('user_new.html',
                                already_exists=user_exists,
+                               repaircafes=current_user.repaircafes,
                                name=current_user.name)
