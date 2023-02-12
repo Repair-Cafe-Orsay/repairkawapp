@@ -24,7 +24,8 @@ def index():
 @login_required
 def profile():
     r"""statistics"""
-    return render_template('profile.html', name=current_user.name)
+    return render_template('profile.html', name=current_user.name,
+                           last_membership_ok=current_user.last_membership == date.today().year)
 
 @main.route('/new')
 @login_required
