@@ -80,7 +80,7 @@
   {% endfor %}
 </ul>
 {% if session.repairs|length > 0 %}
-  <p class="mt-2"><a class="btn btn-sm btn-outline-primary" href="/?session_id={{ session.id }}">Voir ces fiches sur l'accueil (filtre séance #{{ session.id }})</a></p>
+  <p class="mt-2"><a class="btn btn-sm btn-outline-primary" href="/repairs?session_id={{ session.id }}">Voir ces fiches (filtre séance #{{ session.id }})</a></p>
 {% endif %}
 <script>
 function load_locations_detail() {

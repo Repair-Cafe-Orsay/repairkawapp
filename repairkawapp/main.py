@@ -4,6 +4,7 @@ Nettoyage global : imports organisés, PEP8, docstrings, suppression des répét
 """
 import os
 import glob
+from io import BytesIO
 from datetime import date, datetime
 import pytz
 from sqlalchemy import and_
@@ -17,6 +18,7 @@ from .models import (
     SpareStatus, SpareChange, Log, Notification
 )
 from . import db, thumb
+from PIL import Image
 from .services.repair_service import (
     get_or_create_brand, create_repair, update_repair, apply_update
 )
@@ -26,24 +28,89 @@ LOCAL_TIMEZONE = pytz.timezone('Europe/Paris')
 
 @main.route('/')
 @login_required
-def index():
-    """Page d'accueil principale."""
-    return render_template(
-        'index.html',
-        name=current_user.name,
-        categories=Category.query.order_by(Category.name).all(),
-        users=User.query.order_by(User.name).all()
-    )
+def dashboard():
+    """Dashboard d'accueil avec message de bienvenue et statistiques."""
+    # Informations cotisation pour affichage rapide
+    today = date.today()
+    current_start = _current_academic_start(today)
+    last_start = current_user.last_membership
+    last_membership_ok = (last_start == current_start)
+    user_period = (last_start, last_start + 1) if last_start is not None else None
+    return render_template('dashboard.html',
+                           name=current_user.name,
+                           user_period=user_period,
+                           last_membership_ok=last_membership_ok)
 
-@main.route('/profile')
+def _current_academic_start(today: date) -> int:
+    """Retourne l'année de début de la période de cotisation académique courante.
+
+    La période va du 1er septembre de N au 31 août de N+1. Avant septembre on est
+    toujours dans la période commencée l'année précédente.
+    """
+    return today.year if today.month >= 9 else today.year - 1
+
+
+@main.route('/profile', methods=['GET','POST'])
 @login_required
 def profile():
-    """Page profil utilisateur (statistiques)."""
-    return render_template(
-        'profile.html',
-        name=current_user.name,
-        last_membership_ok=current_user.last_membership == date.today().year
-    )
+    """Page profil utilisateur (dashboard + cotisation + présentation)."""
+    today = date.today()
+    current_start = _current_academic_start(today)
+    last_start = current_user.last_membership
+    last_membership_ok = (last_start == current_start)
+    user_period = (last_start, last_start + 1) if last_start is not None else None
+    photo_error = None
+    if request.method == 'POST':
+        # Mise à jour biographie (toujours sauvegardée même si erreur photo)
+        current_user.biography = request.form.get('biography') or None
+        if 'photo' in request.files and request.files['photo'].filename:
+            f = request.files['photo']
+            # Validation taille (3 Mo max)
+            MAX_PHOTO_BYTES = 3 * 1024 * 1024
+            # Lire contenu en mémoire pour validation + traitement
+            raw = f.read()
+            if len(raw) > MAX_PHOTO_BYTES:
+                photo_error = f"Fichier trop volumineux (>{MAX_PHOTO_BYTES//1024} Ko)."  # garde bio
+            else:
+                try:
+                    img = Image.open(BytesIO(raw))
+                    img = img.convert('RGBA') if img.mode in ('P','LA') else img.convert('RGB')
+                    # Récup coordonnées de recadrage si fournies
+                    try:
+                        x = int(float(request.form.get('crop_x', 0)))
+                        y = int(float(request.form.get('crop_y', 0)))
+                        w = int(float(request.form.get('crop_w', 0)))
+                        h = int(float(request.form.get('crop_h', 0)))
+                    except (TypeError, ValueError):
+                        x = y = 0; w = h = 0
+                    W, H = img.size
+                    # Si recadrage valide sinon on force un carré centré
+                    if w <= 0 or h <= 0 or x < 0 or y < 0 or x+w > W or y+h > H:
+                        side = min(W, H)
+                        x = (W - side)//2
+                        y = (H - side)//2
+                        w = h = side
+                    # Applique recadrage
+                    img = img.crop((x, y, x + w, y + h))
+                    # Redimensionne à 400x400 pour standardiser
+                    img = img.resize((400, 400), Image.LANCZOS)
+                    filename = f"user_{current_user.id}_{int(datetime.now().timestamp())}.jpg"
+                    path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+                    img.save(path, format='JPEG', quality=88)
+                    current_user.photo_filename = filename
+                except Exception:
+                    photo_error = "Erreur lors du traitement de l'image (format non supporté?)."
+        db.session.commit()
+        if not photo_error:
+            return redirect(url_for('main.profile'))
+    return render_template('profile.html',
+                           name=current_user.name,
+                           last_membership_ok=last_membership_ok,
+                           user_period=user_period,
+                           biography=current_user.biography,
+                           photo_filename=current_user.photo_filename,
+                           photo_error=photo_error)
+
 
 @main.route('/new')
 @login_required
@@ -130,6 +197,17 @@ def post_object():
     db.session.commit()
 
     return redirect(url_for("main.update_object", id=r.display_id), code=302)
+
+@main.route('/repairs')
+@login_required
+def repairs_home():
+    """Ancienne page d'accueil listant les fiches (déplacée)."""
+    return render_template(
+        'index.html',
+        name=current_user.name,
+        categories=Category.query.order_by(Category.name).all(),
+        users=User.query.order_by(User.name).all()
+    )
 
 @main.route('/attach_session/<string:repair_id>', methods=['POST'])
 @login_required
@@ -233,3 +311,37 @@ def session_detail(session_id):
                            name=current_user.name,
                            session=s,
                            participants=s.participants)
+
+@main.route('/trombinoscope')
+def trombinoscope():
+    """Page publique listant les réparateurs (trombinoscope).
+
+    Première ligne : membres du bureau (ordre logique défini) affichés avec leur titre au-dessus et leur nom en dessous.
+    Lignes suivantes : autres membres (utilisateurs sans rôle de bureau).
+    Accessible sans authentification.
+    """
+    # Récupère tous les utilisateurs
+    all_users = db.session.query(User).all()
+    # Sépare bureau / autres
+    board = [u for u in all_users if u.board_title]
+    others = [u for u in all_users if not u.board_title]
+    # Ordre personnalisé des rôles de bureau
+    # Ordre demandé: 1 président, 2 trésorier, 3 secrétaire, 4 vice-présidents
+    order = [
+        'président', 'president',
+        'trésorier', 'tresorier', 'trésorière', 'tresoriere',
+        'secrétaire', 'secretaire',
+        'vice-président', 'vice president', 'vice-présidente', 'vice-presidents', 'vice-présidents'
+    ]
+    def board_key(u):
+        bt = (u.board_title or '').lower()
+        try:
+            return (order.index(bt), bt)
+        except ValueError:
+            return (len(order), bt)
+    board.sort(key=board_key)
+    others.sort(key=lambda u: (u.name or '').lower())
+    return render_template('trombinoscope.html',
+                           board=board,
+                           others=others,
+                           name=current_user.name if current_user.is_authenticated else None)

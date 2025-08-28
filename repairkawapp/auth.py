@@ -1,4 +1,5 @@
 import time
+import hashlib
 from flask import current_app, Blueprint, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -26,9 +27,33 @@ def login_post():
     password = request.form.get('password')
     remember = True if request.form.get('remember') else False
     user = User.query.filter_by(email=email).first()
-    if not user or not check_password_hash(user.password, password):
+    if not user or not user.password:
         flash('Mot de passe incorrect')
         return redirect(url_for('auth.login'))
+
+    # Gestion legacy: anciens hachages simples 'sha256$<salt>$<hash>' (Werkzeug versions anciennes)
+    if user.password.startswith('sha256$'):
+        try:
+            _method, salt, old_hash = user.password.split('$', 2)
+            calc = hashlib.sha256((salt + password).encode()).hexdigest()
+            if calc != old_hash:
+                flash('Mot de passe incorrect')
+                return redirect(url_for('auth.login'))
+            # upgrade vers algo moderne par défaut
+            user.password = generate_password_hash(password)
+            db.session.commit()
+        except Exception:
+            flash('Mot de passe incorrect')
+            return redirect(url_for('auth.login'))
+    else:
+        try:
+            if not check_password_hash(user.password, password):
+                flash('Mot de passe incorrect')
+                return redirect(url_for('auth.login'))
+        except ValueError:
+            # hash inconnu -> échec silencieux
+            flash('Mot de passe incorrect')
+            return redirect(url_for('auth.login'))
     login_user(user, remember=remember)
     return redirect(url_for('main.profile'))
 
@@ -109,4 +134,42 @@ def post_new_password():
     db.session.commit()
 
     return render_template('login.html')
+
+@auth.route('/change_password_logged', methods=['POST'])
+@login_required
+def change_password_logged():
+    """Change le mot de passe de l'utilisateur connecté (flux direct profil).
+
+    Attend old_password, new_password (>=6 chars). Retour JSON.
+    """
+    from flask_login import current_user
+    import json as _json
+    payload = request.get_json(silent=True) or request.form
+    old_password = payload.get('old_password') or ''
+    new_password = payload.get('new_password') or ''
+    if len(new_password) < 6:
+        return _json.dumps({'ok': False, 'error': 'too_short'}), 400, {'Content-Type': 'application/json'}
+    # Si un password existe on valide l'ancien, sinon on autorise set direct
+    if current_user.password and not current_user.password.startswith('sha256$'):
+        try:
+            if not check_password_hash(current_user.password, old_password):
+                return _json.dumps({'ok': False, 'error': 'bad_old'}), 403, {'Content-Type': 'application/json'}
+        except ValueError:
+            return _json.dumps({'ok': False, 'error': 'bad_old'}), 403, {'Content-Type': 'application/json'}
+    elif current_user.password and current_user.password.startswith('sha256$'):
+        # Ancien format legacy
+        try:
+            _method, salt, old_hash = current_user.password.split('$', 2)
+            import hashlib as _h
+            calc = _h.sha256((salt + old_password).encode()).hexdigest()
+            if calc != old_hash:
+                return _json.dumps({'ok': False, 'error': 'bad_old'}), 403, {'Content-Type': 'application/json'}
+        except Exception:
+            return _json.dumps({'ok': False, 'error': 'bad_old'}), 403, {'Content-Type': 'application/json'}
+    # Mise à jour
+    current_user.password = generate_password_hash(new_password)
+    # Invalidation seqid (force invalidation anciens tokens reset) en l'incrémentant
+    current_user.seqid = (current_user.seqid or 0) + 1
+    db.session.commit()
+    return _json.dumps({'ok': True}), 200, {'Content-Type': 'application/json'}
  

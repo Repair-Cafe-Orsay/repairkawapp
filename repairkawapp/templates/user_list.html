@@ -1,26 +1,29 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <div class="row mb-3">
-    <a href="{{url_for('admin.user_new')}}" class="col-3 btn btn-primary btn-lg" tabindex="-1" role="button" aria-disabled="true">New</a>
-  </div>
-  <table id="user_table_id" class="display">
+    <h1 class="mb-3">Utilisateurs</h1>
+        <div class="d-flex mb-3">
+            <a href="{{url_for('admin.user_new')}}" class="btn btn-sm btn-primary ms-auto" tabindex="-1" role="button" aria-disabled="true">Nouvel utilisateur</a>
+        </div>
+    <table id="user_table_id" class="display table table-sm align-middle user-table w-100">
       <thead>
           <tr>
               <th></th>
               <th>Nom</th>
-              <th>Courriel</th>
-              <th>Admin</th>
+                            <th>Courriel</th>
+                            <th>Administrateur</th>
+              <th>Rôle</th>
               <th>Cotisation</th>
           </tr>
       </thead>
         <tbody>
         {% for user in users %}
             <tr user_id="{{ user.id }}">
-                <td><button>Voir</button></td>
+                <td><button class="btn btn-outline-secondary btn-sm p-0 px-1" title="Voir">›</button></td>
                 <td>{{ user.name }}</td>
                 <td>{{ user.email }}</td>
                 <td>{{ user.admin and 'Oui' or '' }}</td>
+                <td>{{ user.board_title or '' }}</td>
                 <td>{{ user.last_membership!=None and user.last_membership or '' }}</td></tr>
         {% endfor %}
       </tbody>
@@ -37,8 +40,19 @@
                   orderCellsTop: true,
                   ordering: false,
                   fixedHeader: true,
+                  responsive: true,
+                  autoWidth: false,
                   "search": {"search": "{{filter_email or ''}}"},
-                  dom: 'fir',
+                  dom: 'ir',
+                  language: { url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json' },
+                  columnDefs: [
+                      { targets: 0, width: '28px' },
+                      { targets: 1, width: '18%', className: 'text-nowrap' },
+                      { targets: 2, width: '25%', className: 'text-break' },
+                      { targets: 3, width: '10%', className: 'text-center' },
+                      { targets: 4, width: '15%', className: 'text-nowrap' },
+                      { targets: 5, width: '10%', className: 'text-center' }
+                  ],
                   initComplete: function () {
                       var api = this.api();
 
@@ -53,7 +67,7 @@
                               );
                               var title = $(cell).text();
                               if (title != '') {
-                                  $(cell).html('<input type="text" placeholder="' + title + '" />');
+                                  $(cell).html('<input class="form-control form-control-sm" type="text" placeholder="' + title + '" />');
                               }
 
                               // On every keypress in this input

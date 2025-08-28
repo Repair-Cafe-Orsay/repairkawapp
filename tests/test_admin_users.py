@@ -61,16 +61,17 @@ def test_update_member_membership_year(login_admin):
         db.session.commit()
         uid = u.id
     # update membership year
-    resp = login_admin.post(f'/admin/edit/{uid}', data={
-        'name': 'Update Test',
-        'email': 'update@example.org',
-        'last_membership': '2024',
-        'admin': ''
-    }, follow_redirects=False)
+    # membership n'est plus modifiable directement : utiliser action rapide
+    resp = login_admin.post(f'/admin/edit/{uid}', data={'action': 'set_current_membership'})
     assert resp.status_code == 302
     with login_admin.application.app_context():
+        from datetime import date
         u = User.query.filter_by(id=uid).first()
-        assert u.last_membership == 2024
+        expected = date.today().year if date.today().month >= 9 else date.today().year - 1
+        # si période juillet/août on anticipe année suivante
+        if date.today().month in (7,8):
+            expected += 1
+        assert u.last_membership == expected
 
 
 def test_clear_membership_year(login_admin):
@@ -81,16 +82,12 @@ def test_clear_membership_year(login_admin):
         db.session.commit()
         uid = u.id
     # clear membership by sending empty string
-    resp = login_admin.post(f'/admin/edit/{uid}', data={
-        'name': 'Clear Test',
-        'email': 'clear@example.org',
-        'last_membership': '',
-        'admin': ''
-    }, follow_redirects=False)
+    # Effacement direct n'est plus supporté (champ read-only) – on vérifie que poster sans action ne modifie pas.
+    resp = login_admin.post(f'/admin/edit/{uid}', data={'name': 'Clear Test', 'email': 'clear@example.org'})
     assert resp.status_code == 302
     with login_admin.application.app_context():
         u = User.query.filter_by(id=uid).first()
-        assert u.last_membership is None
+        assert u.last_membership == 2023
 
 
 def test_get_new_user_form(login_admin):

@@ -28,7 +28,7 @@
       <td>{{ s.participants|length }}</td>
       <td>
         {% if s.repairs|length > 0 %}
-          <a href="/?session_id={{ s.id }}" title="Filtrer l'accueil sur cette séance">{{ s.repairs|length }}</a>
+          <a href="/repairs?session_id={{ s.id }}" title="Filtrer les fiches sur cette séance">{{ s.repairs|length }}</a>
         {% else %}
           0
         {% endif %}

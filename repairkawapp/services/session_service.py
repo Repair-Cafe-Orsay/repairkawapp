@@ -15,31 +15,50 @@ def _get_or_create_location(db: SASession, name: str) -> Location:
         db.add(loc)
     return loc
 
-def open_session(db: SASession, location: str | None = None, tz=None) -> Session:
+def open_session(db: SASession, location: str | None = None, tz=None, opened_at=None) -> Session:
     """Ouvre une session pour aujourd'hui ou réutilise celle déjà ouverte aujourd'hui.
 
-    Une session est considérée *expirée* si sa date d'ouverture n'est pas celle du jour.
+    Logique de réutilisation (compat tests):
+      - S'il existe une session ouverte aujourd'hui (quel que soit owner) au même lieu -> la réutiliser.
+      - Sinon si utilisateur possède déjà une session ouverte aujourd'hui -> la réutiliser.
+      - Sinon créer une nouvelle session (lieu obligatoire).
     """
     if tz is None:
-        # On part sur UTC puis conversion date (ou config future)
         today_local = date.today()
     else:
         today_local = datetime.now(tz).date()
-    existing = (db.query(Session)
-                  .filter(Session.owner_id == current_user.id,
-                          Session.closed_at == None)
-                  .order_by(Session.opened_at.desc())
-                  .first())
-    if existing and existing.opened_at.date() == today_local:
-        # Déjà une session pour aujourd'hui
-        if current_user not in existing.participants:
-            existing.participants.append(current_user)
-        return existing
-    # Sinon on crée une nouvelle session (l'ancienne est implicitement expirée)
+    # 1. Réutilisation par lieu (si location fourni)
+    if location and location.strip():
+        loc_name = location.strip()
+        # Cherche une location existante (sans créer) pour récupérer son id
+        loc_existing = db.query(Location).filter_by(name=loc_name).first()
+        if loc_existing:
+            existing_same_loc = (db.query(Session)
+                                   .filter(Session.closed_at == None)
+                                   .filter(Session.opened_at >= datetime.combine(today_local, datetime.min.time()))
+                                   .filter(Session.location_id == loc_existing.id)
+                                   .order_by(Session.opened_at.asc())
+                                   .first())
+            if existing_same_loc and existing_same_loc.opened_at.date() == today_local:
+                if current_user not in existing_same_loc.participants:
+                    existing_same_loc.participants.append(current_user)
+                return existing_same_loc
+    # 2. Réutilisation session personnelle ouverte aujourd'hui
+    existing_user = (db.query(Session)
+                       .filter(Session.owner_id == current_user.id, Session.closed_at == None)
+                       .order_by(Session.opened_at.desc())
+                       .first())
+    if existing_user and existing_user.opened_at.date() == today_local:
+        if current_user not in existing_user.participants:
+            existing_user.participants.append(current_user)
+        return existing_user
+    # 3. Création
     if not location or not location.strip():
         raise ValueError("Location obligatoire pour ouvrir une session")
     loc_obj = _get_or_create_location(db, location.strip())
     s = Session(location=loc_obj, owner_id=current_user.id)
+    if opened_at is not None:
+        s.opened_at = opened_at
     s.participants.append(current_user)
     db.add(s)
     return s
@@ -134,6 +153,20 @@ def attach_repair(db: SASession, repair: Repair, session_obj: Session):
     repair.session = session_obj
     return repair
 
+def delete_session(db: SASession, session_id: int) -> bool:
+    """Supprime une séance si aucune réparation associée et utilisateur autorisé.
+
+    Retourne True si supprimée, False sinon."""
+    s = db.query(Session).filter_by(id=session_id).first()
+    if not s:
+        return False
+    if len(s.repairs) > 0:
+        return False
+    if current_user.id != s.owner_id and not getattr(current_user, 'admin', False):
+        return False
+    db.delete(s)
+    return True
+
 
 def session_stats(db: SASession, session_id: int) -> dict | None:
     s = db.query(Session).filter_by(id=session_id).first()
@@ -145,8 +178,8 @@ def session_stats(db: SASession, session_id: int) -> dict | None:
     return {
         'id': s.id,
     'location': (s.location and s.location.name) if hasattr(s, 'location') else None,
-        'opened_at': s.opened_at,
-        'closed_at': s.closed_at,
+    'opened_at': s.opened_at and (s.opened_at.isoformat() + 'Z'),
+    'closed_at': s.closed_at and (s.closed_at.isoformat() + 'Z'),
         'owner_id': s.owner_id,
         'participants': [u.id for u in s.participants],
         'nb_repairs': nb_repairs,

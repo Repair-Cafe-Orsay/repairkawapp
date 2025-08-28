@@ -251,7 +251,27 @@ def api_session_open():
                 manual_opened_at = local_dt.astimezone(pytz.utc).replace(tzinfo=None)
             except Exception:
                 return jsonify({'error': 'invalid opened_time'}), 400
-        s = open_session(db.session, location, opened_at=manual_opened_at)
+        # Réutilisation rapide (contourne bug constaté dans service) : même lieu, ouverte, même jour
+        if location and location.strip():
+            loc_obj = db.session.query(Location).filter_by(name=location.strip()).first()
+            if loc_obj:
+                from .models import Session as SessionModel
+                existing = (db.session.query(SessionModel)
+                              .filter(SessionModel.closed_at == None)
+                              .filter(SessionModel.location_id == loc_obj.id)
+                              .order_by(SessionModel.opened_at.asc())
+                              .first())
+                if existing and existing.opened_at.date() == datetime.utcnow().date():
+                    # Ajouter participant si absent
+                    if current_user not in existing.participants:
+                        existing.participants.append(current_user)
+                    s = existing
+                else:
+                    s = open_session(db.session, location, opened_at=manual_opened_at)
+            else:
+                s = open_session(db.session, location, opened_at=manual_opened_at)
+        else:
+            s = open_session(db.session, location, opened_at=manual_opened_at)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     db.session.commit()

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<form class="row gy-1 needs-validation" novalidate  method="POST" action="{{url_for('admin.user_edit', user_id=u['id'])}}">
+<form class="row gy-1 needs-validation" novalidate  method="POST" enctype="multipart/form-data" action="{{url_for('admin.user_edit', user_id=u['id'])}}" id="admin-user-form">
   <div class="input-group">
     <span class="input-group-text bg-secondary col-3">Nom</span>
     <input name="name", type="name" class="form-control" value="{{u['name']}}">
@@ -10,9 +10,18 @@
     <span class="input-group-text bg-secondary col-3">Courriel</span>
     <input name="email", type="email" class="form-control" placeholder="email" required value="{{u['email']}}">
   </div>
-  <div class="input-group">
-    <span class="input-group-text bg-secondary col-3">Dernière cotisation</span>
-    <input name="last_membership" type="number" min="2019" max="{{current_year}}" class="form-control" value="{{u['last_membership']}}">
+  <div class="input-group align-items-center">
+    <span class="input-group-text bg-secondary col-4">Dernière cotisation</span>
+    {% if u['last_membership'] %}
+      <input type="text" class="form-control" value="1er sept {{ u['last_membership'] }} – 31 août {{ u['last_membership'] + 1 }}" readonly>
+    {% else %}
+      <input type="text" class="form-control" value="(aucune)" readonly>
+    {% endif %}
+    {% if u['last_membership'] == subscription_target %}
+      <button type="button" class="btn btn-sm btn-secondary ms-2" disabled title="Déjà souscrit">Souscription période {{ subscription_target }}-{{ subscription_target + 1 }}</button>
+    {% else %}
+      <button type="submit" name="action" value="set_current_membership" class="btn btn-sm btn-primary ms-2" onclick="return confirm('Confirmer la souscription pour la période 1er sept {{ subscription_target }} – 31 août {{ subscription_target + 1 }} ?');" title="Souscrire à la période cible">Souscription période {{ subscription_target }}-{{ subscription_target + 1 }}</button>
+    {% endif %}
   </div>
   <div class="input-group">
     <div class="form-check">
@@ -23,9 +32,106 @@
     </div>
   </div>
   <div class="input-group">
+    <span class="input-group-text bg-secondary col-3">Rôle bureau</span>
+    <select name="board_title" class="form-select">
+      <option value="" {{ not u['board_title'] and 'selected' or '' }}>—</option>
+      {% for role in ['président','vice-président','trésorier','secrétaire'] %}
+        <option value="{{role}}" {{ u['board_title']==role and 'selected' or '' }}>{{role}}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="input-group">
+    <span class="input-group-text bg-secondary col-3">Biographie</span>
+    <textarea name="biography" class="form-control" rows="3" placeholder="Texte libre (Markdown simple accepté)">{{ u['biography'] or '' }}</textarea>
+  </div>
+  <div class="input-group align-items-center">
+    <span class="input-group-text bg-secondary col-3">Photo</span>
+    <input type="file" name="photo" accept="image/*" class="form-control">
+    {% if u.photo_filename %}
+      <a href="{{ url_for('main.media_file', filename=u.photo_filename) }}" target="_blank" class="ms-2">Voir</a>
+      <img src="{{ url_for('main.media_file', filename=u.photo_filename) }}" alt="photo" style="height:50px" class="ms-2 rounded">
+    {% endif %}
+  </div>
+  <div class="col-12" id="admin-cropper-wrapper" style="display:none">
+    <img id="admin-cropper-image" style="max-width:100%; max-height:400px" />
+  </div>
+  <input type="hidden" name="crop_x" id="crop_x">
+  <input type="hidden" name="crop_y" id="crop_y">
+  <input type="hidden" name="crop_w" id="crop_w">
+  <input type="hidden" name="crop_h" id="crop_h">
+  <div class="input-group">
     <a style="margin-left: auto" class="btn btn-primary" href="{{url_for('admin.user_list')}}">Revenir à la liste</a>
     <button style="margin-left: auto" class="btn btn-outline-danger" type="submit">Modifier Utilisateur</button>
   </div>
+  {% if photo_error %}
+    <div class="alert alert-danger py-1 small">{{ photo_error }}</div>
+  {% endif %}
 </form>
 
+{% if membership_logs %}
+<hr>
+<h5>Historique cotisation</h5>
+<table class="table table-sm small">
+  <thead><tr><th>Date</th><th>Admin</th><th>Ancien</th><th>Nouveau</th></tr></thead>
+  <tbody>
+  {% for log in membership_logs %}
+    <tr>
+      <td>{{ log.date.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>{{ log.admin.name }}</td>
+      <td>{% if log.old_value is not none %}{{ log.old_value }}-{{ log.old_value + 1 }}{% else %}-{% endif %}</td>
+      <td>{% if log.new_value is not none %}{{ log.new_value }}-{{ log.new_value + 1 }}{% else %}-{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if role_logs %}
+<h5>Historique rôles</h5>
+<table class="table table-sm small">
+  <thead><tr><th>Date</th><th>Admin</th><th>Ancien</th><th>Nouveau</th></tr></thead>
+  <tbody>
+  {% for log in role_logs %}
+    <tr>
+      <td>{{ log.date.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>{{ log.admin.name }}</td>
+      <td>{{ log.old_role or '-' }}</td>
+      <td>{{ log.new_role or '-' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
 {% endblock %}
+<link  rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+  (function(){
+    let cropper = null;
+    const input = document.querySelector('#admin-user-form input[name="photo"]');
+    const imgEl = document.getElementById('admin-cropper-image');
+    const wrap = document.getElementById('admin-cropper-wrapper');
+    if (input) {
+      input.addEventListener('change', function(){
+        const file = this.files && this.files[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        imgEl.src = url;
+        wrap.style.display = 'block';
+        if (cropper) { cropper.destroy(); }
+        cropper = new Cropper(imgEl, { aspectRatio: 1, viewMode:1 });
+      });
+    }
+    const form = document.getElementById('admin-user-form');
+    form.addEventListener('submit', function(){
+      if (cropper) {
+        const data = cropper.getData(true);
+        document.getElementById('crop_x').value = Math.round(data.x);
+        document.getElementById('crop_y').value = Math.round(data.y);
+        document.getElementById('crop_w').value = Math.round(data.width);
+        document.getElementById('crop_h').value = Math.round(data.height);
+      }
+    });
+  })();
+</script>

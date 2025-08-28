@@ -22,6 +22,12 @@ class User(UserMixin, db.Model):
     last_membership = db.Column(db.Integer, default=None)
     # incremental user id - used for authentication
     seqid = db.Column(db.Integer, default=0)
+    # rôle éventuel au sein du bureau (président, trésorier, secrétaire, vice-président)
+    board_title = db.Column(db.String(30))
+    # biographie / description courte modifiable par l'utilisateur
+    biography = db.Column(db.Text)
+    # photo de profil (nom de fichier stocké dans UPLOAD_FOLDER)
+    photo_filename = db.Column(db.String(200))
 
 class Category(db.Model):
     """Catégorie telle que définie sur RepairMonitor."""
@@ -171,6 +177,36 @@ class Notification(db.Model):
     note_id = db.Column(db.Integer, db.ForeignKey('note.id', ondelete='CASCADE'), nullable=False)
     note = db.relationship("Note")
     notification_type = db.Column(db.Enum(NotificationType))
+
+
+class MembershipLog(db.Model):
+    """Historique des modifications de cotisation (compliance).
+
+    Logue chaque changement de champ last_membership d'un utilisateur par un administrateur.
+    """
+    __tablename__ = 'membershiplog'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
+    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    admin = db.relationship('User', foreign_keys=[admin_id])
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', foreign_keys=[user_id])
+    old_value = db.Column(db.Integer)
+    new_value = db.Column(db.Integer)
+    note = db.Column(db.String(200), default="")
+
+
+class BoardRoleLog(db.Model):
+    """Historique des changements de rôle de bureau (admin uniquement)."""
+    __tablename__ = 'boardrolelog'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
+    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    admin = db.relationship('User', foreign_keys=[admin_id])
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', foreign_keys=[user_id])
+    old_role = db.Column(db.String(30))
+    new_role = db.Column(db.String(30))
 
 class SpareStatus(db.Model):
     """Statut d'une pièce détachée."""

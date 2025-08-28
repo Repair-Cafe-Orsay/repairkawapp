@@ -401,3 +401,58 @@ label.bg-secondary, span.bg-secondary {
   border-left: 3px solid #d9534f;
   padding-left: .5rem;
 }
+
+/* Alerte cotisation (rose) */
+.membership-warning {
+  background: #ffe6ef;
+  border: 1px solid #ff9bb8;
+  color: #b30042;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-weight: 500;
+}
+
+/* Table utilisateurs compacte */
+.user-table thead th { font-size: .8rem; }
+.user-table tbody td { font-size: .82rem; padding: .35rem .5rem; }
+.user-table input { font-size: .7rem; }
+@media (max-width: 700px) {
+  .user-table thead .filters input { max-width: 70px; }
+  .user-table td:nth-child(2),
+  .user-table td:nth-child(3) { word-break: break-word; }
+}
+
+/* ---- Trombinoscope ---- */
+.trombi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1.25rem;
+}
+.trombi-item { text-align: center; }
+.trombi-photo-wrapper { width: 120px; height: 120px; margin: 0 auto; }
+.trombi-photo, .trombi-photo.placeholder {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 46px;
+  font-weight: 600;
+  color: #888;
+  border: 1px solid #ddd;
+}
+.trombi-role { letter-spacing: .5px; }
+.trombi-name { font-weight: 500; }
+@media (max-width: 600px) {
+  .trombi-photo-wrapper { width: 90px; height: 90px; }
+  .trombi-photo, .trombi-photo.placeholder { width: 90px; height: 90px; font-size: 34px; }
+  .trombi-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+}
+.trombi-item.open { position: relative; }
+.trombi-item .trombi-bio { font-size: .85rem; text-align: left; line-height:1.25rem; }
+@media (max-width: 575.98px) {
+  .trombi-item .trombi-bio { margin-top: .4rem; background:#fff; border:1px solid #e2e2e2; padding:.5rem .6rem; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
+}

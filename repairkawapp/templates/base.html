@@ -37,18 +37,26 @@
 
 <div class="container py-3">
     <header>
-        <div class="d-flex flex-column flex-md-row pb-3 mb-4 border-bottom">
-          <div class="align-items-center text-dark text-decoration-none col-4">
+        <div class="pb-2 mb-3 border-bottom">
+          <div class="d-flex flex-column flex-md-row">
+            <a href="/" class="align-items-center text-dark text-decoration-none col-4" style="display:flex; align-items:center">
               <img width="50" height="50" src="/static/img/RC-LogoButton-Orsay.png" style="margin-right:10px">
               <span class="fs-4">Repair Café Orsay</span>
-          </div>
-          {% if not to_print %}
-          <nav class="md-inline-flex mt-2 mt-md-0 ms-md-auto">
-            <a class="me-3 py-2 link-primary" href="/">Home</a>
-            <a class="me-3 py-2 link-primary" href="/sessions">Séances</a>
+            </a>
+            {% if not to_print %}
+            <nav class="md-inline-flex mt-2 mt-md-0 ms-md-auto">
+              {% if not current_user.is_authenticated and request.path == '/trombinoscope' %}
+                <a class="py-2 text-dark text-decoration-none" href="{{ url_for('auth.login') }}">Connexion (membres)</a>
+              {% else %}
+                <a class="me-3 py-2" href="/" aria-label="Accueil" title="Accueil" style="display:inline-flex;align-items:center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="#0d6efd" viewBox="0 0 16 16" role="img" aria-label="Accueil">
+                    <path d="M8 .5l6.5 6.188V15a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1v-3H7v3a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1V6.688L8 .5z" stroke="#0d6efd" stroke-width="0.5" />
+                  </svg>
+                </a>
+                <a class="me-3 py-2 link-primary" href="/repairs">Fiches</a>
+                <a class="me-3 py-2 link-primary" href="/sessions">Séances</a>
                 {% if not current_user.is_authenticated %}
-            <a class="me-3 py-2 text-dark text-decoration-none" href="{{ url_for('auth.login') }}">Login</a>
-            <a class="me-3 py-2 text-dark text-decoration-none" href="{{ url_for('auth.signup') }}">Sign Up</a>
+                  <a class="py-2 text-dark text-decoration-none" href="{{ url_for('auth.login') }}">Login</a>
                 {% else %}
                 <div class="dropdown dropdown-notif md-inline-flex">
                   <button id="notif_button" role="button" data-bs-toggle="dropdown" class="btn border-info" onclick="get_notifs()">
@@ -67,33 +75,40 @@
                 </div>
                 <button type="button" class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown">{{ name }}</button>
                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                    <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">Profile</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">Profil</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Déconnexion</a></li>
                 </ul>
                 {% endif %}
-                    {% if current_user.admin %}
-                <button type="button" class="btn btn-warning dropdown-toggle" data-bs-toggle="dropdown">Admin</button>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                    <li><a class="dropdown-item" href="{{ url_for('admin.user_list') }}">Gestion Utilisateurs</a></li>
-                </ul>
-                    {% endif %}
-          </nav>
-          {% else %}
-              {% if to_print %}
-                <div class="idbox large">
-                    <div class="card update rounded">
-                      <div class="card-body">
-                        <b>ID</b>
-                      </div>
-                    </div>
-                </div>
+                {% if current_user.admin %}
+                  <button type="button" class="btn btn-warning dropdown-toggle" data-bs-toggle="dropdown">Admin</button>
+                  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                      <li><a class="dropdown-item" href="{{ url_for('admin.user_list') }}">Gestion Utilisateurs</a></li>
+                  </ul>
+                {% endif %}
               {% endif %}
+            </nav>
+            {% else %}
+                {% if to_print %}
+                  <div class="idbox large">
+                      <div class="card update rounded">
+                        <div class="card-body">
+                          <b>ID</b>
+                        </div>
+                      </div>
+                  </div>
+                {% endif %}
+            {% endif %}
+          </div>
+          {% if current_user.is_authenticated and not membership_up_to_date %}
+            <div class="membership-warning small mt-2" role="alert">
+              Cotisation non à jour (voir admin)
+            </div>
           {% endif %}
         </div>
     </header>
 
     <main>
-  {% if current_user.is_authenticated and not request.path.startswith('/admin') %}
+  {% if current_user.is_authenticated and not request.path.startswith('/admin') and request.path != '/profile' %}
       <div id="session-banner" class="mb-3">
         <div class="card border-info" id="session-active" style="display:none">
           <div class="card-body py-2 d-flex justify-content-between align-items-center">
@@ -128,11 +143,13 @@
 </div>
 
 {% if not to_print %}
-        <footer class="mt-auto bg-light">
-            <div class="container">
-                <span class="text-muted">RCO @ 2023</span>
-            </div>
-        </footer>
+    <footer class="mt-auto bg-light py-2">
+      <div class="container small d-flex flex-column flex-md-row align-items-center justify-content-md-between">
+        <span class="text-muted mb-1 mb-md-0">© 2025 Repair Café Orsay</span>
+        <a href="https://repaircafe-orsay.org" target="_blank" rel="noopener" class="text-decoration-none mb-1 mb-md-0 mx-md-auto">Site web</a>
+        <a href="/trombinoscope" class="link-secondary mt-1 mt-md-0">Trombinoscope</a>
+      </div>
+    </footer>
       {% endif %}
 
 <script src="/static/bootstrap-5.1.1-dist/js/bootstrap.bundle.min.js"></script>

@@ -13,7 +13,7 @@ with create_app().app_context():
                 (email, name) = line.strip().split("\t")
                 db.session.add(User(email=email,
                                     name=name,
-                                    password=generate_password_hash("password-rco", method='sha256')))
+                                    password=generate_password_hash("password-rco", method='pbkdf2:sha256')))
 
     # Icons and Category ID are matching Repair Monitor for simpler upload
     db.session.add(Category(rm_icon_id=1678, name="A - Électroménager"))

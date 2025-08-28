@@ -56,9 +56,45 @@ def create_app(config_override=None):
     from .api import api as api_blueprint
     from .main import main as main_blueprint
     from .admin import admin as admin_blueprint
+
+    # Filtres Jinja
+    @app.template_filter('local_dt')
+    def local_dt(value, fmt='%d/%m/%Y %H:%M'):
+        """Formate un datetime (stocké en UTC naïf) en heure locale Europe/Paris.
+
+        Les datetimes stockés sont considérés comme UTC (naïfs)."""
+        if not value:
+            return ''
+        try:
+            import pytz
+            tz = pytz.timezone('Europe/Paris')
+            if value.tzinfo is None:
+                import datetime as _dt
+                value = pytz.utc.localize(value)
+            return value.astimezone(tz).strftime(fmt)
+        except Exception:
+            return str(value)
+
     app.register_blueprint(auth_blueprint)
     app.register_blueprint(main_blueprint)
     app.register_blueprint(api_blueprint)
     app.register_blueprint(admin_blueprint)
+
+    # Contexte global: statut cotisation (pour bannière dans layout)
+    @app.context_processor
+    def inject_membership_status():
+        from datetime import date as _date
+        def _current_academic_start(today: _date) -> int:
+            return today.year if today.month >= 9 else today.year - 1
+        if hasattr(app, 'login_manager'):
+            try:
+                from flask_login import current_user as cu
+                if cu.is_authenticated:
+                    today = _date.today()
+                    ok = (cu.last_membership == _current_academic_start(today))
+                    return {'membership_up_to_date': ok}
+            except Exception:
+                pass
+        return {'membership_up_to_date': True}
 
     return app
