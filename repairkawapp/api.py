@@ -23,6 +23,7 @@ from .services.session_service import (
     open_session, join_session, leave_session, close_session, session_stats,
     update_session_details, change_session_owner, reopen_session
 )
+from .models import Session as SessionModel
 
 api = Blueprint('api', __name__)
 
@@ -224,9 +225,12 @@ def sendmail():
 @login_required
 def api_session_open():
     location = request.json and request.json.get('location') or request.form.get('location')
-    s = open_session(db.session, location)
+    try:
+        s = open_session(db.session, location)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
     db.session.commit()
-    return jsonify({'id': s.id, 'location': s.location, 'opened_at': s.opened_at.isoformat()})
+    return jsonify({'id': s.id, 'location': s.location and s.location.name, 'opened_at': s.opened_at.isoformat()})
 
 @api.route('/api/session/join/<int:session_id>', methods=['POST'])
 @login_required
@@ -250,18 +254,28 @@ def api_session_leave(session_id):
 @login_required
 def api_session_close(session_id):
     comment = request.json and request.json.get('comment') or request.form.get('comment')
-    s = close_session(db.session, session_id, comment=comment)
+    s = db.session.query(SessionModel).filter_by(id=session_id).first()
     if not s:
         return jsonify(False), 404
+    if s.closed_at:
+        return jsonify({'error': 'already closed'}), 400
+    if current_user.id != s.owner_id and not current_user.admin:
+        return jsonify({'error': 'forbidden'}), 403
+    s = close_session(db.session, session_id, comment=comment)
     db.session.commit()
     return jsonify({'id': s.id, 'closed_at': s.closed_at and s.closed_at.isoformat(), 'comment': s.comment})
 
 @api.route('/api/session/reopen/<int:session_id>', methods=['POST'])
 @login_required
 def api_session_reopen(session_id):
-    s = reopen_session(db.session, session_id)
+    s = db.session.query(SessionModel).filter_by(id=session_id).first()
     if not s:
         return jsonify(False), 404
+    if not s.closed_at:
+        return jsonify({'error': 'not closed'}), 400
+    if current_user.id != s.owner_id and not current_user.admin:
+        return jsonify({'error': 'forbidden'}), 403
+    s = reopen_session(db.session, session_id)
     db.session.commit()
     return jsonify({'id': s.id, 'closed_at': None})
 
@@ -271,9 +285,13 @@ def api_session_change_owner(session_id):
     new_owner_id = request.json and request.json.get('owner_id') or request.form.get('owner_id')
     if not new_owner_id:
         return jsonify(False), 400
-    s = change_session_owner(db.session, session_id, int(new_owner_id))
+    s = db.session.query(SessionModel).filter_by(id=session_id).first()
     if not s:
         return jsonify(False), 404
+    # seuls participants peuvent prendre la main
+    s = change_session_owner(db.session, session_id, int(new_owner_id))
+    if not s:
+        return jsonify({'error': 'forbidden'}, 403)
     db.session.commit()
     return jsonify({'id': s.id, 'owner_id': s.owner_id})
 
@@ -281,14 +299,17 @@ def api_session_change_owner(session_id):
 @login_required
 def api_session_update(session_id):
     payload = request.json or request.form
+    s = db.session.query(SessionModel).filter_by(id=session_id).first()
+    if not s:
+        return jsonify(False), 404
+    if current_user.id != s.owner_id and not current_user.admin:
+        return jsonify({'error': 'forbidden'}), 403
     s = update_session_details(
         db.session,
         session_id,
         location=payload.get('location'),
         comment=payload.get('comment')
     )
-    if not s:
-        return jsonify(False), 404
     db.session.commit()
     return jsonify({'id': s.id, 'location': s.location, 'comment': s.comment})
 
@@ -313,7 +334,7 @@ def api_sessions_list():
     return jsonify([
         {
             'id': s.id,
-            'location': s.location,
+            'location': (s.location and s.location.name) if hasattr(s, 'location') else None,
             'opened_at': s.opened_at.isoformat() if s.opened_at else None,
             'closed_at': s.closed_at and s.closed_at.isoformat(),
             'owner_id': s.owner_id,

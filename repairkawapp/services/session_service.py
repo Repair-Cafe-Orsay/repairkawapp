@@ -3,10 +3,17 @@ from datetime import datetime, date, timezone
 from typing import Optional, Iterable
 from flask_login import current_user
 from sqlalchemy.orm import Session as SASession
-from ..models import Session, Repair, User
+from ..models import Session, Repair, User, Location
 from flask_mail import Message
 from .. import mail
 
+
+def _get_or_create_location(db: SASession, name: str) -> Location:
+    loc = db.query(Location).filter_by(name=name).first()
+    if not loc:
+        loc = Location(name=name)
+        db.add(loc)
+    return loc
 
 def open_session(db: SASession, location: str | None = None, tz=None) -> Session:
     """Ouvre une session pour aujourd'hui ou réutilise celle déjà ouverte aujourd'hui.
@@ -29,7 +36,10 @@ def open_session(db: SASession, location: str | None = None, tz=None) -> Session
             existing.participants.append(current_user)
         return existing
     # Sinon on crée une nouvelle session (l'ancienne est implicitement expirée)
-    s = Session(location=location, owner_id=current_user.id)
+    if not location or not location.strip():
+        raise ValueError("Location obligatoire pour ouvrir une session")
+    loc_obj = _get_or_create_location(db, location.strip())
+    s = Session(location=loc_obj, owner_id=current_user.id)
     s.participants.append(current_user)
     db.add(s)
     return s

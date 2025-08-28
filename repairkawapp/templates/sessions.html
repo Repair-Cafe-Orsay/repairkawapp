@@ -7,7 +7,7 @@
   {% for s in sessions %}
     <tr class="{% if not s.closed_at %}table-warning{% endif %}">
       <td>{{ s.id }}</td>
-      <td>{{ s.location or '' }}</td>
+  <td>{{ s.location and s.location.name or '' }}</td>
       <td>{{ s.opened_at }}</td>
       <td>{{ s.closed_at or '' }}</td>
       <td>{{ s.participants|length }}</td>

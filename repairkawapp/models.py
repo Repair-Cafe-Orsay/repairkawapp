@@ -117,7 +117,9 @@ class Session(db.Model):
     """Session de réparation (événement: lieu + créneau + participants)."""
     __tablename__ = 'session'
     id = db.Column(db.Integer, primary_key=True)
-    location = db.Column(db.String(100))
+    # Localisation normalisée via table Location (migration ultérieure remplace l'ancien champ string)
+    location_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=True)
+    location = db.relationship("Location", foreign_keys=[location_id])
     opened_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
     closed_at = db.Column(db.DateTime(timezone=True))
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -125,6 +127,12 @@ class Session(db.Model):
     comment = db.Column(db.Text)
     participants = db.relationship("User", secondary=session_user, backref="sessions")
     repairs = db.relationship("Repair", backref="session")
+
+class Location(db.Model):
+    """Lieu d'une session (normalisation)."""
+    __tablename__ = 'location'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
 
 
 class Note(db.Model):
