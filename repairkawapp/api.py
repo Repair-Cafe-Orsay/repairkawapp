@@ -225,7 +225,8 @@ def sendmail():
 @api.route('/api/session/open', methods=['POST'])
 @login_required
 def api_session_open():
-    location = request.json and request.json.get('location') or request.form.get('location')
+    payload = request.get_json(silent=True) or {}
+    location = payload.get('location') or request.form.get('location')
     try:
         s = open_session(db.session, location)
     except ValueError as e:
@@ -254,7 +255,8 @@ def api_session_leave(session_id):
 @api.route('/api/session/close/<int:session_id>', methods=['POST'])
 @login_required
 def api_session_close(session_id):
-    comment = request.json and request.json.get('comment') or request.form.get('comment')
+    payload = request.get_json(silent=True) or {}
+    comment = payload.get('comment') or request.form.get('comment')
     s = db.session.query(SessionModel).filter_by(id=session_id).first()
     if not s:
         return jsonify(False), 404
@@ -283,7 +285,8 @@ def api_session_reopen(session_id):
 @api.route('/api/session/owner/<int:session_id>', methods=['POST'])
 @login_required
 def api_session_change_owner(session_id):
-    new_owner_id = request.json and request.json.get('owner_id') or request.form.get('owner_id')
+    payload = request.get_json(silent=True) or {}
+    new_owner_id = payload.get('owner_id') or request.form.get('owner_id')
     if not new_owner_id:
         return jsonify(False), 400
     s = db.session.query(SessionModel).filter_by(id=session_id).first()
@@ -299,7 +302,7 @@ def api_session_change_owner(session_id):
 @api.route('/api/session/update/<int:session_id>', methods=['POST'])
 @login_required
 def api_session_update(session_id):
-    payload = request.json or request.form
+    payload = request.get_json(silent=True) or request.form
     s = db.session.query(SessionModel).filter_by(id=session_id).first()
     if not s:
         return jsonify(False), 404
@@ -312,7 +315,7 @@ def api_session_update(session_id):
         comment=payload.get('comment')
     )
     db.session.commit()
-    return jsonify({'id': s.id, 'location': s.location, 'comment': s.comment})
+    return jsonify({'id': s.id, 'location': s.location and s.location.name, 'comment': s.comment})
 
 @api.route('/api/session/<int:session_id>', methods=['GET'])
 @login_required

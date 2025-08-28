@@ -44,9 +44,9 @@ def test_open_join_close_session(client, app):
     resp = client.get('/api/sessions')
     sessions = resp.get_json()
     assert len(sessions) == 1
-    # close as non-owner (should fail 404)
+    # close as non-owner (should fail 403 forbidden)
     resp = client.post(f'/api/session/close/{sid}', json={'comment': 'fin'})
-    assert resp.status_code == 404
+    assert resp.status_code == 403
     # back to owner
     login(client, 'u1@example.org')
     resp = client.post(f'/api/session/close/{sid}', json={'comment': 'fin ok'})

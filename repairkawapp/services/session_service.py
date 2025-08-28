@@ -113,7 +113,11 @@ def update_session_details(db: SASession, session_id: int, *, location: str | No
     if current_user.id != s.owner_id and not getattr(current_user, 'admin', False):
         return None
     if location is not None:
-        s.location = location
+        if location.strip():
+            s.location = _get_or_create_location(db, location.strip())
+        else:
+            # ne pas autoriser location vide; ignorer
+            pass
     if opened_at is not None:
         s.opened_at = opened_at
     if closed_at is not None:
@@ -140,7 +144,7 @@ def session_stats(db: SASession, session_id: int) -> dict | None:
     nb_participants = len(s.participants)
     return {
         'id': s.id,
-        'location': s.location,
+    'location': (s.location and s.location.name) if hasattr(s, 'location') else None,
         'opened_at': s.opened_at,
         'closed_at': s.closed_at,
         'owner_id': s.owner_id,
