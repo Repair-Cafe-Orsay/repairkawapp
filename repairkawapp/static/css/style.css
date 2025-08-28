@@ -1,7 +1,8 @@
 html {
   position: relative;
   height: 100%;
- -webkit-print-color-adjust: exact !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 .form-signin {
@@ -32,7 +33,7 @@ html {
 }
 
 body {
-  .margin-bottom: 30px;
+  margin-bottom: 30px;
 }
 
 .header {
@@ -381,4 +382,22 @@ label.bg-secondary, span.bg-secondary {
   font-size: 40px;
   text-anchor: middle;
   vertical-align: center;
+}
+
+/* Indication visuelle des champs obligatoires */
+.required-indicator::after {
+  content: ' *';
+  color: #d9534f; /* bootstrap danger */
+  font-weight: normal;
+}
+.form-control[required], .form-select[required] {
+  box-shadow: none;
+}
+.form-control[required].is-invalid, .form-select[required].is-invalid {
+  border-color: #dc3545;
+}
+/* accent léger */
+.required-highlight {
+  border-left: 3px solid #d9534f;
+  padding-left: .5rem;
 }

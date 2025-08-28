@@ -89,8 +89,8 @@
     <span class="input-group-text bg-secondary col-2">ID Manuel</span>
     <input type="string" class="form-control" name="manual_id" placeholder="Facultatif" id="input_manual_id" value="{{r.display_id and r.display_id[7:] or ''}}">
   </div>
-  <div class="input-group">
-    <span class="input-group-text bg-secondary">Nom</span>
+  <div class="input-group required-highlight">
+    <span class="input-group-text bg-secondary required-indicator">Nom</span>
     <input type="name" class="form-control" name="name" placeholder="Nom (Prénom)" required value="{{r and r['name'] or from_user.get('name','')}}">
     <div class="invalid-feedback">
       Nom obligatoire !
@@ -125,8 +125,8 @@
     <span class="input-group-text bg-secondary">Téléphone</span>
     <input type="text" class="form-control" name="phone" placeholder="0612345678" oninput="check_phone(this)" value="{{r and r['phone'] or from_user.get('phone','')}}">
   </div>
-  <div class="input-group">
-     <div class="dropdown" id="categoryDropdown">
+  <div class="input-group required-highlight">
+     <div class="dropdown required-indicator" id="categoryDropdown">
       <button class="btnCategory btn btn-primary dropdown-toggle" type="button"data-bs-toggle="dropdown">
         Catégorie
         <span class="caret"></span>
@@ -144,8 +144,8 @@
         Catégorie obligatoire !
     </div>
   </div>
-  <div class="input-group">
-    <span class="input-group-text bg-secondary">Type</span>
+  <div class="input-group required-highlight">
+    <span class="input-group-text bg-secondary required-indicator">Type</span>
     <input class="form-control" id="exampleFormControlInput1" name="otype" placeholder="Type de l'objet" required value="{{r and r['otype']}}">
     <div class="invalid-feedback">
         Type obligatoire !
@@ -157,8 +157,8 @@
       }
     </script>
   </div>
-  <div class="input-group">
-        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">Marque</span>
+  <div class="input-group required-highlight">
+        <span class="input-group-text bg-secondary required-indicator" id="inputGroup-sizing-default">Marque</span>
         <input style="text-transform: uppercase;" type="text" name="brand" class="form-control" required placeholder="LAMARQUE / INCONNU" value="{{r and r['brand'].name}}">
         <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">Modèle</span>
         <input type="text" class="form-control" name="model" value="{{r and r['model']}}">
@@ -197,8 +197,8 @@
       </div>
     </div>
   </div>
-  <div class="input-group">
-    <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">État Initial</span>
+  <div class="input-group required-highlight">
+    <span class="input-group-text bg-secondary required-indicator" id="inputGroup-sizing-default">État Initial</span>
     <select class="form-select" name="initial_state" required>
       <option selected disabled value="">Choisir...</option>
     {% for state in states %}
@@ -210,13 +210,13 @@
     {% endfor %}
     </select>
   </div>
-  <div class="form-floating">
+  <div class="form-floating required-highlight">
         <textarea id="floatingTextareaPb" class="form-control" name="description" required style="height: 100px">{{r and r['description']}}</textarea>
-        <label for="floatingTextareaPb">Problème</label>
+        <label for="floatingTextareaPb" class="required-indicator">Problème</label>
   </div>
   
-  <div class="input-group">
-    <div class="form-check">
+  <div class="input-group required-highlight">
+    <div class="form-check required-indicator">
       <input class="form-check-input" type="checkbox" name="validated" value="1" id="invalidCheck" required {{r and r['validated'] and 'checked' or ''}}>
       <label class="form-check-label" for="invalidCheck">
         Accepter les conditions
@@ -261,6 +261,18 @@
     }
     else
         this.setCustomValidity('');
+  });
+  // deuxième popup si pas de séance ouverte lors de l'envoi d'une nouvelle fiche
+  $(document).on('submit', 'form[action="{{ url_for("main.post_object") }}"]', function(e){
+    if ($(this).find('input[name=rid]').val()) return true; // édition -> pas concerné
+    e.preventDefault();
+    const form = this;
+    $.getJSON('/api/sessions?opened=1', function(data){
+        if (data.length === 0) {
+            if (!confirm('Confirmer définitivement : créer la fiche sans séance ?')) return;
+        }
+        form.submit();
+    });
   });
 </script>
 {% endmacro %}
