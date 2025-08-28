@@ -20,7 +20,8 @@ from . import db, mail
 from .services.spare_service import add_spare, delete_spare
 from .services.stats_service import parse_period, get_cached_lists, compute_stats
 from .services.session_service import (
-    open_session, join_session, leave_session, close_session, session_stats
+    open_session, join_session, leave_session, close_session, session_stats,
+    update_session_details, change_session_owner, reopen_session
 )
 
 api = Blueprint('api', __name__)
@@ -254,6 +255,42 @@ def api_session_close(session_id):
         return jsonify(False), 404
     db.session.commit()
     return jsonify({'id': s.id, 'closed_at': s.closed_at and s.closed_at.isoformat(), 'comment': s.comment})
+
+@api.route('/api/session/reopen/<int:session_id>', methods=['POST'])
+@login_required
+def api_session_reopen(session_id):
+    s = reopen_session(db.session, session_id)
+    if not s:
+        return jsonify(False), 404
+    db.session.commit()
+    return jsonify({'id': s.id, 'closed_at': None})
+
+@api.route('/api/session/owner/<int:session_id>', methods=['POST'])
+@login_required
+def api_session_change_owner(session_id):
+    new_owner_id = request.json and request.json.get('owner_id') or request.form.get('owner_id')
+    if not new_owner_id:
+        return jsonify(False), 400
+    s = change_session_owner(db.session, session_id, int(new_owner_id))
+    if not s:
+        return jsonify(False), 404
+    db.session.commit()
+    return jsonify({'id': s.id, 'owner_id': s.owner_id})
+
+@api.route('/api/session/update/<int:session_id>', methods=['POST'])
+@login_required
+def api_session_update(session_id):
+    payload = request.json or request.form
+    s = update_session_details(
+        db.session,
+        session_id,
+        location=payload.get('location'),
+        comment=payload.get('comment')
+    )
+    if not s:
+        return jsonify(False), 404
+    db.session.commit()
+    return jsonify({'id': s.id, 'location': s.location, 'comment': s.comment})
 
 @api.route('/api/session/<int:session_id>', methods=['GET'])
 @login_required

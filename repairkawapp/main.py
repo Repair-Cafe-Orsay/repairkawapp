@@ -165,3 +165,14 @@ def sessions_page():
     return render_template('sessions.html',
                            name=current_user.name,
                            sessions=sessions)
+
+@main.route('/sessions/<int:session_id>')
+@login_required
+def session_detail(session_id):
+    s = db.session.query(Session).filter_by(id=session_id).first()
+    if not s:
+        return redirect(url_for('main.sessions_page'))
+    return render_template('session_detail.html',
+                           name=current_user.name,
+                           session=s,
+                           participants=s.participants)

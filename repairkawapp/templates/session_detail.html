@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Session #{{ session.id }} {% if session.closed_at %}<span class="badge bg-secondary">Fermée{% else %}<span class="badge bg-success">Ouverte{% endif %}</span></h2>
+<form id="session-update" class="mb-3">
+  <div class="row g-2">
+    <div class="col-md-3">
+      <label class="form-label">Lieu</label>
+      <input type="text" class="form-control" name="location" value="{{ session.location or '' }}">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Commentaire</label>
+      <input type="text" class="form-control" name="comment" value="{{ session.comment or '' }}">
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+      <button class="btn btn-primary w-100" type="submit">Mettre à jour</button>
+    </div>
+  </div>
+</form>
+<div class="mb-3">
+  <label class="form-label">Owner actuel</label>
+  <div class="input-group">
+    <select id="new-owner" class="form-select">
+      {% for u in participants %}
+        <option value="{{ u.id }}" {% if u.id == session.owner_id %}selected{% endif %}>{{ u.name }}</option>
+      {% endfor %}
+    </select>
+    <button id="btn-change-owner" class="btn btn-outline-secondary" type="button">Changer owner</button>
+  </div>
+</div>
+<div class="mb-3">
+  {% if session.closed_at %}
+    <button id="btn-reopen" class="btn btn-success">Réouvrir la session</button>
+  {% else %}
+    <button id="btn-close" class="btn btn-danger">Fermer la session</button>
+  {% endif %}
+</div>
+<hr>
+<h5>Participants ({{ participants|length }})</h5>
+<ul>
+  {% for u in participants %}<li>{{ u.name }} ({{ u.email }})</li>{% endfor %}
+</ul>
+<h5>Réparations ({{ session.repairs|length }})</h5>
+<ul>
+  {% for r in session.repairs %}<li>{{ r.display_id }} - {{ r.otype }} ({{ r.brand.name if r.brand }})</li>{% endfor %}
+</ul>
+<script>
+$('#session-update').on('submit', function(e){
+  e.preventDefault();
+  const payload = {location: $(this).find('[name=location]').val(), comment: $(this).find('[name=comment]').val()};
+  $.ajax({type:'POST', url:'/api/session/update/{{ session.id }}', contentType:'application/json', data: JSON.stringify(payload), success:function(){location.reload();}});
+});
+$('#btn-change-owner').on('click', function(){
+  const owner_id = $('#new-owner').val();
+  $.ajax({type:'POST', url:'/api/session/owner/{{ session.id }}', contentType:'application/json', data: JSON.stringify({owner_id: owner_id}), success:function(){location.reload();}});
+});
+$('#btn-close').on('click', function(){
+  $.ajax({type:'POST', url:'/api/session/close/{{ session.id }}', success:function(){location.reload();}});
+});
+$('#btn-reopen').on('click', function(){
+  $.ajax({type:'POST', url:'/api/session/reopen/{{ session.id }}', success:function(){location.reload();}});
+});
+</script>
+{% endblock %}
