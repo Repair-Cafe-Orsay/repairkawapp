@@ -1,21 +1,56 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Séances récentes</h2>
-<table class="table table-sm align-middle">
+<form class="row g-2 mb-3" method="get" action="/sessions">
+  <div class="col-auto">
+    <select name="lieu" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">(Tous les lieux)</option>
+      {% for l in lieux %}
+        <option value="{{ l }}" {% if l==lieu_actif %}selected{% endif %}>{{ l }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% if lieu_actif %}
+  <div class="col-auto">
+    <a href="/sessions" class="btn btn-sm btn-outline-secondary">Réinitialiser</a>
+  </div>
+  {% endif %}
+</form>
+<table id="sessions-table" class="table table-sm align-middle">
   <thead><tr><th>ID</th><th>Lieu</th><th>Ouverture</th><th>Fermeture</th><th>Participants</th><th>Fiches</th><th>Commentaire</th><th></th></tr></thead>
   <tbody>
   {% for s in sessions %}
     <tr class="{% if not s.closed_at %}table-warning{% endif %}">
-      <td>{{ s.id }}</td>
+      <td>{{ s.id }} {% if not s.closed_at %}<span class="badge bg-warning text-dark">Ouverte</span>{% else %}<span class="badge bg-secondary">Fermée</span>{% endif %}</td>
   <td>{{ s.location and s.location.name or '' }}</td>
-      <td>{{ s.opened_at }}</td>
-      <td>{{ s.closed_at or '' }}</td>
+  <td>{{ s.opened_at|local_dt }}</td>
+  <td>{{ s.closed_at|local_dt }}</td>
       <td>{{ s.participants|length }}</td>
-      <td>{{ s.repairs|length }}</td>
-  <td style="max-width:240px;">{{ s.comment or '' }}</td>
-  <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/sessions/{{ s.id }}">Ouvrir</a></td>
+      <td>
+        {% if s.repairs|length > 0 %}
+          <a href="/?session_id={{ s.id }}" title="Filtrer l'accueil sur cette séance">{{ s.repairs|length }}</a>
+        {% else %}
+          0
+        {% endif %}
+      </td>
+  <td style="max-width:240px;">{% if s.comment %}{{ s.comment[:80] }}{% if s.comment|length>80 %}…{% endif %}{% endif %}</td>
+  <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/sessions/{{ s.id }}">Détail</a></td>
     </tr>
   {% endfor %}
   </tbody>
 </table>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  if ($('#sessions-table').DataTable) {
+    $('#sessions-table').DataTable({
+      order:[[2,'desc']],
+      pageLength:25,
+      searching:false,
+      lengthChange:false,
+      info:false,
+      language:{ url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json' }
+    });
+  }
+});
+</script>
 {% endblock %}

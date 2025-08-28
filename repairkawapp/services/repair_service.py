@@ -37,24 +37,25 @@ def generate_display_id(session: Session, created_date: date, manual_id: str | N
 
 def create_repair(session: Session, form, category: Category, state: State, brand: Brand) -> Repair:
     created_date = datetime.strptime(form['date'], '%Y-%m-%d') if form.get('date') else date.today()
+    # Champs optionnels accédés via get() pour éviter BadRequestKeyError si absents du formulaire
     r = Repair(
         display_id=generate_display_id(session, created_date, form.get('manual_id')),
         created=created_date,
         age=form.get('age') and int(form['age']) or None,
-        name=form['name'],
-        email=form['email'],
-        phone=form['phone'],
+        name=form['name'],  # requis (attribut required dans le formulaire)
+        email=form.get('email'),  # optionnel
+        phone=form.get('phone'),  # optionnel
         category=category,
         brand=brand,
         initial_state=state,
         current_state=state,
-        otype=form['otype'],
-        model=form['model'],
-        serial_number=form['sn'],
+        otype=form['otype'],  # requis
+        model=form['model'],  # requis
+        serial_number=form.get('sn'),  # optionnel
         year=form.get('year') and int(form['year']) or None,
         value=form.get('value') and int(form['value']) or None,
         weight=form.get('weight') and int(form['weight']) or None,
-        description=form['description'],
+        description=form['description'],  # requis (required dans le formulaire)
         validated=form.get('validated') != ''
     )
     session.add(r)
@@ -67,14 +68,15 @@ def update_repair(session: Session, repair: Repair, form, category: Category, st
     repair.display_id = generate_display_id(session, created_date, form.get('manual_id'), repair.display_id)
     repair.age = form.get('age') and int(form['age']) or None
     repair.name = form['name']
-    repair.email = form['email']
-    repair.phone = form['phone']
+    # Champs optionnels via get()
+    repair.email = form.get('email')
+    repair.phone = form.get('phone')
     repair.category = category
     repair.brand = brand
     repair.initial_state = state
     repair.otype = form['otype']
     repair.model = form['model']
-    repair.serial_number = form['sn']
+    repair.serial_number = form.get('sn')
     repair.year = form.get('year') and int(form['year']) or None
     repair.value = form.get('value') and int(form['value']) or None
     repair.weight = form.get('weight') and int(form['weight']) or None

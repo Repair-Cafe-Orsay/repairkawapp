@@ -79,7 +79,38 @@
 </form>
 {% endmacro %}
 
-{% macro repair_newedit(r, states, categories, today, from_user) %}
+{% macro repair_newedit(r, states, categories, today, from_user, current_session=None) %}
+{% set existing_session = r and r.session or None %}
+{% if r %}
+<div class="alert alert-secondary py-2 d-flex justify-content-between align-items-center">
+  <div>
+    {% if existing_session %}
+      {% if current_session and existing_session.id == current_session.id %}
+        <span class="badge bg-success">Rattachée à la séance actuelle ({{ existing_session.location and existing_session.location.name or 'Lieu ?' }})</span>
+      {% else %}
+        Rattachée à la séance #{{ existing_session.id }} ({{ existing_session.opened_at|local_dt }}{% if existing_session.location %} @ {{ existing_session.location.name }}{% endif %})
+      {% endif %}
+    {% else %}
+      <em>Pas de séance associée</em>
+    {% endif %}
+  </div>
+  <div>
+    {% if current_session %}
+      {% if not existing_session or existing_session.id != current_session.id %}
+  <form id="attachSessionForm" method="POST" action="{{ url_for('main.attach_session', repair_id=r.display_id) }}" class="d-inline" data-need-confirm="{% if existing_session and current_session and existing_session.id != current_session.id %}1{% else %}0{% endif %}">
+          <button type="submit" class="btn btn-sm btn-outline-primary">
+            {% if existing_session %}Changer vers séance actuelle{% else %}Attacher à la séance actuelle{% endif %}
+          </button>
+        </form>
+      {% else %}
+        <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Déjà sur séance actuelle</button>
+      {% endif %}
+    {% else %}
+      <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Aucune séance ouverte</button>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
 <form class="row gy-3 needs-validation" novalidate  method="POST" action="{{url_for('main.post_object')}}">
   <input type="string" hidden name="rid" value="{{r and r['id'] or ''}}">
   <div class="input-group">
@@ -273,6 +304,18 @@
         }
         form.submit();
     });
+  });
+  // Confirmation si on change la séance (objet déjà rattaché à une autre)
+  $(document).on('submit', '#attachSessionForm', function(e){
+    var formEl = this;
+    var needConfirm = $(formEl).data('need-confirm') === '1';
+    if (needConfirm) {
+     if(!confirm('Confirmer le changement de séance (de #{{ existing_session and existing_session.id }} vers #{{ current_session and current_session.id }}) ?')) {
+       e.preventDefault();
+       e.stopPropagation();
+       return false;
+     }
+    }
   });
 </script>
 {% endmacro %}

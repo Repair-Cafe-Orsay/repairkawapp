@@ -54,6 +54,10 @@ def new_repair():
     if from_id:
         r = db.session.query(Repair).filter_by(display_id=from_id).first()
         from_user = {"name": r.name, "email": r.email, "phone": r.phone, "age": r.age}
+    current_session = (db.session.query(Session)
+                       .filter(Session.closed_at == None)
+                       .order_by(Session.opened_at.desc())
+                       .first())
     return render_template(
         'form_new.html',
         today=date.today(),
@@ -61,13 +65,18 @@ def new_repair():
         states=State.query.order_by(State.id).all(),
         name=current_user.name,
         from_user=from_user,
-        r=""
+        r="",
+        current_session=current_session
     )
 
 @main.route('/edit/<string:repair_id>')
 @login_required
 def edit_repair(repair_id):
     """Formulaire d'édition d'une réparation existante."""
+    current_session = (db.session.query(Session)
+                       .filter(Session.closed_at == None)
+                       .order_by(Session.opened_at.desc())
+                       .first())
     return render_template(
         'form_new.html',
         today=date.today(),
@@ -75,7 +84,8 @@ def edit_repair(repair_id):
         states=State.query.order_by(State.id).all(),
         name=current_user.name,
         from_user={},
-        r=db.session.query(Repair).filter_by(display_id=repair_id).first()
+        r=db.session.query(Repair).filter_by(display_id=repair_id).first(),
+        current_session=current_session
     )
 
 
@@ -94,9 +104,15 @@ def del_repair(repair_id):
 def post_object():
     """Création ou modification d'une réparation (POST)."""
     rid = request.form.get('rid')
-    category = db.session.query(Category).filter_by(id=request.form["category"]).first()
-    initial_state = db.session.query(State).filter_by(id=request.form["initial_state"]).first()
-    brand = get_or_create_brand(db.session, request.form['brand'])
+    try:
+        category_id = request.form["category"]
+        initial_state_id = request.form["initial_state"]
+        brand_name = request.form['brand']
+    except KeyError:
+        return "Champs requis manquants", 400
+    category = db.session.query(Category).filter_by(id=category_id).first()
+    initial_state = db.session.query(State).filter_by(id=initial_state_id).first()
+    brand = get_or_create_brand(db.session, brand_name)
     if not rid:
         r = create_repair(db.session, request.form, category, initial_state, brand)
     else:
@@ -114,6 +130,30 @@ def post_object():
     db.session.commit()
 
     return redirect(url_for("main.update_object", id=r.display_id), code=302)
+
+@main.route('/attach_session/<string:repair_id>', methods=['POST'])
+@login_required
+def attach_session(repair_id):
+    """Rattache une réparation à la séance ouverte où l'utilisateur est participant.
+
+    Confirmation utilisateur gérée côté JS (pas ici). Si aucune séance ouverte ou déjà rattachée à cette séance, retour immédiat.
+    """
+    repair = db.session.query(Repair).filter_by(display_id=repair_id).first()
+    if not repair:
+        return redirect(url_for('main.index'))
+    open_session = (db.session.query(Session)
+                     .join(Session.participants)
+                     .filter(User.id == current_user.id, Session.closed_at == None)
+                     .order_by(Session.opened_at.desc())
+                     .first())
+    if not open_session or repair.session_id == open_session.id:
+        return redirect(url_for('main.edit_repair', repair_id=repair_id))
+    previous = repair.session_id
+    repair.session = open_session
+    db.session.add(Log(user_id=current_user.id, repair=repair,
+                       content=("Rattachée à la séance %s" % open_session.id) if not previous else ("Changement de séance → %s" % open_session.id)))
+    db.session.commit()
+    return redirect(url_for('main.edit_repair', repair_id=repair_id))
 
 @main.route('/media/<path:filename>')
 def media_file(filename):

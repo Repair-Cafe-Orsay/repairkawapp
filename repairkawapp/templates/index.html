@@ -16,10 +16,16 @@
         {% endfor %}
         </select>
       </div>
-      <div class="col-sm-3"></div>
-      <label class="col-sm-2 col-form-label">Statut</label>
+      <label class="col-sm-1 col-form-label">Séance</label>
       <div class="col-sm-2">
-        <select class="form-select" id="search_status" name="users">
+        <div class="input-group input-group-sm">
+          <input type="number" min="1" class="form-control form-control-sm" id="search_session" placeholder="#" aria-label="Filtre séance">
+          <button type="button" class="btn btn-outline-secondary" id="btn-clear-session" style="display:none" title="Effacer le filtre" aria-label="Effacer">&times;</button>
+        </div>
+      </div>
+      <label class="col-sm-1 col-form-label">Statut</label>
+      <div class="col-sm-2">
+        <select class="form-select form-select-sm" id="search_status" name="users">
           <option value="all" selected>Tous</option>
             <option value="opened">En cours</option>
             <option value="closed">Clos</option>
@@ -69,9 +75,18 @@
                     });
       });
       $(document).ready( function () {
+            function sessionPrefillFromQuery() {
+              const params = new URLSearchParams(window.location.search);
+              if (params.has('session_id')) {
+                $('#search_session').val(params.get('session_id'));
+              } else if (params.has('session')) {
+                $('#search_session').val(params.get('session'));
+              }
+            }
+            sessionPrefillFromQuery();
             search_table = $('#search_result_id').DataTable({ajax: {url: '{{ url_for("api.repairsearch") }}',
                                                              dataSrc: "repairs",
-                                                             data: function(d) { d.user= $("#search_user").val(); d.status= $("#search_status").val()}},
+                                                             data: function(d) { d.user= $("#search_user").val(); d.status= $("#search_status").val(); const ss=$('#search_session').val(); if (ss) d.session_id=ss;}},
                                               "serverSide": true,
                                               "searching": true,
                                               "ordering":  false,
@@ -117,6 +132,28 @@
             $('#search_status').change(function () {
                   search_table.ajax.reload()
             })
+      function updateSessionResetBtn(){
+        const hasVal = !!$('#search_session').val();
+        $('#btn-clear-session').toggle(hasVal);
+      }
+      $('#search_session').on('change keyup', function(){
+          search_table.ajax.reload();
+          updateSessionResetBtn();
+      });
+      $('#btn-clear-session').on('click', function(){
+        $('#search_session').val('');
+        // retirer paramètre de l'URL sans recharger la page entière
+        const url = new URL(window.location.href);
+        url.searchParams.delete('session_id');
+        url.searchParams.delete('session');
+        window.history.replaceState({}, '', url.toString());
+        search_table.ajax.reload();
+        updateSessionResetBtn();
+      });
+      if ($('#search_session').val()) {
+        search_table.ajax.reload();
+      }
+      updateSessionResetBtn();
       } );
   // (Deuxième confirmation déplacée dans la page /new elle-même)
     </script>

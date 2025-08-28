@@ -171,6 +171,14 @@ def repairsearch():
                                  Brand.name.like(searchValue + '%'))
     if request.args.get('category'):
         repairs = repairs.filter_by(category_id=request.args.get('category'))
+    session_id = request.args.get('session_id') or request.args.get('session')
+    if session_id:
+        try:
+            sid_int = int(session_id)
+            repairs = repairs.filter(Repair.session_id == sid_int)
+        except ValueError:
+            # ignore invalid session id (no filter applied)
+            pass
     nbFiltered = repairs.count()
     repairs = repairs.order_by(Repair.display_id.desc()).paginate(page=page, per_page=length, error_out=False)
     json = jsonify({"repairs": [{"id": r.display_id, "name": r.name, "category": r.category.name, "otype": r.otype,
