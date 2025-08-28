@@ -36,9 +36,21 @@
 </div>
 <div class="mb-3">
   {% if session.closed_at %}
-    <button id="btn-reopen" class="btn btn-success">Réouvrir la session</button>
+    <button id="btn-reopen" class="btn btn-success">Réouvrir la séance</button>
   {% else %}
-    <button id="btn-close" class="btn btn-danger">Fermer la session</button>
+    <div class="d-flex gap-2 flex-wrap align-items-end">
+      <div>
+        <label class="form-label mb-1">Heure de fermeture</label>
+        <div class="input-group input-group-sm">
+          <input type="time" id="close-time" class="form-control" value="">
+          <button class="btn btn-outline-secondary" type="button" id="btn-set-now">Maintenant</button>
+        </div>
+        <small class="text-muted">Laisser vide = maintenant (UTC)</small>
+      </div>
+      <div class="align-self-end">
+        <button id="btn-close" class="btn btn-danger">Fermer la séance</button>
+      </div>
+    </div>
   {% endif %}
 </div>
 <hr>
@@ -83,8 +95,22 @@ $('#btn-change-owner').on('click', function(){
   const owner_id = $('#new-owner').val();
   $.ajax({type:'POST', url:'/api/session/owner/{{ session.id }}', contentType:'application/json', data: JSON.stringify({owner_id: owner_id}), success:function(){location.reload();}});
 });
+$('#btn-set-now').on('click', function(){
+  // Désactivé si jour différent
+  const opened = new Date('{{ session.opened_at.isoformat() if session.opened_at }}');
+  const todayLocal = new Date();
+  if (opened.toDateString() !== todayLocal.toDateString()) {
+    return; // on ne force pas 'maintenant' sur jour précédent
+  }
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  $('#close-time').val(hh+':'+mm);
+});
 $('#btn-close').on('click', function(){
-  $.ajax({type:'POST', url:'/api/session/close/{{ session.id }}', success:function(){location.reload();}});
+  const ct = $('#close-time').val();
+  const payload = ct ? {closed_time: ct} : {};
+  $.ajax({type:'POST', url:'/api/session/close/{{ session.id }}', contentType:'application/json', data: JSON.stringify(payload), success:function(){location.reload();}});
 });
 $('#btn-reopen').on('click', function(){
   $.ajax({type:'POST', url:'/api/session/reopen/{{ session.id }}', success:function(){location.reload();}});

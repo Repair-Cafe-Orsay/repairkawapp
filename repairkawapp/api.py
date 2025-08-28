@@ -257,6 +257,7 @@ def api_session_leave(session_id):
 def api_session_close(session_id):
     payload = request.get_json(silent=True) or {}
     comment = payload.get('comment') or request.form.get('comment')
+    closed_time = payload.get('closed_time') or request.form.get('closed_time')  # format HH:MM (heure locale)
     s = db.session.query(SessionModel).filter_by(id=session_id).first()
     if not s:
         return jsonify(False), 404
@@ -264,7 +265,21 @@ def api_session_close(session_id):
         return jsonify({'error': 'already closed'}), 400
     if current_user.id != s.owner_id and not current_user.admin:
         return jsonify({'error': 'forbidden'}), 403
-    s = close_session(db.session, session_id, comment=comment)
+    manual_closed_at = None
+    if closed_time:
+        try:
+            from datetime import time as dtime
+            import pytz
+            hh, mm = closed_time.split(':', 1)
+            hh = int(hh); mm = int(mm)
+            opened_day = s.opened_at.date()
+            naive_local = datetime.combine(opened_day, dtime(hh, mm))
+            tz = pytz.timezone('Europe/Paris')
+            local_dt = tz.localize(naive_local)
+            manual_closed_at = local_dt.astimezone(pytz.utc).replace(tzinfo=None)
+        except Exception:
+            return jsonify({'error': 'invalid closed_time'}), 400
+    s = close_session(db.session, session_id, comment=comment, closed_at=manual_closed_at)
     db.session.commit()
     return jsonify({'id': s.id, 'closed_at': s.closed_at and s.closed_at.isoformat(), 'comment': s.comment})
 
