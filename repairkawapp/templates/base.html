@@ -103,7 +103,6 @@
             </div>
             <div class="d-flex gap-1">
               <a class="btn btn-sm btn-outline-primary" id="btn-session-detail" href="#">Détail séance</a>
-              <button class="btn btn-sm btn-outline-danger" id="btn-close-session" style="display:none">Clore</button>
             </div>
           </div>
         </div>
@@ -273,12 +272,9 @@
           $('#session-active').show();
           $('#session-none').hide();
           $('#sess_location').text(s.location || '(Lieu non défini)');
-          $('#sess_opened').text(moment(s.opened_at).fromNow());
-          $('#btn-close-session').data('sid', s.id);
+          // s.opened_at est en UTC (suffixe Z) -> conversion locale
+          $('#sess_opened').text(moment.utc(s.opened_at).local().fromNow());
           $('#btn-session-detail').attr('href', '/sessions/' + s.id);
-          // afficher bouton close seulement si user est owner (décidé côté serveur via participants/owner dans détail, ici on tente une heuristique en cas d'API enrichie plus tard)
-          // Pour l'instant on affiche systématiquement; un 403 côté serveur gère la sécurité
-          $('#btn-close-session').show();
         } else {
           $('#session-active').hide();
           $('#session-none').show();
@@ -309,23 +305,31 @@
     let locSel = $('#session-location-select').val();
     let loc = locSel === '__new__' ? $('#session-new-location').val().trim() : locSel;
     if (!loc) { return; }
+    // heure navigateur HH:MM
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
     $.ajax({
       type: 'POST',
       url: '/api/session/open',
       contentType: 'application/json',
-      data: JSON.stringify({location: loc}),
-      success: function(){ refresh_session_ui(); load_locations_dropdown(); }
+      data: JSON.stringify({location: loc, opened_time: hh+':'+mm}),
+      success: function(){
+        refresh_session_ui();
+        load_locations_dropdown();
+        // si on est sur la page /sessions, recharger pour afficher la nouvelle séance
+        if (window.location.pathname.startsWith('/sessions')) {
+          // DataTables initialisé ? tenter un reload simple sinon full reload
+          if ($.fn.dataTable && $('#sessions-table').length && $.fn.dataTable.isDataTable('#sessions-table')) {
+            window.location.reload();
+          } else {
+            window.location.reload();
+          }
+        }
+      }
     });
   });
   load_locations_dropdown();
-  $(document).on('click', '#btn-close-session', function(){
-      const sid = $(this).data('sid');
-      $.ajax({
-        type: 'POST',
-        url: '/api/session/close/' + sid,
-        success: function(){ refresh_session_ui(); }
-      });
-  });
   $(document).ready(function(){ refresh_session_ui(); setInterval(refresh_session_ui, 60000); });
 
   //$(function () {

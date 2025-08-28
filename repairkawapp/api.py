@@ -227,12 +227,28 @@ def sendmail():
 def api_session_open():
     payload = request.get_json(silent=True) or {}
     location = payload.get('location') or request.form.get('location')
+    opened_time = payload.get('opened_time') or request.form.get('opened_time')  # HH:MM locale
     try:
-        s = open_session(db.session, location)
+        manual_opened_at = None
+        if opened_time:
+            try:
+                from datetime import time as dtime
+                import pytz
+                hh, mm = opened_time.split(':', 1)
+                hh = int(hh); mm = int(mm)
+                today_local = datetime.now(pytz.timezone('Europe/Paris')).date()
+                naive_local = datetime.combine(today_local, dtime(hh, mm))
+                tz = pytz.timezone('Europe/Paris')
+                local_dt = tz.localize(naive_local)
+                manual_opened_at = local_dt.astimezone(pytz.utc).replace(tzinfo=None)
+            except Exception:
+                return jsonify({'error': 'invalid opened_time'}), 400
+        s = open_session(db.session, location, opened_at=manual_opened_at)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     db.session.commit()
-    return jsonify({'id': s.id, 'location': s.location and s.location.name, 'opened_at': s.opened_at.isoformat()})
+    opened_iso = s.opened_at.isoformat() + 'Z'
+    return jsonify({'id': s.id, 'location': s.location and s.location.name, 'opened_at': opened_iso})
 
 @api.route('/api/session/join/<int:session_id>', methods=['POST'])
 @login_required
@@ -262,31 +278,44 @@ def api_session_close(session_id):
     if not s:
         return jsonify(False), 404
     if s.closed_at:
+        current_app.logger.debug('close_session %s refused: already closed', session_id)
         return jsonify({'error': 'already closed'}), 400
     if current_user.id != s.owner_id and not current_user.admin:
+        current_app.logger.debug('close_session %s forbidden user=%s owner=%s', session_id, current_user.id, s.owner_id)
         return jsonify({'error': 'forbidden'}), 403
     # Validation commentaire: obligatoire >=4 caractères (nouveau ou déjà existant)
     effective_comment = (comment or s.comment or '').strip() if comment or s.comment else ''
     if len(effective_comment) < 4:
+        current_app.logger.debug('close_session %s comment too short (%s)', session_id, effective_comment)
         return jsonify({'error': 'comment_too_short'}), 400
     manual_closed_at = None
     if closed_time:
         try:
             from datetime import time as dtime
             import pytz
-            hh, mm = closed_time.split(':', 1)
-            hh = int(hh); mm = int(mm)
+            ct = closed_time.strip().lower().replace('h', ':')
+            if ':' not in ct:
+                ct = ct+':00'
+            parts = ct.split(':')
+            if len(parts) < 2:
+                parts.append('00')
+            hh = int(parts[0])
+            mm = int(parts[1])
+            if not (0 <= hh < 24 and 0 <= mm < 60):
+                raise ValueError('out_of_range')
             opened_day = s.opened_at.date()
             naive_local = datetime.combine(opened_day, dtime(hh, mm))
             tz = pytz.timezone('Europe/Paris')
             local_dt = tz.localize(naive_local)
             manual_closed_at = local_dt.astimezone(pytz.utc).replace(tzinfo=None)
-        except Exception:
-            return jsonify({'error': 'invalid closed_time'}), 400
+        except Exception as e:
+            current_app.logger.debug('close_session %s invalid time "%s": %s', session_id, closed_time, e)
+            return jsonify({'error': 'invalid_closed_time_format'}), 400
     # Utiliser le commentaire effectif si aucun nouveau fourni
     s = close_session(db.session, session_id, comment=comment or s.comment, closed_at=manual_closed_at)
+    current_app.logger.debug('close_session %s success closed_at=%s comment_len=%d', session_id, s.closed_at, len(s.comment or ''))
     db.session.commit()
-    return jsonify({'id': s.id, 'closed_at': s.closed_at and s.closed_at.isoformat(), 'comment': s.comment})
+    return jsonify({'id': s.id, 'closed_at': s.closed_at and (s.closed_at.isoformat() + 'Z'), 'comment': s.comment})
 
 @api.route('/api/session/reopen/<int:session_id>', methods=['POST'])
 @login_required
@@ -345,6 +374,16 @@ def api_session_detail(session_id):
         return jsonify(False), 404
     return jsonify(stats)
 
+@api.route('/api/session/delete/<int:session_id>', methods=['DELETE'])
+@login_required
+def api_session_delete(session_id):
+    from .services.session_service import delete_session as _del
+    ok = _del(db.session, session_id)
+    if not ok:
+        return jsonify(False), 400
+    db.session.commit()
+    return jsonify(True)
+
 @api.route('/api/sessions', methods=['GET'])
 @login_required
 def api_sessions_list():
@@ -359,8 +398,8 @@ def api_sessions_list():
         {
             'id': s.id,
             'location': (s.location and s.location.name) if hasattr(s, 'location') else None,
-            'opened_at': s.opened_at.isoformat() if s.opened_at else None,
-            'closed_at': s.closed_at and s.closed_at.isoformat(),
+            'opened_at': (s.opened_at.isoformat() + 'Z') if s.opened_at else None,
+            'closed_at': (s.closed_at.isoformat() + 'Z') if s.closed_at else None,
             'owner_id': s.owner_id,
             'participants': [u.id for u in s.participants],
             'nb_repairs': len(s.repairs)
