@@ -135,6 +135,8 @@ def update_object(id):
 def get_update(id):
     r"""update page for an object"""
     r = db.session.query(Repair).filter_by(display_id=id).first()
+    # séance ouverte courante (si existe)
+    current_session = db.session.query(Session).filter(Session.closed_at == None).order_by(Session.opened_at.desc()).first()
     # get image list
     images = glob.glob(os.path.join(current_app.config['UPLOAD_FOLDER'], id+"_*"))
     images_idx = []
@@ -149,6 +151,7 @@ def get_update(id):
                                         .outerjoin(Notification, and_(Notification.note_id==Note.id, Notification.user_id==current_user.id)),
                            logs=Log.query.filter_by(repair=r).order_by(Log.id.desc()),
                            r=r,
+                           current_session_id=current_session.id if current_session else None,
                            current_users=[u.id for u in r.users],
                            closestatus=CloseStatus.query.order_by(CloseStatus.id).all(),
                            images=images_idx,
@@ -164,7 +167,9 @@ def sessions_page():
     if lieu:
         from .models import Location
         q = q.join(Location).filter(Location.name == lieu)
-    q = q.order_by(Session.opened_at.desc())
+    # Ouvertes d'abord (closed_at NULL), puis par date d'ouverture décroissante
+    from sqlalchemy import case
+    q = q.order_by(case((Session.closed_at == None, 0), else_=1), Session.opened_at.desc())
     sessions = q.limit(200).all()
     # Liste des lieux distincts pour filtre
     try:
@@ -184,19 +189,7 @@ def session_detail(session_id):
     s = db.session.query(Session).filter_by(id=session_id).first()
     if not s:
         return redirect(url_for('main.sessions_page'))
-    # Heures localisées Europe/Paris
-    opened_local = None
-    closed_local = None
-    try:
-        if s.opened_at:
-            opened_local = s.opened_at.replace(tzinfo=pytz.utc).astimezone(LOCAL_TIMEZONE)
-        if s.closed_at:
-            closed_local = s.closed_at.replace(tzinfo=pytz.utc).astimezone(LOCAL_TIMEZONE)
-    except Exception:
-        pass
     return render_template('session_detail.html',
                            name=current_user.name,
                            session=s,
-                           participants=s.participants,
-                           opened_local=opened_local,
-                           closed_local=closed_local)
+                           participants=s.participants)

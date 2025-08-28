@@ -7,6 +7,21 @@
 {% block content %}
 
 <h1 class="fw-light text-center text-lg-start mt-4 mb-0">Fiche {{r['display_id']}} - {{r.close_status.label}}</h1>
+{% set s = r.session %}
+<div class="mb-2">
+  <p class="text-center text-lg-start mt-1 mb-0 small text-muted">
+    {% if s %}
+      {% if current_session_id and s.id == current_session_id %}
+        <span class="badge bg-success">Séance actuelle</span>
+      {% else %}
+        Séance du {{ s.opened_at|local_dt }}{% if s.location %} @ {{ s.location.name }}{% endif %}
+        <a href="/sessions/{{ s.id }}" class="ms-2">(détail)</a>
+      {% endif %}
+    {% else %}
+      <em>Créée hors séance</em>
+    {% endif %}
+  </p>
+</div>
 <hr class="mt-2 mb-3">
 <div class="row mb-3">
 <div class="card border-secondary col-sm-12 col-lg-6 update rounded g-0">
