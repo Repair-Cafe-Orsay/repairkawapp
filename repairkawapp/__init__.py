@@ -15,7 +15,7 @@ mail = None
 # url serializer
 serializer = None
 
-def create_app():
+def create_app(config_override=None):
     app = Flask(__name__)
 
     # read the main configuration file to configure the flask application
@@ -23,6 +23,9 @@ def create_app():
         config_json = json.load(json_file)
         for k, v in config_json.items():
             app.config[k] = v
+    # allow tests to override configuration
+    if config_override:
+        app.config.update(config_override)
 
     # utilities
     global serializer

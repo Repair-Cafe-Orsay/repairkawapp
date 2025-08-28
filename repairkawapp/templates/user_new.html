@@ -2,6 +2,11 @@
 
 {% block content %}
 <form class="row gy-1 needs-validation" novalidate  method="POST" action="{{url_for('admin.user_new')}}">
+  {% if already_exists %}
+  <div class="alert alert-warning" role="alert">
+    Un utilisateur avec ce courriel existe déjà.
+  </div>
+  {% endif %}
   <div class="input-group">
     <span class="input-group-text bg-secondary col-3">Nom</span>
     <input name="name" type="string" class="form-control" required>

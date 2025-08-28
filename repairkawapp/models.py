@@ -1,10 +1,14 @@
+"""
+Modèles SQLAlchemy pour RepairKawapp.
+Nettoyage global : imports organisés, PEP8, docstrings, harmonisation du style.
+"""
 from flask_login import UserMixin
 from sqlalchemy.sql import func
 from . import db
 import enum
 
 class User(UserMixin, db.Model):
-    """User definition, inherit from UserMixin for authentication"""
+    """Définition du modèle utilisateur (hérite de UserMixin pour l'authentification)."""
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     # user information
@@ -13,12 +17,13 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(100))
     # admin field
     admin = db.Column(db.Boolean, default=False)
-    last_membership = db.Column(db.Integer, default=False)
+    # année de dernière cotisation ; par défaut None (et non False pour éviter 0 lors de conversions)
+    last_membership = db.Column(db.Integer, default=None)
     # incremental user id - used for authentication
     seqid = db.Column(db.Integer, default=0)
 
 class Category(db.Model):
-    """Category as defined on RepairMonitor"""
+    """Catégorie telle que définie sur RepairMonitor."""
     __tablename__ = 'category'
     id = db.Column(db.Integer, primary_key=True)
     rm_icon_id = db.Column(db.Integer, nullable=True)
@@ -28,7 +33,7 @@ class Category(db.Model):
         return '<Category %r>' % self.name
 
 class Brand(db.Model):
-    """Used for storing of all brands"""
+    """Stockage des marques."""
 
     __tablename__ = 'brand'
     id = db.Column(db.Integer, primary_key=True)
@@ -38,7 +43,7 @@ class Brand(db.Model):
         return '<Brand %r>' % self.name
 
 class State(db.Model):
-    """State of an object - defined in database initialization"""
+    """Etat d'un objet - défini lors de l'initialisation de la base."""
     __tablename__ = 'state'
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(50), nullable=False, unique=True)
@@ -100,7 +105,7 @@ class Repair(db.Model):
 
 
 class Note(db.Model):
-    r"""Note attached to each form"""
+    """Note attachée à chaque fiche réparation."""
     __tablename__ = 'note'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -111,7 +116,7 @@ class Note(db.Model):
     repair = db.relationship("Repair", foreign_keys=[repair_id])
 
 class Log(db.Model):
-    r"""modification history of the form - any transformation should be logged"""
+    """Historique des modifications de la fiche - toute transformation doit être loggée."""
     __tablename__ = 'log'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -126,7 +131,7 @@ class NotificationType(enum.Enum):
     mention = 2
 
 class Notification(db.Model):
-    r"""notification system"""
+    """Système de notification."""
     __tablename__ = 'notification'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -137,11 +142,13 @@ class Notification(db.Model):
     notification_type = db.Column(db.Enum(NotificationType))
 
 class SpareStatus(db.Model):
+    """Statut d'une pièce détachée."""
     __tablename__ = 'sparestatus'
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(50), nullable=False, unique=True)
 
 class SpareChange(db.Model):
+    """Modification d'une pièce détachée liée à une réparation."""
     __tablename__ = 'sparechange'
     id = db.Column(db.Integer, primary_key=True)
     item = db.Column(db.String(100), nullable=False)
@@ -153,6 +160,7 @@ class SpareChange(db.Model):
     repair = db.relationship("Repair", foreign_keys=[repair_id])
 
 class CloseStatus(db.Model):
+    """Statut de clôture d'une fiche réparation."""
     __tablename__ = 'closestatus'
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(50), nullable=False, unique=True)

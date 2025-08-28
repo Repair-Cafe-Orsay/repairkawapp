@@ -6,4 +6,7 @@ Pillow
 flask_mail
 pytz
 pymysql
+pytest
+pytest-flask
+pytest-cov
 
