@@ -158,13 +158,25 @@ def get_update(id):
 @main.route('/sessions')
 @login_required
 def sessions_page():
-    """Page listant les sessions (récentes)."""
-    sessions = (db.session.query(Session)
-                .order_by(Session.opened_at.desc())
-                .limit(50).all())
+    """Page listant les séances récentes avec filtre lieu (param ?lieu=)."""
+    q = db.session.query(Session)
+    lieu = request.args.get('lieu')
+    if lieu:
+        from .models import Location
+        q = q.join(Location).filter(Location.name == lieu)
+    q = q.order_by(Session.opened_at.desc())
+    sessions = q.limit(200).all()
+    # Liste des lieux distincts pour filtre
+    try:
+        from .models import Location
+        lieux = [l.name for l in db.session.query(Location).order_by(Location.name.asc()).all()]
+    except Exception:
+        lieux = []
     return render_template('sessions.html',
                            name=current_user.name,
-                           sessions=sessions)
+                           sessions=sessions,
+                           lieux=lieux,
+                           lieu_actif=lieu)
 
 @main.route('/sessions/<int:session_id>')
 @login_required
@@ -172,7 +184,19 @@ def session_detail(session_id):
     s = db.session.query(Session).filter_by(id=session_id).first()
     if not s:
         return redirect(url_for('main.sessions_page'))
+    # Heures localisées Europe/Paris
+    opened_local = None
+    closed_local = None
+    try:
+        if s.opened_at:
+            opened_local = s.opened_at.replace(tzinfo=pytz.utc).astimezone(LOCAL_TIMEZONE)
+        if s.closed_at:
+            closed_local = s.closed_at.replace(tzinfo=pytz.utc).astimezone(LOCAL_TIMEZONE)
+    except Exception:
+        pass
     return render_template('session_detail.html',
                            name=current_user.name,
                            session=s,
-                           participants=s.participants)
+                           participants=s.participants,
+                           opened_local=opened_local,
+                           closed_local=closed_local)

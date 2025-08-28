@@ -1,6 +1,10 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Séance #{{ session.id }} {% if session.closed_at %}<span class="badge bg-secondary">Fermée{% else %}<span class="badge bg-success">Ouverte{% endif %}</span></h2>
+<p class="text-muted small mb-4">
+  Ouverte le {{ opened_local.strftime('%d/%m/%Y %H:%M') if opened_local }}
+  {% if closed_local %}| Fermée le {{ closed_local.strftime('%d/%m/%Y %H:%M') }}{% endif %}
+</p>
 <form id="session-update" class="mb-3">
   <div class="row g-2">
     <div class="col-md-4 col-lg-3">
@@ -40,12 +44,12 @@
   {% else %}
     <div class="d-flex gap-2 flex-wrap align-items-end">
       <div>
-        <label class="form-label mb-1">Heure de fermeture</label>
+  <label class="form-label mb-1">Heure de fermeture (locale)</label>
         <div class="input-group input-group-sm">
           <input type="time" id="close-time" class="form-control" value="">
           <button class="btn btn-outline-secondary" type="button" id="btn-set-now">Maintenant</button>
         </div>
-        <small class="text-muted">Laisser vide = maintenant (UTC)</small>
+  <small class="text-muted">Laisser vide = maintenant. Désactivé si jour précédent.</small>
       </div>
       <div class="align-self-end">
         <button id="btn-close" class="btn btn-danger">Fermer la séance</button>
