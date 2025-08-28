@@ -24,6 +24,7 @@ from .services.session_service import (
     update_session_details, change_session_owner, reopen_session
 )
 from .models import Session as SessionModel
+from .models import Location
 
 api = Blueprint('api', __name__)
 
@@ -342,3 +343,15 @@ def api_sessions_list():
             'nb_repairs': len(s.repairs)
         } for s in sessions
     ])
+
+@api.route('/api/locations', methods=['GET'])
+@login_required
+def api_locations():
+    """Liste (option filtrée) des lieux existants pour autocomplétion."""
+    q = request.args.get('q')
+    query = db.session.query(Location)
+    if q:
+        like = f"{q}%"
+        query = query.filter(Location.name.like(like))
+    names = [l.name for l in query.order_by(Location.name.asc()).limit(50).all()]
+    return jsonify(names)

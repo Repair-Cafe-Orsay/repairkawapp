@@ -101,9 +101,10 @@
               <strong>Session en cours :</strong> <span id="sess_location"></span>
               <small class="text-muted">ouverte <span id="sess_opened"></span></small>
             </div>
-            <div>
+            <div class="d-flex gap-1">
+              <a class="btn btn-sm btn-outline-primary" id="btn-session-detail" href="#">Détail</a>
               <button class="btn btn-sm btn-outline-secondary" id="btn-refresh-session">↻</button>
-              <button class="btn btn-sm btn-outline-danger" id="btn-close-session">Clore</button>
+              <button class="btn btn-sm btn-outline-danger" id="btn-close-session" style="display:none">Clore</button>
             </div>
           </div>
         </div>
@@ -266,6 +267,10 @@
           $('#sess_location').text(s.location || '(Lieu non défini)');
           $('#sess_opened').text(moment(s.opened_at).fromNow());
           $('#btn-close-session').data('sid', s.id);
+          $('#btn-session-detail').attr('href', '/sessions/' + s.id);
+          // afficher bouton close seulement si user est owner (décidé côté serveur via participants/owner dans détail, ici on tente une heuristique en cas d'API enrichie plus tard)
+          // Pour l'instant on affiche systématiquement; un 403 côté serveur gère la sécurité
+          $('#btn-close-session').show();
         } else {
           $('#session-active').hide();
           $('#session-none').show();
@@ -282,6 +287,17 @@
         data: JSON.stringify({location: loc}),
         success: function(){ refresh_session_ui(); }
      });
+  });
+  // Autocomplete lieux
+  $(document).on('focus', '#form-open-session input[name=location]', function(){
+    if (!$(this).data('ui-autocomplete')) {
+      $(this).autocomplete({
+        minLength: 1,
+        source: function(req, resp){
+         $.getJSON('/api/locations', {q: req.term}, function(data){ resp(data); });
+        }
+      })
+    }
   });
   $(document).on('click', '#btn-close-session', function(){
       const sid = $(this).data('sid');
