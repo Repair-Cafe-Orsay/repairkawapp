@@ -13,7 +13,8 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     # user information
     email = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(100))
+    # Longueur augmentée (255) car les hash pbkdf2:sha256 récents peuvent dépasser 100 caractères
+    password = db.Column(db.String(255))
     name = db.Column(db.String(100))
     # admin field
     admin = db.Column(db.Boolean, default=False)

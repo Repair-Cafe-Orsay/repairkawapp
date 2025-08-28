@@ -8,6 +8,37 @@ Application for Repair Café - initially developped for/by the Repair Café Orsa
 * create python virtual env and install requirements
 * launch `init_db.py` to initialize the database - this can be done only once, for model upgrade, use `flask-alembic` (https://flask-alembic.readthedocs.io/en/latest/)
 
+## Database migrations (Alembic)
+
+After the first initialization (`init_db.py`), structural changes are managed with Alembic.
+
+Setup performed in this repo:
+
+* `alembic.ini` at project root
+* `alembic/` directory with `env.py`, `versions/` and script template
+* First revision: enlarge `user.password` to length 255.
+
+Typical workflow:
+
+1. Adjust models in `repairkawapp/models.py`.
+2. Autogenerate a revision (example):
+  ```
+  alembic revision --autogenerate -m "your message"
+  ```
+3. Review the generated file under `alembic/versions/` and edit if needed.
+4. Apply migrations:
+  ```
+  alembic upgrade head
+  ```
+5. (If needed) downgrade:
+  ```
+  alembic downgrade -1
+  ```
+
+Configuration: Alembic reads the Flask app database URL from `create_app()` inside `alembic/env.py`; ensure `config.json` is present with a valid `SQLALCHEMY_DATABASE_URI` before running commands.
+
+Production hint: keep `init_db.py` only for first empty database creation. Afterwards use Alembic exclusively.
+
 # Development
 
 * launch flask server
