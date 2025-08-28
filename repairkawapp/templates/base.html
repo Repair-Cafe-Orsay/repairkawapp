@@ -137,8 +137,13 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.2/jquery-confirm.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.2/jquery-confirm.min.js"></script>
 <script type="text/javascript">
-        // Example starter JavaScript for disabling form submissions if there are invalid fields
-        (function () {
+      (function(){
+      if (!window.jQuery) {
+        console.error('jQuery not loaded');
+        return; // évite erreurs sur usages de $ / jQuery
+      }
+      // Example starter JavaScript for disabling form submissions if there are invalid fields
+      (function () {
           'use strict'
 
           // Fetch all the forms we want to apply custom Bootstrap validation styles to
@@ -313,6 +318,7 @@
   //$(function () {
   //  $('[data-toggle="tooltip"]').tooltip()
   //})
+        })();
 </script>
 </body>
 
