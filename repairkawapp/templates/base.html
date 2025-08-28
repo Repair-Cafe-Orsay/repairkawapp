@@ -93,7 +93,7 @@
     </header>
 
     <main>
-      {% if current_user.is_authenticated %}
+  {% if current_user.is_authenticated and not request.path.startswith('/admin') %}
       <div id="session-banner" class="mb-3">
         <div class="card border-info" id="session-active" style="display:none">
           <div class="card-body py-2 d-flex justify-content-between align-items-center">
