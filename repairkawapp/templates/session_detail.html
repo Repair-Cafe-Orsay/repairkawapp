@@ -3,7 +3,7 @@
 <h2>Session #{{ session.id }} {% if session.closed_at %}<span class="badge bg-secondary">Fermée{% else %}<span class="badge bg-success">Ouverte{% endif %}</span></h2>
 <form id="session-update" class="mb-3">
   <div class="row g-2">
-    <div class="col-md-3">
+    <div class="col-md-4 col-lg-3">
       <label class="form-label">Lieu</label>
       <select class="form-select" name="location_select" id="detail-location-select">
         <option value="" disabled {% if not session.location %}selected{% endif %}>Choisir un lieu...</option>
@@ -12,12 +12,14 @@
       </select>
       <input type="text" class="form-control mt-1" name="new_location" id="detail-new-location" placeholder="Nouveau lieu" style="display:none;" />
     </div>
-    <div class="col-md-6">
-      <label class="form-label">Commentaire</label>
-      <input type="text" class="form-control" name="comment" value="{{ session.comment or '' }}">
+    <div class="col-md-8 col-lg-9 d-flex align-items-end">
+      <button class="btn btn-primary ms-auto" type="submit">Mettre à jour</button>
     </div>
-    <div class="col-md-3 d-flex align-items-end">
-      <button class="btn btn-primary w-100" type="submit">Mettre à jour</button>
+  </div>
+  <div class="row mt-3">
+    <div class="col-12">
+      <label class="form-label">Commentaire</label>
+      <textarea class="form-control" name="comment" rows="4" placeholder="Notes de clôture, ambiance, stats libres...">{{ session.comment or '' }}</textarea>
     </div>
   </div>
 </form>
