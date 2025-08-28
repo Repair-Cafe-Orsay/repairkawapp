@@ -113,7 +113,10 @@ $('#btn-set-now').on('click', function(){
 });
 $('#btn-close').on('click', function(){
   const ct = $('#close-time').val();
-  const payload = ct ? {closed_time: ct} : {};
+  const comment = $('textarea[name=comment]').val().trim();
+  if (comment.length < 4) { alert('Commentaire requis (>=4 caractères)'); return; }
+  const payload = {comment: comment};
+  if (ct) payload.closed_time = ct;
   $.ajax({type:'POST', url:'/api/session/close/{{ session.id }}', contentType:'application/json', data: JSON.stringify(payload), success:function(){location.reload();}});
 });
 $('#btn-reopen').on('click', function(){

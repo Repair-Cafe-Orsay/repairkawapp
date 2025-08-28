@@ -265,6 +265,10 @@ def api_session_close(session_id):
         return jsonify({'error': 'already closed'}), 400
     if current_user.id != s.owner_id and not current_user.admin:
         return jsonify({'error': 'forbidden'}), 403
+    # Validation commentaire: obligatoire >=4 caractères (nouveau ou déjà existant)
+    effective_comment = (comment or s.comment or '').strip() if comment or s.comment else ''
+    if len(effective_comment) < 4:
+        return jsonify({'error': 'comment_too_short'}), 400
     manual_closed_at = None
     if closed_time:
         try:
@@ -279,7 +283,8 @@ def api_session_close(session_id):
             manual_closed_at = local_dt.astimezone(pytz.utc).replace(tzinfo=None)
         except Exception:
             return jsonify({'error': 'invalid closed_time'}), 400
-    s = close_session(db.session, session_id, comment=comment, closed_at=manual_closed_at)
+    # Utiliser le commentaire effectif si aucun nouveau fourni
+    s = close_session(db.session, session_id, comment=comment or s.comment, closed_at=manual_closed_at)
     db.session.commit()
     return jsonify({'id': s.id, 'closed_at': s.closed_at and s.closed_at.isoformat(), 'comment': s.comment})
 
