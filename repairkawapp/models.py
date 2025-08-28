@@ -103,6 +103,28 @@ class Repair(db.Model):
     close_status = db.relationship("CloseStatus", foreign_keys=[close_status_id])
     # where is the object
     location = db.Column(db.String(50), default="Local")
+    # session auquel la réparation est rattachée (optionnel)
+    session_id = db.Column(db.Integer, db.ForeignKey('session.id'), nullable=True)
+
+
+# association many2many entre session et user (participants)
+session_user = db.Table('association_session_user', db.Model.metadata,
+                        db.Column('session_id', db.ForeignKey('session.id')),
+                        db.Column('user_id', db.ForeignKey('user.id'))
+)
+
+class Session(db.Model):
+    """Session de réparation (événement: lieu + créneau + participants)."""
+    __tablename__ = 'session'
+    id = db.Column(db.Integer, primary_key=True)
+    location = db.Column(db.String(100))
+    opened_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
+    closed_at = db.Column(db.DateTime(timezone=True))
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    owner = db.relationship("User", foreign_keys=[owner_id])
+    comment = db.Column(db.Text)
+    participants = db.relationship("User", secondary=session_user, backref="sessions")
+    repairs = db.relationship("Repair", backref="session")
 
 
 class Note(db.Model):

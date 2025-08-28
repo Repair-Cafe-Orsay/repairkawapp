@@ -19,6 +19,9 @@ from .models import (
 from . import db, mail
 from .services.spare_service import add_spare, delete_spare
 from .services.stats_service import parse_period, get_cached_lists, compute_stats
+from .services.session_service import (
+    open_session, join_session, leave_session, close_session, session_stats
+)
 
 api = Blueprint('api', __name__)
 
@@ -213,3 +216,71 @@ def sendmail():
     msg.body = 'Hello Flask message sent from Flask-Mail'
     mail.send(msg)
     return jsonify(True)
+
+# -------------------- Sessions --------------------
+
+@api.route('/api/session/open', methods=['POST'])
+@login_required
+def api_session_open():
+    location = request.json and request.json.get('location') or request.form.get('location')
+    s = open_session(db.session, location)
+    db.session.commit()
+    return jsonify({'id': s.id, 'location': s.location, 'opened_at': s.opened_at.isoformat()})
+
+@api.route('/api/session/join/<int:session_id>', methods=['POST'])
+@login_required
+def api_session_join(session_id):
+    s = join_session(db.session, session_id)
+    if not s:
+        return jsonify(False), 404
+    db.session.commit()
+    return jsonify({'id': s.id, 'participants': [u.id for u in s.participants]})
+
+@api.route('/api/session/leave/<int:session_id>', methods=['POST'])
+@login_required
+def api_session_leave(session_id):
+    s = leave_session(db.session, session_id)
+    if not s:
+        return jsonify(False), 404
+    db.session.commit()
+    return jsonify({'id': s.id, 'participants': [u.id for u in s.participants]})
+
+@api.route('/api/session/close/<int:session_id>', methods=['POST'])
+@login_required
+def api_session_close(session_id):
+    comment = request.json and request.json.get('comment') or request.form.get('comment')
+    s = close_session(db.session, session_id, comment=comment)
+    if not s:
+        return jsonify(False), 404
+    db.session.commit()
+    return jsonify({'id': s.id, 'closed_at': s.closed_at and s.closed_at.isoformat(), 'comment': s.comment})
+
+@api.route('/api/session/<int:session_id>', methods=['GET'])
+@login_required
+def api_session_detail(session_id):
+    stats = session_stats(db.session, session_id)
+    if not stats:
+        return jsonify(False), 404
+    return jsonify(stats)
+
+@api.route('/api/sessions', methods=['GET'])
+@login_required
+def api_sessions_list():
+    q = db.session.query(Repair, CloseStatus)
+    opened_only = request.args.get('opened') == '1'
+    from .models import Session as SessionModel  # import tardif pour éviter cycle
+    sessions_q = db.session.query(SessionModel)
+    if opened_only:
+        sessions_q = sessions_q.filter(SessionModel.closed_at == None)
+    sessions = sessions_q.order_by(SessionModel.opened_at.desc()).limit(100).all()
+    return jsonify([
+        {
+            'id': s.id,
+            'location': s.location,
+            'opened_at': s.opened_at.isoformat() if s.opened_at else None,
+            'closed_at': s.closed_at and s.closed_at.isoformat(),
+            'owner_id': s.owner_id,
+            'participants': [u.id for u in s.participants],
+            'nb_repairs': len(s.repairs)
+        } for s in sessions
+    ])
