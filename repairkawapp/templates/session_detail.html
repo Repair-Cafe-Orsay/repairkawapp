@@ -5,7 +5,12 @@
   <div class="row g-2">
     <div class="col-md-3">
       <label class="form-label">Lieu</label>
-  <input type="text" class="form-control" name="location" value="{{ session.location and session.location.name or '' }}">
+      <select class="form-select" name="location_select" id="detail-location-select">
+        <option value="" disabled {% if not session.location %}selected{% endif %}>Choisir un lieu...</option>
+        {% if session.location %}<option value="{{ session.location.name }}" selected>{{ session.location.name }}</option>{% endif %}
+        <option value="__new__">➕ Nouveau lieu...</option>
+      </select>
+      <input type="text" class="form-control mt-1" name="new_location" id="detail-new-location" placeholder="Nouveau lieu" style="display:none;" />
     </div>
     <div class="col-md-6">
       <label class="form-label">Commentaire</label>
@@ -44,9 +49,32 @@
   {% for r in session.repairs %}<li>{{ r.display_id }} - {{ r.otype }} ({{ r.brand.name if r.brand }})</li>{% endfor %}
 </ul>
 <script>
+function load_locations_detail() {
+  $.getJSON('/api/locations', function(data){
+    const sel = $('#detail-location-select');
+    const current = sel.val();
+    // Retirer anciennes sauf placeholders et new
+    sel.find('option').not('[value=""],[value="__new__"]').each(function(){
+      if (!$(this).prop('selected')) $(this).remove();
+    });
+    data.forEach(function(name){
+      if (sel.find('option[value="'+name.replace(/"/g,'&quot;')+'"]').length===0) {
+        const opt = $('<option/>').attr('value', name).text(name);
+        if (name === current) opt.prop('selected', true);
+        opt.insertBefore(sel.find('option[value="__new__"]'));
+      }
+    });
+  });
+}
+load_locations_detail();
+$('#detail-location-select').on('change', function(){
+  if ($(this).val()==='__new__') { $('#detail-new-location').val('').show().focus(); } else { $('#detail-new-location').hide(); }
+});
 $('#session-update').on('submit', function(e){
   e.preventDefault();
-  const payload = {location: $(this).find('[name=location]').val(), comment: $(this).find('[name=comment]').val()};
+  let locSel = $('#detail-location-select').val();
+  let loc = locSel === '__new__' ? $('#detail-new-location').val().trim() : locSel;
+  const payload = {location: loc, comment: $(this).find('[name=comment]').val()};
   $.ajax({type:'POST', url:'/api/session/update/{{ session.id }}', contentType:'application/json', data: JSON.stringify(payload), success:function(){location.reload();}});
 });
 $('#btn-change-owner').on('click', function(){
