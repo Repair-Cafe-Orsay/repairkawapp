@@ -51,9 +51,8 @@
         <label class="form-label mb-1">Heure de fermeture (locale)</label>
         <div class="input-group input-group-sm">
           <input type="time" id="close-time" class="form-control" value="">
-          <button class="btn btn-outline-secondary" type="button" id="btn-set-now">Maintenant</button>
+          {% if show_now_button %}<button class="btn btn-outline-secondary" type="button" id="btn-set-now">Maintenant</button>{% endif %}
         </div>
-        <small class="text-muted">Laisser vide = maintenant (heure navigateur). Désactivé si jour précédent.</small>
       </div>
       <div class="align-self-end">
         <button id="btn-close" class="btn btn-danger">Fermer la séance</button>
@@ -115,18 +114,15 @@ $('#btn-change-owner').on('click', function(){
   const owner_id = $('#new-owner').val();
   $.ajax({type:'POST', url:'/api/session/owner/{{ session.id }}', contentType:'application/json', data: JSON.stringify({owner_id: owner_id}), success:function(){location.reload();}});
 });
-$('#btn-set-now').on('click', function(){
-  // Désactivé si jour différent
-  const opened = new Date('{{ session.opened_at.isoformat() if session.opened_at }}');
-  const todayLocal = new Date();
-  if (opened.toDateString() !== todayLocal.toDateString()) {
-    return; // on ne force pas 'maintenant' sur jour précédent
-  }
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2,'0');
-  const mm = String(now.getMinutes()).padStart(2,'0');
-  $('#close-time').val(hh+':'+mm);
-});
+const btnNow = $('#btn-set-now');
+if (btnNow.length){
+  btnNow.on('click', function(){
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    $('#close-time').val(hh+':'+mm).trigger('change');
+  });
+}
 $('#btn-close').on('click', function(){
   const ct = $('#close-time').val();
   const comment = $('textarea[name=comment]').val().trim();

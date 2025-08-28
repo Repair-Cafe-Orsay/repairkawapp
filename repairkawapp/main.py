@@ -307,10 +307,23 @@ def session_detail(session_id):
     s = db.session.query(Session).filter_by(id=session_id).first()
     if not s:
         return redirect(url_for('main.sessions_page'))
+    # Bouton "Maintenant" seulement si la séance est encore ouverte ET même jour local d'ouverture
+    show_now_button = False
+    if s and not s.closed_at and s.opened_at:
+        try:
+            # Convertit en fuseau Europe/Paris si naïf
+            opened_dt = s.opened_at
+            if opened_dt.tzinfo is None:
+                opened_dt = LOCAL_TIMEZONE.localize(opened_dt)
+            today_paris = datetime.now(LOCAL_TIMEZONE).date()
+            show_now_button = (opened_dt.astimezone(LOCAL_TIMEZONE).date() == today_paris)
+        except Exception:
+            show_now_button = False
     return render_template('session_detail.html',
                            name=current_user.name,
                            session=s,
-                           participants=s.participants)
+                           participants=s.participants,
+                           show_now_button=show_now_button)
 
 @main.route('/trombinoscope')
 def trombinoscope():
