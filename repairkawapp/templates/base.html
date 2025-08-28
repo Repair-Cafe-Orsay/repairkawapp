@@ -111,9 +111,13 @@
         <div class="card border-secondary" id="session-none" style="display:none">
           <div class="card-body py-2 d-flex justify-content-between align-items-center">
             <div>Aucune session active.</div>
-            <form class="d-flex" id="form-open-session">
-              <input name="location" class="form-control form-control-sm me-2" placeholder="Lieu" />
-              <button class="btn btn-sm btn-primary" type="submit">Ouvrir une session</button>
+            <form class="d-flex align-items-center" id="form-open-session">
+              <select name="location_select" id="session-location-select" class="form-select form-select-sm me-2" style="min-width:160px">
+                <option value="" selected disabled>Choisir un lieu...</option>
+                <option value="__new__">➕ Nouveau lieu...</option>
+              </select>
+              <input name="new_location" id="session-new-location" class="form-control form-control-sm me-2" placeholder="Nouveau lieu" style="display:none; min-width:160px" />
+              <button class="btn btn-sm btn-primary" type="submit">Ouvrir</button>
             </form>
           </div>
         </div>
@@ -282,28 +286,39 @@
         }
     });
   }
-  $(document).on('submit', '#form-open-session', function(e){
-     e.preventDefault();
-     const loc = $(this).find('input[name=location]').val();
-     $.ajax({
-        type: 'POST',
-        url: '/api/session/open',
-        contentType: 'application/json',
-        data: JSON.stringify({location: loc}),
-        success: function(){ refresh_session_ui(); }
-     });
-  });
-  // Autocomplete lieux
-  $(document).on('focus', '#form-open-session input[name=location]', function(){
-    if (!$(this).data('ui-autocomplete')) {
-      $(this).autocomplete({
-        minLength: 1,
-        source: function(req, resp){
-         $.getJSON('/api/locations', {q: req.term}, function(data){ resp(data); });
-        }
-      })
+  // Chargement et gestion dropdown lieux
+  function load_locations_dropdown() {
+    $.getJSON('/api/locations', function(data){
+      const sel = $('#session-location-select');
+      const current = sel.val();
+      sel.find('option').not('[value=""],[value="__new__"]').remove();
+      data.forEach(function(name){
+        $('<option/>').attr('value', name).text(name).insertBefore(sel.find('option[value="__new__"]'));
+      });
+      if (current) sel.val(current);
+    });
+  }
+  $(document).on('change', '#session-location-select', function(){
+    if ($(this).val() === '__new__') {
+      $('#session-new-location').val('').show().focus();
+    } else {
+      $('#session-new-location').hide();
     }
   });
+  $(document).on('submit', '#form-open-session', function(e){
+    e.preventDefault();
+    let locSel = $('#session-location-select').val();
+    let loc = locSel === '__new__' ? $('#session-new-location').val().trim() : locSel;
+    if (!loc) { return; }
+    $.ajax({
+      type: 'POST',
+      url: '/api/session/open',
+      contentType: 'application/json',
+      data: JSON.stringify({location: loc}),
+      success: function(){ refresh_session_ui(); load_locations_dropdown(); }
+    });
+  });
+  load_locations_dropdown();
   $(document).on('click', '#btn-close-session', function(){
       const sid = $(this).data('sid');
       $.ajax({
