@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Sessions récentes</h2>
+<table class="table table-sm">
+  <thead><tr><th>ID</th><th>Lieu</th><th>Ouverture</th><th>Fermeture</th><th>Participants</th><th>Fiches</th><th>Commentaire</th></tr></thead>
+  <tbody>
+  {% for s in sessions %}
+    <tr class="{% if not s.closed_at %}table-warning{% endif %}">
+      <td>{{ s.id }}</td>
+      <td>{{ s.location or '' }}</td>
+      <td>{{ s.opened_at }}</td>
+      <td>{{ s.closed_at or '' }}</td>
+      <td>{{ s.participants|length }}</td>
+      <td>{{ s.repairs|length }}</td>
+      <td>{{ s.comment or '' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

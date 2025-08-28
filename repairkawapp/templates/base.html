@@ -92,6 +92,31 @@
     </header>
 
     <main>
+      {% if current_user.is_authenticated %}
+      <div id="session-banner" class="mb-3">
+        <div class="card border-info" id="session-active" style="display:none">
+          <div class="card-body py-2 d-flex justify-content-between align-items-center">
+            <div>
+              <strong>Session en cours :</strong> <span id="sess_location"></span>
+              <small class="text-muted">ouverte <span id="sess_opened"></span></small>
+            </div>
+            <div>
+              <button class="btn btn-sm btn-outline-secondary" id="btn-refresh-session">↻</button>
+              <button class="btn btn-sm btn-outline-danger" id="btn-close-session">Clore</button>
+            </div>
+          </div>
+        </div>
+        <div class="card border-secondary" id="session-none" style="display:none">
+          <div class="card-body py-2 d-flex justify-content-between align-items-center">
+            <div>Aucune session active.</div>
+            <form class="d-flex" id="form-open-session">
+              <input name="location" class="form-control form-control-sm me-2" placeholder="Lieu" />
+              <button class="btn btn-sm btn-primary" type="submit">Ouvrir une session</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endif %}
                {% block content %}
                {% endblock %}
     </main>
@@ -229,6 +254,44 @@
         }
       })
   }
+
+  // ---- Session UI ----
+  function refresh_session_ui() {
+    $.getJSON('/api/sessions?opened=1', function(data){
+        if (data.length > 0) {
+          const s = data[0];
+          $('#session-active').show();
+          $('#session-none').hide();
+          $('#sess_location').text(s.location || '(Lieu non défini)');
+          $('#sess_opened').text(moment(s.opened_at).fromNow());
+          $('#btn-close-session').data('sid', s.id);
+        } else {
+          $('#session-active').hide();
+          $('#session-none').show();
+        }
+    });
+  }
+  $(document).on('submit', '#form-open-session', function(e){
+     e.preventDefault();
+     const loc = $(this).find('input[name=location]').val();
+     $.ajax({
+        type: 'POST',
+        url: '/api/session/open',
+        contentType: 'application/json',
+        data: JSON.stringify({location: loc}),
+        success: function(){ refresh_session_ui(); }
+     });
+  });
+  $(document).on('click', '#btn-close-session', function(){
+      const sid = $(this).data('sid');
+      $.ajax({
+        type: 'POST',
+        url: '/api/session/close/' + sid,
+        success: function(){ refresh_session_ui(); }
+      });
+  });
+  $(document).on('click', '#btn-refresh-session', function(){ refresh_session_ui(); });
+  $(document).ready(function(){ refresh_session_ui(); setInterval(refresh_session_ui, 60000); });
 
   //$(function () {
   //  $('[data-toggle="tooltip"]').tooltip()

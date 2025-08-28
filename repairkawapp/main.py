@@ -13,7 +13,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from .models import (
-    Category, Repair, Brand, State, User, Note, CloseStatus,
+    Category, Repair, Brand, State, User, Note, CloseStatus, Session,
     SpareStatus, SpareChange, Log, Notification
 )
 from . import db, thumb
@@ -102,6 +102,15 @@ def post_object():
     else:
         r = db.session.query(Repair).filter_by(id=rid).first()
         r = update_repair(db.session, r, request.form, category, initial_state, brand)
+    # Attache à la session ouverte (si une session où l'utilisateur est participant et non close)
+    if not rid:
+        open_session = (db.session.query(Session)
+                         .join(Session.participants)
+                         .filter(User.id == current_user.id, Session.closed_at == None)
+                         .order_by(Session.opened_at.desc())
+                         .first())
+        if open_session:
+            r.session = open_session
     db.session.commit()
 
     return redirect(url_for("main.update_object", id=r.display_id), code=302)
@@ -145,3 +154,14 @@ def get_update(id):
                            images=images_idx,
                            splist=SpareChange.query.filter_by(repair=r).order_by(SpareChange.id.asc()),
                            spare_statuses=SpareStatus.query.order_by(SpareStatus.id).all())
+
+@main.route('/sessions')
+@login_required
+def sessions_page():
+    """Page listant les sessions (récentes)."""
+    sessions = (db.session.query(Session)
+                .order_by(Session.opened_at.desc())
+                .limit(50).all())
+    return render_template('sessions.html',
+                           name=current_user.name,
+                           sessions=sessions)
