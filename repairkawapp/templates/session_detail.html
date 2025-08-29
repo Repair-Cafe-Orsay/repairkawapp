@@ -16,7 +16,7 @@
       <input type="text" class="form-control mt-1" name="new_location" id="detail-new-location" placeholder="Nouveau lieu" style="display:none;" />
     </div>
     <div class="col-md-8 col-lg-9 d-flex align-items-end">
-      <button class="btn btn-primary ms-auto" type="submit">Mettre à jour</button>
+  <button class="btn btn-warning ms-auto" type="submit">Mettre à jour</button>
     </div>
   </div>
   <div class="row mt-3">
@@ -27,20 +27,20 @@
   </div>
 </form>
 <div class="mb-3">
-  <label class="form-label">Owner actuel</label>
+  <label class="form-label">Responsable de séance actuel</label>
   <div class="input-group">
     <select id="new-owner" class="form-select">
       {% for u in participants %}
         <option value="{{ u.id }}" {% if u.id == session.owner_id %}selected{% endif %}>{{ u.name }}</option>
       {% endfor %}
     </select>
-    <button id="btn-change-owner" class="btn btn-outline-secondary" type="button">Changer owner</button>
+  <button id="btn-change-owner" class="btn btn-outline-secondary" type="button">Changer de responsable</button>
   </div>
 </div>
 <div class="mb-3">
   {% if session.closed_at %}
     <div class="d-flex gap-2 flex-wrap align-items-center">
-      <button id="btn-reopen" class="btn btn-success">Réouvrir la séance</button>
+  <button id="btn-reopen" class="btn btn-success">Réouvrir la séance</button>
       {% if session.repairs|length == 0 %}
         <button id="btn-delete" class="btn btn-outline-danger ms-auto">Supprimer (vide)</button>
       {% endif %}
@@ -55,7 +55,7 @@
         </div>
       </div>
       <div class="align-self-end">
-        <button id="btn-close" class="btn btn-danger">Fermer la séance</button>
+  <button id="btn-close" class="btn btn-success">Fermer la séance</button>
       </div>
       {% if session.repairs|length == 0 %}
         <div class="align-self-end ms-auto">
@@ -135,8 +135,15 @@ $('#btn-reopen').on('click', function(){
   $.ajax({type:'POST', url:'/api/session/reopen/{{ session.id }}', success:function(){location.reload();}});
 });
 $('#btn-delete').on('click', function(){
-  if (!confirm('Supprimer définitivement cette séance vide ?')) return;
-  $.ajax({type:'DELETE', url:'/api/session/delete/{{ session.id }}', success:function(){ window.location = '/sessions'; }});
+  rkConfirm({
+    title: 'Supprimer séance',
+    message: 'Supprimer définitivement cette séance vide ?',
+    confirmText: 'Supprimer',
+    confirmBtnClass: 'btn-danger'
+  }).then(function(ok){
+    if(!ok) return;
+    $.ajax({type:'DELETE', url:'/api/session/delete/{{ session.id }}', success:function(){ window.location = '/sessions'; }});
+  });
 });
 </script>
 {% endblock %}

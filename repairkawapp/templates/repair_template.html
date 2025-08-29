@@ -73,8 +73,8 @@
     </div>
   </div>
   <div class="input-group">
-    <a style="margin-left: auto" class="btn btn-outline-primary" href="{{url_for('main.new_repair')}}?from_id={{r.display_id}}">Nouvelle Fiche</a>
-    <a style="margin-left: auto" class="btn btn-warning" href="{{url_for('main.edit_repair', repair_id=r.display_id)}}">Modifier</a>
+  <a style="margin-left: auto" class="btn btn-primary" href="{{url_for('main.new_repair')}}?from_id={{r.display_id}}">Nouvelle Fiche</a>
+  <a style="margin-left: auto" class="btn btn-warning" href="{{url_for('main.edit_repair', repair_id=r.display_id)}}">Modifier</a>
   </div>
 </form>
 {% endmacro %}
@@ -260,30 +260,23 @@
 
   <div class="input-group">
     {% if r %}
-    <a class="btn btn-danger" onclick="delete_repair()">Effacer</a>
+  <a class="btn btn-danger" onclick="delete_repair()">Effacer</a>
     {% endif %}
-    <button style="margin-left:auto" class="btn btn-success" type="submit">Envoyer</button>
+  <button style="margin-left:auto" class="btn {{ r and 'btn-warning' or 'btn-primary' }}" type="submit">{{ r and 'Mettre à jour' or 'Créer' }}</button>
   </div>
 
 </form>
 <script type="text/javascript">
   function delete_repair() {
-    $.confirm({
-            title: 'Confirmation !',
-            content: 'Voulez-vous effacer cette fiche ?',
-            buttons: {
-                Oui: {
-                    action: function () {
-                      window.location = "{{url_for('main.del_repair', repair_id=r.display_id)}}"
-                    },
-                    btnClass: 'btn-red'
-                },
-                Non: {}
-            }
-        });
-        event.preventDefault();
-        event.stopPropagation();
-        return false;
+    event.preventDefault();
+    event.stopPropagation();
+    rkConfirm({
+      title: 'Confirmation',
+      message: 'Voulez-vous effacer cette fiche ?',
+      confirmText: 'Effacer',
+      confirmBtnClass: 'btn-danger'
+    }).then(function(ok){ if(ok){ window.location = "{{url_for('main.del_repair', repair_id=r.display_id)}}"; }});
+    return false;
   }
   $('#input_manual_id').on("change keyup paste", function() {
     if(!$(this).val().match(/^\d{0,3}([^0-9]|)$/))
@@ -300,9 +293,15 @@
     const form = this;
     $.getJSON('/api/sessions?opened=1', function(data){
         if (data.length === 0) {
-            if (!confirm('Confirmer définitivement : créer la fiche sans séance ?')) return;
+            rkConfirm({
+              title: 'Créer hors séance',
+              message: 'Aucune séance ouverte. Créer la fiche sans séance ?',
+              confirmText: 'Créer',
+              confirmBtnClass: 'btn-primary'
+            }).then(function(ok){ if(ok) form.submit(); });
+        } else {
+          form.submit();
         }
-        form.submit();
     });
   });
   // Confirmation si on change la séance (objet déjà rattaché à une autre)
@@ -310,11 +309,15 @@
     var formEl = this;
     var needConfirm = $(formEl).data('need-confirm') === '1';
     if (needConfirm) {
-     if(!confirm('Confirmer le changement de séance (de #{{ existing_session and existing_session.id }} vers #{{ current_session and current_session.id }}) ?')) {
-       e.preventDefault();
-       e.stopPropagation();
-       return false;
-     }
+      e.preventDefault();
+      e.stopPropagation();
+      rkConfirm({
+        title: 'Changer de séance',
+        message: 'Confirmer le changement de séance (de #{{ existing_session and existing_session.id }} vers #{{ current_session and current_session.id }}) ?',
+        confirmText: 'Confirmer',
+        confirmBtnClass: 'btn-warning'
+      }).then(function(ok){ if(ok) formEl.submit(); });
+      return false;
     }
   });
 </script>

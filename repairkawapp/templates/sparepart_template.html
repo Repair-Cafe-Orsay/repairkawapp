@@ -26,11 +26,11 @@
     </div>
     <div class="input-group input-group-sm">
         {% if mode == "view" %}
-        <button class="btn btn-danger delete-spare" onclick="del_part({{id}})">Effacer</button>
-        <button style="margin-left: auto;" class="btn btn-primary" id="updateBtn-{{id}}">Editer</button>
+    <button class="btn btn-danger delete-spare" data-del-id="{{id}}">Effacer</button>
+    <button style="margin-left: auto;" class="btn btn-warning" id="updateBtn-{{id}}">Editer</button>
         {% else %}
             {% if mode == "new" %}
-            <button style="margin-left: auto;" class="btn btn-success" id="new-spare-{{id}}">Nouveau</button>
+            <button style="margin-left: auto;" class="btn btn-primary" id="new-spare-{{id}}">Nouveau</button>
             {% else %}
             <button style="margin-left: auto;" class="btn btn-warning" id="updateBtn-{{id}}">Mettre à jour</button>
             {% endif %}
@@ -58,28 +58,24 @@
     </div>
     <script type="text/javascript">
       function del_part(id) {
-        $.confirm({
-            title: 'Confirmation !',
-            content: 'Voulez-vous effacer cette Fiche Pièce ?',
-            buttons: {
-                Oui: {
-                    action: function () {
-                        $.ajax({
+                event.preventDefault();
+                event.stopPropagation();
+                rkConfirm({
+                    title: 'Supprimer pièce',
+                    message: 'Voulez-vous effacer cette fiche pièce ?',
+                    confirmText: 'Effacer',
+                    confirmBtnClass: 'btn-danger'
+                }).then(function(ok){
+                    if(!ok) return;
+                    $.ajax({
                             type: 'GET',
                             url: '{{url_for("api.del_spare", repair_id=r.id)}}',
                             data: { id: id },
                             success: function(data) {
-                                $("#spare-card-"+id).remove();
-                            }})
-                    },
-                    btnClass: 'btn-red'
-                },
-                Non: {}
-            }
-        });
-        event.preventDefault();
-        event.stopPropagation();
-        return false;
+                                    $("#spare-card-"+id).remove();
+                            }});
+                });
+                return false;
       }
       $("#new-spare-0").on("click",
           function(event) {
@@ -108,5 +104,12 @@
             return false;
     });
     </script>
+        <script>
+            $(document).on('click', '.delete-spare[data-del-id]', function(e){
+                e.preventDefault();
+                const id = $(this).data('del-id');
+                del_part(id);
+            });
+        </script>
     {{ log_script() }}
 {% endmacro %}

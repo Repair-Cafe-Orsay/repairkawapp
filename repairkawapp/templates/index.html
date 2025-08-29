@@ -53,9 +53,15 @@
       function ensureSessionFirstConfirm(callback) {
         $.getJSON('/api/sessions?opened=1', function(data){
           if (data.length === 0) {
-            if (!confirm('Aucune séance ouverte. Créer une fiche hors séance ?')) return;
+            rkConfirm({
+              title: 'Créer hors séance',
+              message: 'Aucune séance ouverte. Créer une fiche hors séance ?',
+              confirmText: 'Créer',
+              confirmBtnClass: 'btn-primary'
+            }).then(function(ok){ if(ok) callback(); });
+          } else {
+            callback();
           }
-          callback();
         });
       }
       $('#btn-new-repair').on('click', function(){

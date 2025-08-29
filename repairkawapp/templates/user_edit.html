@@ -20,7 +20,7 @@
     {% if u['last_membership'] == subscription_target %}
       <button type="button" class="btn btn-sm btn-secondary ms-2" disabled title="Déjà souscrit">Souscription période {{ subscription_target }}-{{ subscription_target + 1 }}</button>
     {% else %}
-      <button type="submit" name="action" value="set_current_membership" class="btn btn-sm btn-primary ms-2" onclick="return confirm('Confirmer la souscription pour la période 1er sept {{ subscription_target }} – 31 août {{ subscription_target + 1 }} ?');" title="Souscrire à la période cible">Souscription période {{ subscription_target }}-{{ subscription_target + 1 }}</button>
+  <button type="submit" name="action" value="set_current_membership" class="btn btn-sm btn-primary ms-2" id="btn-subscribe" title="Souscrire à la période cible">Souscription période {{ subscription_target }}-{{ subscription_target + 1 }}</button>
     {% endif %}
   </div>
   <div class="input-group">
@@ -78,6 +78,19 @@
     <div class="alert alert-danger py-1 small">{{ password_error }}</div>
   {% endif %}
 </form>
+
+<script>
+  $(document).on('click', '#btn-subscribe', function(e){
+    e.preventDefault();
+    const form = this.form;
+    rkConfirm({
+      title: 'Souscription',
+      message: 'Confirmer la souscription pour la période 1er sept {{ subscription_target }} – 31 août {{ subscription_target + 1 }} ?',
+      confirmText: 'Confirmer',
+      confirmBtnClass: 'btn-primary'
+    }).then(function(ok){ if(ok) form.submit(); });
+  });
+</script>
 
 {% if membership_logs %}
 <hr>

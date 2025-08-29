@@ -76,11 +76,11 @@
     <textarea class="col-9" id="note" name="note" rows=5></textarea>
   </div>
    <div class="input-group">
-  <button class="btn btn-success" id="updateBtn" type="button">Mettre à jour</button>
+  <button class="btn btn-warning" id="updateBtn" type="button">Mettre à jour</button>
     <div style="margin-right:auto"></div>
     <input id="closeChoice" name="closeChoice" hidden>
     <div class="dropdown" id="closeDropdown">
-      <button class="btn btn-warning dropdown-toggle" id="close_button" type="button" data-bs-toggle="dropdown" disabled>
+  <button class="btn btn-success dropdown-toggle" id="close_button" type="button" data-bs-toggle="dropdown" disabled>
         {% if r.close_status.id == 1 %}
           Clore la fiche
         {% else %}
@@ -231,7 +231,7 @@
     <form id="upload-file" method="post" enctype="multipart/form-data">
       <div class="input-group input-group-sm">
           <input class="form-control" name="file" type="file" accept="image/*;capture=camera">
-          <button class="button btn-success" id="upload-file-btn" type="button">Ajouter une photo</button>
+          <button class="button btn-primary" id="upload-file-btn" type="button">Ajouter une photo</button>
       </div>
     </form>
     <script type="text/javascript">
@@ -263,27 +263,22 @@
         });
     });
     function delete_image(id, path) {
-
-        $.confirm({
-            title: 'Confirmation !',
-            content: 'Voulez-vous effacer cette Image ?',
-            buttons: {
-                Oui: {
-                    action: function () {
-                      $.ajax({url: "/deleteimg/{{r.id}}/"+path}).done(function() {
-                        $(".oneimg:nth("+id+")").hide();
-                        $(".carousel-item:nth("+id+")").attr("ng-show", 1);
-                        $("#galleryModal").modal("hide");
-                        return false;
-                      })
-                    },
-                    btnClass: 'btn-red'
-                },
-                Non: {}
-            }
-        });
         event.preventDefault();
         event.stopPropagation();
+        rkConfirm({
+          title: 'Supprimer image',
+          message: 'Voulez-vous effacer cette image ?',
+          confirmText: 'Effacer',
+          confirmBtnClass: 'btn-danger'
+        }).then(function(ok){
+          if(!ok) return;
+          $.ajax({url: "/deleteimg/{{r.id}}/"+path}).done(function() {
+            $(".oneimg:nth("+id+")").hide();
+            $(".carousel-item:nth("+id+")").attr("ng-show", 1);
+            var gm = bootstrap.Modal.getInstance(document.getElementById('galleryModal'));
+            if (gm) gm.hide();
+          });
+        });
         return false;
     }
     </script>
