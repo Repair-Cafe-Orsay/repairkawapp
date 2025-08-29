@@ -522,6 +522,7 @@ def api_session_update(session_id):
         session_id,
         location=payload.get("location"),
         comment=payload.get("comment"),
+        participants=payload.get("participants"),
     )
     db.session.commit()
     return jsonify({"id": s.id, "location": s.location and s.location.name, "comment": s.comment})

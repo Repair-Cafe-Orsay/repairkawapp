@@ -189,7 +189,12 @@
       var confirmBtn = modalEl.find('.btn-confirm');
       var cancelBtn = modalEl.find('.btn-cancel');
       confirmBtn.text(o.confirmText).attr('class', 'btn '+o.confirmBtnClass+' btn-confirm');
-      cancelBtn.text(o.cancelText).attr('class', 'btn '+o.cancelBtnClass+' btn-cancel');
+      if(o.cancelText === null || o.cancelText === undefined || o.cancelText === ''){
+        cancelBtn.hide();
+      } else {
+        cancelBtn.show();
+        cancelBtn.text(o.cancelText).attr('class', 'btn '+o.cancelBtnClass+' btn-cancel');
+      }
       function cleanup(){
         confirmBtn.off('click');
         cancelBtn.off('click');

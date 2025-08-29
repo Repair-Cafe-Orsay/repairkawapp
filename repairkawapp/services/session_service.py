@@ -147,6 +147,7 @@ def update_session_details(
     opened_at: datetime | None = None,
     closed_at: datetime | None = None,
     comment: str | None = None,
+    participants: list[int] | None = None,
 ) -> Session | None:
     s = db.query(Session).filter_by(id=session_id).first()
     if not s:
@@ -169,6 +170,14 @@ def update_session_details(
         pass
     if comment is not None:
         s.comment = comment
+    if participants is not None:
+        # Charger les utilisateurs existants correspondants
+        users = db.query(User).filter(User.id.in_(participants)).all() if participants else []
+        # Le propriétaire doit toujours rester participant
+        owner_obj = db.query(User).filter_by(id=s.owner_id).first()
+        if owner_obj and owner_obj not in users:
+            users.append(owner_obj)
+        s.participants = users
     return s
 
 

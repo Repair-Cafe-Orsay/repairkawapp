@@ -355,12 +355,20 @@ def sessions_page():
         lieux = [loc.name for loc in db.session.query(Location).order_by(Location.name.asc()).all()]
     except Exception:  # pragma: no cover - fallback si table absente en migration
         lieux = []
+    # Prépare les dates (jour local) où il y a eu ouverture de séance pour affichage calendrier
+    session_days = []
+    for s in sessions:
+        if s.opened_at:
+            d = s.opened_at.date().isoformat()
+            if d not in session_days:
+                session_days.append(d)
     return render_template(
         "sessions.html",
         name=current_user.name,
         sessions=sessions,
         lieux=lieux,
         lieu_actif=lieu,
+        session_days=session_days,
     )
 
 
@@ -388,6 +396,7 @@ def session_detail(session_id):
         session=s,
         participants=s.participants,
         show_now_button=show_now_button,
+        all_users=User.query.order_by(User.name.asc()).all(),
     )
 
 

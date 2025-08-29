@@ -1,20 +1,32 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Séances récentes</h2>
-<form class="row g-2 mb-3" method="get" action="/sessions">
-  <div class="col-auto">
-    <select name="lieu" class="form-select form-select-sm" onchange="this.form.submit()">
-      <option value="">(Tous les lieux)</option>
-      {% for l in lieux %}
-        <option value="{{ l }}" {% if l==lieu_actif %}selected{% endif %}>{{ l }}</option>
-      {% endfor %}
-    </select>
+<form class="row gy-3 gx-4 align-items-start mb-3" method="get" action="/sessions" id="sessions-filters">
+  <div class="col-md-3 col-sm-6 d-flex flex-column">
+    <label for="lieu-select" class="fw-semibold mb-1">Lieu</label>
+    <div class="d-flex align-items-center">
+      <select id="lieu-select" name="lieu" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:160px;">
+        <option value="">(Tous)</option>
+        {% for l in lieux %}
+          <option value="{{ l }}" {% if l==lieu_actif %}selected{% endif %}>{{ l }}</option>
+        {% endfor %}
+      </select>
+      {% if lieu_actif %}
+        <a href="/sessions" class="btn btn-sm btn-outline-secondary ms-2" title="Réinitialiser le lieu">✕</a>
+      {% endif %}
+    </div>
   </div>
-  {% if lieu_actif %}
-  <div class="col-auto">
-    <a href="/sessions" class="btn btn-sm btn-outline-secondary">Réinitialiser</a>
+  <div class="col-md-5 col-sm-6">
+    <label class="fw-semibold mb-1">Date</label>
+    <div id="sessions-calendar"></div>
   </div>
-  {% endif %}
+  <div class="col-md-4 col-sm-12 d-flex flex-column">
+    <label for="sessions-text-filter" class="fw-semibold mb-1">Texte</label>
+    <div class="d-flex align-items-center">
+      <input type="text" id="sessions-text-filter" class="form-control form-control-sm" placeholder="Recherche globale (ID, commentaire...)" autocomplete="off" style="min-width:160px;">
+      <button type="button" id="sessions-text-clear" class="btn btn-sm btn-outline-secondary ms-2 d-none" title="Effacer la recherche">✕</button>
+    </div>
+  </div>
 </form>
 <table id="sessions-table" class="table table-sm table-striped align-middle">
   <thead><tr><th></th><th>ID</th><th>Lieu</th><th>Ouverture</th><th>Fermeture</th><th>Participants</th><th>Fiches</th><th>Commentaire</th></tr></thead>
@@ -41,15 +53,134 @@
 </table>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-  if ($('#sessions-table').DataTable) {
-    $('#sessions-table').DataTable({
-      order:[[2,'desc']],
+  // --- Calendrier minimal (grille mois courant + marqueurs des jours avec séance) ---
+  (function(){
+    const daysWithArr = JSON.parse('{{ session_days|tojson|safe }}');
+    const daysWith = new Set(daysWithArr);
+    const cal = document.getElementById('sessions-calendar');
+    if (!cal) return;
+    const names = ['D','L','M','M','J','V','S'];
+    let current = new Date();
+    current.setDate(1); // début du mois
+
+    function render(){
+      const year = current.getFullYear();
+      const month = current.getMonth();
+      const first = new Date(year, month, 1);
+      const startDow = first.getDay(); // 0=dimanche
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      let html = '<div class="border rounded p-2 small bg-light" style="max-width:360px">';
+      html += '<div class="d-flex justify-content-between align-items-center mb-1">'
+           + '<button type="button" class="btn btn-sm btn-outline-secondary" id="rk-cal-prev" title="Mois précédent">&lt;</button>'
+           + '<div class="fw-bold text-center flex-grow-1">'+ first.toLocaleString('fr-FR', {month:'long', year:'numeric'}) +'</div>'
+           + '<button type="button" class="btn btn-sm btn-outline-secondary" id="rk-cal-next" title="Mois suivant">&gt;</button>'
+           + '</div>';
+      html += '<div class="d-grid" style="grid-template-columns:repeat(7,1fr);gap:2px">';
+      names.forEach(n=> html+='<div class="text-center fw-lighter">'+n+'</div>');
+      for (let i=0;i<startDow;i++){ html+='<div></div>'; }
+      for (let d=1; d<=lastDay; d++){
+        // Construire la date en local sans décalage UTC (sinon toISOString() recule de 1 jour en été CET)
+        const dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+        const has = daysWith.has(dateStr);
+        html += '<button type="button" data-date="'+dateStr+'" class="btn btn-sm p-0 text-center border '+(has? 'btn-outline-primary':'btn-outline-light text-muted')+'" style="height:32px;line-height:30px;">'+d+(has?'•':'')+'</button>';
+      }
+      html += '</div></div>';
+      cal.innerHTML = html;
+    }
+
+    render();
+
+    let activeDate = null; // ISO yyyy-mm-dd
+    cal.addEventListener('click', function(e){
+      const navPrev = e.target.closest('#rk-cal-prev');
+      const navNext = e.target.closest('#rk-cal-next');
+      if(navPrev){ current.setMonth(current.getMonth()-1); render(); markActive(); return; }
+      if(navNext){ current.setMonth(current.getMonth()+1); render(); markActive(); return; }
+      const btn = e.target.closest('button[data-date]');
+      if(!btn) return;
+      const targetDate = btn.getAttribute('data-date');
+      // Toggle si on reclique la même date
+      if(activeDate === targetDate){
+        applyFilter(null);
+        activeDate = null;
+        markActive();
+        return;
+      }
+      activeDate = targetDate;
+      applyFilter(activeDate);
+      markActive();
+    });
+
+    function applyFilter(iso){
+      if(!window.__sessionsDT) return;
+      const dt = window.__sessionsDT;
+      if(!iso){
+        dt.column(3).search('').draw();
+        const clearBtn = document.getElementById('rk-cal-clear');
+        if(clearBtn) clearBtn.remove();
+        return;
+      }
+      const parts = iso.split('-');
+      const frDate = parts[2]+'/'+parts[1]+'/'+parts[0]; // dd/mm/YYYY
+      // échappement simple pour regex
+      const frRegex = '^' + frDate.split('/').join('\\/');
+      dt.column(3).search(frRegex , true, false).draw();
+      ensureClearButton();
+    }
+
+    function ensureClearButton(){
+      if(document.getElementById('rk-cal-clear')) return;
+      const btn = document.createElement('button');
+      btn.type='button';
+      btn.id='rk-cal-clear';
+      btn.className='btn btn-sm btn-outline-secondary mt-2';
+      btn.textContent='Réinitialiser filtre';
+      btn.addEventListener('click', ()=>{ activeDate=null; applyFilter(null); markActive(); });
+      cal.querySelector('.border')?.appendChild(btn);
+    }
+
+    function markActive(){
+      cal.querySelectorAll('button[data-date]').forEach(b=>{
+        const iso = b.getAttribute('data-date');
+        if(iso === activeDate){
+          b.classList.add('btn-primary');
+          b.classList.remove('btn-outline-primary');
+        } else {
+          const has = daysWith.has(iso);
+          b.classList.remove('btn-primary');
+            if(has){ b.classList.add('btn-outline-primary'); }
+        }
+      });
+    }
+  })();
+  if ($.fn.DataTable) {
+    window.__sessionsDT = $('#sessions-table').DataTable({
+      order:[[3,'desc']],
       pageLength:25,
-      searching:false,
+      searching:true, // nécessaire pour search() API
       lengthChange:false,
       info:false,
+      // dom sans le 'f' (filter input natif) pour éviter le doublon
+      dom:'lrtip',
       language:{ url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json' }
     });
+    const $text = $('#sessions-text-filter');
+    const $clear = $('#sessions-text-clear');
+    function syncClearBtn(){
+      if($text.val()) $clear.removeClass('d-none');
+      else $clear.addClass('d-none');
+    }
+    $text.on('input', function(){
+      window.__sessionsDT.search(this.value).draw();
+      syncClearBtn();
+    });
+    $clear.on('click', function(){
+      $text.val('');
+      window.__sessionsDT.search('').draw();
+      syncClearBtn();
+      $text.trigger('focus');
+    });
+    syncClearBtn();
   }
 });
 </script>
