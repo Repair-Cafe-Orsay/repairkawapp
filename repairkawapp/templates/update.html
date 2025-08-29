@@ -6,7 +6,7 @@
 
 {% block content %}
 
-<h1 class="fw-light text-center text-lg-start mt-4 mb-0">Fiche {{r['display_id']}} - {{r.close_status.label}}</h1>
+<h1 class="fw-light text-center text-lg-start mt-4 mb-0">Fiche {{ r.display_id }} - {{ r.close_status.label }}</h1>
 {% set s = r.session %}
 <div class="mb-2">
   <p class="text-center text-lg-start mt-1 mb-0 small text-muted">
@@ -37,18 +37,14 @@
     Avancement
   </div>
   <div class="card-body">
-<form id="changeform" class="row gy-1 needs-validation" novalidate  method="POST" action="{{url_for('main.update_object',id=r['display_id'])}}">
+<form id="changeform" class="row gy-1 needs-validation" novalidate method="POST" action="{{ url_for('main.update_object', id=r.display_id) }}">
   <div class="input-group">
     <span class="col-3 input-group-text bg-primary" id="inputGroup-sizing-default">État actuel</span>
-    <input type=string name="previous_state" hidden value="{{r['current_state'].id}}">
+  <input type="hidden" name="previous_state" value="{{ r.current_state.id }}">
     <select class="col-9 form-select" name="current_state" required>
       <option disabled value="">Choisir...</option>
     {% for state in states %}
-      {% if state.id == r['current_state'].id %}
-        <option selected value="{{state.id}}">{{state.label}}</option>
-      {% else %}
-        <option value="{{state.id}}">{{state.label}}</option>
-      {% endif %}
+      <option value="{{ state.id }}" {{ 'selected' if state.id == r.current_state.id else '' }}>{{ state.label }}</option>
     {% endfor %}
     </select>
   </div>
@@ -72,15 +68,15 @@
   </div>
   <div class="input-group">
     <span class="col-3 input-group-text bg-primary" data-toggle="tooltip" data-placement="top" title="Local, Rendu, Chez Jean">Localisation</span>
-    <input type=string class="form-control" name="previous_location" hidden value="{{r['location']}}">
-    <input type=string class="form-control" name="current_location" value="{{r['location']}}">
+  <input type="hidden" class="form-control" name="previous_location" value="{{ r.location }}">
+  <input type="text" class="form-control" name="current_location" value="{{ r.location }}">
   </div>
   <div class="input-group">
     <span class="col-3 input-group-text bg-primary">Note</span>
     <textarea class="col-9" id="note" name="note" rows=5></textarea>
   </div>
    <div class="input-group">
-    <button class="btn btn-success" id="updateBtn">Mettre à jour</button>
+  <button class="btn btn-success" id="updateBtn" type="button">Mettre à jour</button>
     <div style="margin-right:auto"></div>
     <input id="closeChoice" name="closeChoice" hidden>
     <div class="dropdown" id="closeDropdown">
@@ -95,16 +91,15 @@
       <ul class="dropdown-menu dropdown-category" id="close_list">
     {% for status in closestatus %}
       {% if (r.close_status.id == 1 and status.id == 1) or (r.close_status.id != 1 and status.id != 1) %}
-        <li style="display:none"><a class="dropdown-item dropdown-modal" href="#" onclick="closeTicket({{status.id}})">{{status.label}}</a></li>
+        <li style="display:none"><a class="dropdown-item dropdown-modal" href="#" data-close-id="{{ status.id }}">{{ status.label }}</a></li>
       {% else %}
-        <li><a class="dropdown-item dropdown-modal" href="#" onclick="closeTicket({{status.id}})">{{status.label}}</a></li>
+        <li><a class="dropdown-item dropdown-modal" href="#" data-close-id="{{ status.id }}">{{ status.label }}</a></li>
       {% endif %}
     {% endfor %}
       </ul>
     </div>
   </div>
 </form>
-</div>
 </div>
 </div>
 
@@ -116,7 +111,8 @@
   function closeTicket(id) {
     $("#closeChoice").val(id);
     $("#changeform").submit();
-  };
+  }
+  $(document).on('click','[data-close-id]',function(e){e.preventDefault();closeTicket($(this).data('close-id'));});
   $("#updateBtn").on("click", function(event) {
     $("#closeChoice").val("");
     $("#changeform").submit();
@@ -158,7 +154,7 @@
 <nav>
 <ul class="nav nav-tabs mb-3" id="nav-tab" role="tablist">
   <li class="nav-item">
-    <a class="nav-link active position-relative" id="nav-notes-tab" data-bs-toggle="tab" data-bs-target="#nav-notes" type="button" role="tab" aria-controls="nav-notes" aria-selected="true" href="#notes">
+  <a class="nav-link active position-relative" id="nav-notes-tab" data-bs-toggle="tab" data-bs-target="#nav-notes" type="button" role="tab" aria-controls="nav-notes" aria-selected="true" href="#nav-notes">
       Notes
       {% if notes.count() %}
       <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info">
@@ -168,7 +164,7 @@
   </a>
   </li>
   <li class="nav-item">
-    <a class="nav-link position-relative" id="nav-pictures-tab" data-bs-toggle="tab" data-bs-target="#nav-pictures" type="button" role="tab" aria-controls="nav-pictures" aria-selected="true" href="#pictures">
+  <a class="nav-link position-relative" id="nav-pictures-tab" data-bs-toggle="tab" data-bs-target="#nav-pictures" type="button" role="tab" aria-controls="nav-pictures" aria-selected="true" href="#nav-pictures">
       Photos
       {% if images|length %}
       <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info">
@@ -178,7 +174,7 @@
     </a>
   </li>
   <li class="nav-item">
-    <a class="nav-link position-relative" id="nav-spareparts-tab" data-bs-toggle="tab" data-bs-target="#nav-spareparts" type="button" role="tab" aria-controls="nav-spareparts" aria-selected="true" href="#spareparts">
+  <a class="nav-link position-relative" id="nav-spareparts-tab" data-bs-toggle="tab" data-bs-target="#nav-spareparts" type="button" role="tab" aria-controls="nav-spareparts" aria-selected="true" href="#nav-spareparts">
       Pièces Détachées
       {% if splist.count() %}
       <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info">
@@ -188,7 +184,7 @@
     </a>
   </li>
   <li class="nav-item">
-    <a class="nav-link position-relative" id="nav-logs-tab" data-bs-toggle="tab" data-bs-target="#nav-logs" type="button" role="tab" aria-controls="nav-logs" aria-selected="true" href="#logs">
+  <a class="nav-link position-relative" id="nav-logs-tab" data-bs-toggle="tab" data-bs-target="#nav-logs" type="button" role="tab" aria-controls="nav-logs" aria-selected="true" href="#nav-logs">
       Activité
       {% if logs.count() %}
       <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info">
@@ -215,7 +211,7 @@
           <div class="img-wrapper">
             <img class="img-responsive img-fluid img-thumbnail" src="{{url_for('main.media_file', filename=p[2])}}" alt="">
             <div class="img-overlay">
-              <button type="button" class="btn btn-danger" onclick="delete_image({{p[0]}},'{{p[1]}}')">
+              <button type="button" class="btn btn-danger" data-delete-index="{{ p[0] }}" data-delete-path="{{ p[1] }}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                   <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"></path>
                   <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"></path>
@@ -290,6 +286,14 @@
         event.stopPropagation();
         return false;
     }
+    </script>
+    <script>
+      $(document).on('click','[data-delete-index]', function(e){
+        e.preventDefault();
+        const idx = $(this).data('delete-index');
+        const path = $(this).data('delete-path');
+        delete_image(idx, path);
+      });
     </script>
   </div>
   <div class="tab-pane" id="nav-spareparts" role="tabpanel" aria-labelledby="nav-spareparts-tab">
