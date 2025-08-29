@@ -44,13 +44,16 @@
     <span class="input-group-text bg-secondary col-3">Biographie</span>
     <textarea name="biography" class="form-control" rows="3" placeholder="Texte libre (Markdown simple accepté)">{{ u['biography'] or '' }}</textarea>
   </div>
-  <div class="input-group align-items-center">
+  <div class="input-group align-items-center mb-2">
     <span class="input-group-text bg-secondary col-3">Photo</span>
-    <input type="file" name="photo" accept="image/*" class="form-control">
+    <input type="file" name="photo" accept="image/*" class="form-control" id="admin-photo-input">
     {% if u.photo_filename %}
-  <a href="{{ url_for('main.uploaded_file', filename=u.photo_filename) }}" target="_blank" class="ms-2">Voir</a>
-  <img src="{{ url_for('main.uploaded_file', filename=u.photo_filename) }}" alt="photo" style="height:50px" class="ms-2 rounded">
+      <a href="{{ url_for('main.uploaded_file', filename=u.photo_filename) }}" target="_blank" class="ms-2">Voir</a>
+      <img src="{{ url_for('main.uploaded_file', filename=u.photo_filename) }}" alt="photo" style="height:50px" class="ms-2 rounded">
     {% endif %}
+  </div>
+  <div class="col-12 mb-2" id="admin-cropper-wrapper" style="display:none">
+    <img id="admin-cropper-image" style="max-width:100%; max-height:400px" />
   </div>
   <div class="input-group">
     <span class="input-group-text bg-secondary col-3">Nouveau mot de passe (admin)</span>
@@ -60,16 +63,14 @@
     <span class="input-group-text bg-secondary col-3">Confirmer</span>
     <input type="password" name="new_password_confirm" class="form-control" placeholder="Re-taper" autocomplete="new-password">
   </div>
-  <div class="col-12" id="admin-cropper-wrapper" style="display:none">
-    <img id="admin-cropper-image" style="max-width:100%; max-height:400px" />
-  </div>
+  <!-- zone déplacée plus haut -->
   <input type="hidden" name="crop_x" id="crop_x">
   <input type="hidden" name="crop_y" id="crop_y">
   <input type="hidden" name="crop_w" id="crop_w">
   <input type="hidden" name="crop_h" id="crop_h">
   <div class="input-group">
     <a style="margin-left: auto" class="btn btn-primary" href="{{url_for('admin.user_list')}}">Revenir à la liste</a>
-  <button style="margin-left: auto" class="btn btn-outline-danger" type="submit">Modifier Réparateur</button>
+  <button style="margin-left: auto" class="btn btn-warning" type="submit">Mise à jour</button>
   </div>
   {% if photo_error %}
     <div class="alert alert-danger py-1 small">{{ photo_error }}</div>
@@ -128,12 +129,13 @@
 {% endif %}
 
 {% endblock %}
-<link  rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+{% block extra_scripts %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
   (function(){
     let cropper = null;
-    const input = document.querySelector('#admin-user-form input[name="photo"]');
+    const input = document.getElementById('admin-photo-input');
     const imgEl = document.getElementById('admin-cropper-image');
     const wrap = document.getElementById('admin-cropper-wrapper');
     if (input) {
@@ -148,14 +150,17 @@
       });
     }
     const form = document.getElementById('admin-user-form');
-    form.addEventListener('submit', function(){
-      if (cropper) {
-        const data = cropper.getData(true);
-        document.getElementById('crop_x').value = Math.round(data.x);
-        document.getElementById('crop_y').value = Math.round(data.y);
-        document.getElementById('crop_w').value = Math.round(data.width);
-        document.getElementById('crop_h').value = Math.round(data.height);
-      }
-    });
+    if (form) {
+      form.addEventListener('submit', function(){
+        if (cropper) {
+          const data = cropper.getData(true);
+          document.getElementById('crop_x').value = Math.round(data.x);
+          document.getElementById('crop_y').value = Math.round(data.y);
+          document.getElementById('crop_w').value = Math.round(data.width);
+          document.getElementById('crop_h').value = Math.round(data.height);
+        }
+      });
+    }
   })();
 </script>
+{% endblock %}
