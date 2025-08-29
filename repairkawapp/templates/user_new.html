@@ -4,7 +4,7 @@
 <form class="row gy-1 needs-validation" novalidate  method="POST" action="{{url_for('admin.user_new')}}">
   {% if already_exists %}
   <div class="alert alert-warning" role="alert">
-    Un utilisateur avec ce courriel existe déjà.
+  Un réparateur avec ce courriel existe déjà.
   </div>
   {% endif %}
   <div class="input-group">
@@ -32,13 +32,13 @@
     <div class="form-check">
       <input class="form-check-input" type="checkbox" name="admin" value="1" id="adminUser">
       <label class="form-check-label" for="adminUser">
-        Utilisateur Administrateur
+  Réparateur Administrateur
       </label>
     </div>
   </div>
   <div class="input-group">
   <a style="margin-left: auto" class="btn btn-secondary" href="{{url_for('admin.user_list')}}">Revenir à la liste</a>
-  <button style="margin-left: auto" class="btn btn-primary" type="submit">Créer Utilisateur</button>
+  <button style="margin-left: auto" class="btn btn-primary" type="submit">Créer Réparateur</button>
   </div>
 </form>
 

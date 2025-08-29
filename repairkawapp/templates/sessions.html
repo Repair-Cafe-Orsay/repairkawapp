@@ -16,11 +16,12 @@
   </div>
   {% endif %}
 </form>
-<table id="sessions-table" class="table table-sm align-middle">
-  <thead><tr><th>ID</th><th>Lieu</th><th>Ouverture</th><th>Fermeture</th><th>Participants</th><th>Fiches</th><th>Commentaire</th><th></th></tr></thead>
+<table id="sessions-table" class="table table-sm table-striped align-middle">
+  <thead><tr><th></th><th>ID</th><th>Lieu</th><th>Ouverture</th><th>Fermeture</th><th>Participants</th><th>Fiches</th><th>Commentaire</th></tr></thead>
   <tbody>
   {% for s in sessions %}
     <tr class="{% if not s.closed_at %}table-warning{% endif %}">
+      <td class="text-nowrap"><a href="/sessions/{{ s.id }}" class="btn btn-sm btn-outline-primary">Voir</a></td>
       <td>{{ s.id }} {% if not s.closed_at %}<span class="badge bg-warning text-dark">Ouverte</span>{% else %}<span class="badge bg-secondary">Fermée</span>{% endif %}</td>
   <td>{{ s.location and s.location.name or '' }}</td>
   <td>{{ s.opened_at|local_dt }}</td>
@@ -34,7 +35,6 @@
         {% endif %}
       </td>
   <td style="max-width:240px;">{% if s.comment %}{{ s.comment[:80] }}{% if s.comment|length>80 %}…{% endif %}{% endif %}</td>
-  <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/sessions/{{ s.id }}">Détail</a></td>
     </tr>
   {% endfor %}
   </tbody>

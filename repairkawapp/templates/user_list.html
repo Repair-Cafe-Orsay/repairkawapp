@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1 class="mb-3">Utilisateurs</h1>
+    <h1 class="mb-3">Réparateurs</h1>
         <div class="d-flex mb-3">
-            <a href="{{url_for('admin.user_new')}}" class="btn btn-sm btn-primary ms-auto" tabindex="-1" role="button" aria-disabled="true">Nouvel utilisateur</a>
+            <a href="{{url_for('admin.user_new')}}" class="btn btn-sm btn-primary ms-auto" tabindex="-1" role="button" aria-disabled="true">Nouveau réparateur</a>
         </div>
-    <table id="user_table_id" class="display table table-sm align-middle user-table w-100">
+    <table id="user_table_id" class="display table table-sm table-striped align-middle user-table w-100">
       <thead>
           <tr>
               <th></th>
@@ -19,7 +19,7 @@
         <tbody>
         {% for user in users %}
             <tr user_id="{{ user.id }}">
-                <td><button class="btn btn-outline-secondary btn-sm p-0 px-1" title="Voir">›</button></td>
+                <td><a class="btn btn-sm btn-outline-primary" href="/admin/edit/{{ user.id }}">Voir</a></td>
                 <td>{{ user.name }}</td>
                 <td>{{ user.email }}</td>
                 <td>{{ user.admin and 'Oui' or '' }}</td>
@@ -104,10 +104,7 @@
 
                   }
               });
-              $('#user_table_id tbody').on( 'click', 'button', function () {
-                  var user_id = $(this).parents('tr').attr("user_id");
-                  window.location.href="/admin/edit/"+user_id;
-            })
+              // Plus de bouton individuel : le lien Voir est direct.
 
           })
     </script>

@@ -27,7 +27,7 @@
     <div class="form-check">
       <input class="form-check-input" type="checkbox" name="admin" value="1" id="adminUser" {{u['admin'] and 'checked' or ''}}>
       <label class="form-check-label" for="adminUser">
-        Utilisateur Administrateur
+  Réparateur Administrateur
       </label>
     </div>
   </div>
@@ -69,7 +69,7 @@
   <input type="hidden" name="crop_h" id="crop_h">
   <div class="input-group">
     <a style="margin-left: auto" class="btn btn-primary" href="{{url_for('admin.user_list')}}">Revenir à la liste</a>
-    <button style="margin-left: auto" class="btn btn-outline-danger" type="submit">Modifier Utilisateur</button>
+  <button style="margin-left: auto" class="btn btn-outline-danger" type="submit">Modifier Réparateur</button>
   </div>
   {% if photo_error %}
     <div class="alert alert-danger py-1 small">{{ photo_error }}</div>
