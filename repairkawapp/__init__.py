@@ -1,4 +1,5 @@
 import json
+import os
 
 from flask import Flask
 from flask_login import LoginManager
@@ -20,8 +21,21 @@ serializer = None
 def create_app(config_override=None):
     app = Flask(__name__)
 
-    # read the main configuration file to configure the flask application
-    with open("config.json") as json_file:
+    # Chargement config: si config.json absent, créer depuis le template en remplaçant PATHTO
+    cfg_path = "config.json"
+    if not os.path.exists(cfg_path):
+        template_path = "config-template.json"
+        if os.path.exists(template_path):
+            repo_root = os.path.abspath(os.path.dirname(__file__) + "/..")
+            with open(template_path) as f:
+                raw = f.read().replace("PATHTO", repo_root)
+            with open(cfg_path, "w") as out:
+                out.write(raw)
+        else:
+            raise RuntimeError(
+                "Configuration manquante: ni config.json ni config-template.json trouvés."
+            )
+    with open(cfg_path) as json_file:
         config_json = json.load(json_file)
         for k, v in config_json.items():
             app.config[k] = v

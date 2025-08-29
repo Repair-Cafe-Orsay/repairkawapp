@@ -1,4 +1,9 @@
 dump-*.sql
+.coverage
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+config.json
 
 .coverage
 .pytest_cache/
