@@ -67,3 +67,26 @@ def test_logout_flow(client, user):
     resp2 = client.get('/profile')
     assert resp2.status_code == 302
     assert '/login' in resp2.headers['Location']
+
+def test_login_fail_unknown_user(client):
+    resp = client.post('/login', data={'email': 'nobody@example.org', 'password': 'whatever'})
+    assert resp.status_code == 302 and '/login' in resp.headers['Location']
+
+
+def test_login_legacy_hash_upgrade(app, client):
+    # Crée un user avec ancien format sha256$<salt>$<hash>
+    with app.app_context():
+        import hashlib, time
+        salt = 'abc123'
+        pwd = 'oldlegacy'
+        legacy_hash = hashlib.sha256((salt + pwd).encode()).hexdigest()
+        u = User(email='legacy@example.org', name='Legacy User', password=f'sha256${salt}${legacy_hash}', seqid=1)
+        db.session.add(u)
+        db.session.commit()
+    # Première connexion utilise legacy puis upgrade
+    resp = client.post('/login', data={'email': 'legacy@example.org', 'password': 'oldlegacy'})
+    assert resp.status_code == 302 and '/profile' in resp.headers['Location']
+    # Vérifie que le hash a été migré
+    with app.app_context():
+        u2 = User.query.filter_by(email='legacy@example.org').first()
+        assert u2 and not u2.password.startswith('sha256$')
