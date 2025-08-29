@@ -312,29 +312,29 @@ label.bg-secondary, span.bg-secondary {
 }
 
 .notifications {
-   min-width:420px; 
+   min-width:420px;
 }
-  
+
 #notifications-wrapper {
   overflow:auto;
   max-height:250px;
 }
-    
+
 .menu-title {
   color:#ff7788;
   font-size:1rem;
   display:inline-block;
-}  
-   
+}
+
 .notification-heading, .notification-footer  {
   padding:2px 10px;
 }
-        
+
 .dropdown-menu .divider {
   height: 1px;
   margin: 9px 0;
   overflow: hidden;
-  background-color: #e5e5e5;          
+  background-color: #e5e5e5;
 }
 
 .item-title {
@@ -346,7 +346,7 @@ label.bg-secondary, span.bg-secondary {
   text-decoration:none;
   background:#ccc;
 }
-    
+
 .notification-item {
   padding:5px;
   margin:5px;

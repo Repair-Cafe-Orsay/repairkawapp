@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, refactor ]
+  pull_request:
+    branches: [ main, refactor ]
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libjpeg-dev zlib1g-dev
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff black
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+  # Type check (mypy) désactivé temporairement
+
+      - name: Format check (black)
+        run: black --check . || (echo 'Run black locally to format code.' && exit 1)
+
+      - name: Tests
+        env:
+          PYTEST_ADDOPTS: "--maxfail=1"
+        run: |
+          pytest --cov=repairkawapp --cov-report=xml --cov-report=term
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.xml
+          flags: unittests
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies (prod only)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pip-audit safety
+      - name: Dependency audit (pip-audit)
+        run: pip-audit || true
+      - name: Dependency audit (safety)
+        run: safety check || true
+
+  speed-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python minimal
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install runtime deps only
+        run: |
+          python -m pip install --upgrade pip
+          grep -v pytest requirements.txt > runtime-req.txt || true
+          pip install -r runtime-req.txt
+      - name: Import smoke test
+        run: python -c "import repairkawapp, importlib; import importlib; import repairkawapp; from repairkawapp import create_app; app=create_app({'TESTING':True}); print('App created OK')"

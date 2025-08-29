@@ -53,7 +53,7 @@
     <div id="spare-list">
         {% for sp in splist %}
             {{ sparepart_template(sp.id, sp, spare_statuses, "view") }}
-        {% endfor %} 
+        {% endfor %}
         {{ sparepart_template(0, {}, spare_statuses, "new") }}
     </div>
     <script type="text/javascript">
@@ -81,7 +81,7 @@
         event.stopPropagation();
         return false;
       }
-      $("#new-spare-0").on("click", 
+      $("#new-spare-0").on("click",
           function(event) {
             if (!$("#spare-new-item-0")[0].checkValidity()) {
               return true;
@@ -110,4 +110,3 @@
     </script>
     {{ log_script() }}
 {% endmacro %}
-

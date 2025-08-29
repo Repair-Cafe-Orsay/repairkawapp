@@ -2,14 +2,19 @@
 Modèles SQLAlchemy pour RepairKawapp.
 Nettoyage global : imports organisés, PEP8, docstrings, harmonisation du style.
 """
+
+import enum
+
 from flask_login import UserMixin
 from sqlalchemy.sql import func
+
 from . import db
-import enum
+
 
 class User(UserMixin, db.Model):
     """Définition du modèle utilisateur (hérite de UserMixin pour l'authentification)."""
-    __tablename__ = 'user'
+
+    __tablename__ = "user"
     id = db.Column(db.Integer, primary_key=True)
     # user information
     email = db.Column(db.String(100), unique=True, nullable=False)
@@ -18,7 +23,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(100))
     # admin field
     admin = db.Column(db.Boolean, default=False)
-    # année de dernière cotisation ; par défaut None (et non False pour éviter 0 lors de conversions)
+    # Dernière année de cotisation ; None (pas False) pour éviter 0 lors de conversions.
     last_membership = db.Column(db.Integer, default=None)
     # incremental user id - used for authentication
     seqid = db.Column(db.Integer, default=0)
@@ -29,45 +34,53 @@ class User(UserMixin, db.Model):
     # photo de profil (nom de fichier stocké dans UPLOAD_FOLDER)
     photo_filename = db.Column(db.String(200))
 
+
 class Category(db.Model):
     """Catégorie telle que définie sur RepairMonitor."""
-    __tablename__ = 'category'
+
+    __tablename__ = "category"
     id = db.Column(db.Integer, primary_key=True)
     rm_icon_id = db.Column(db.Integer, nullable=True)
     name = db.Column(db.String(50), nullable=False, unique=True)
 
     def __repr__(self):
-        return '<Category %r>' % self.name
+        return "<Category %r>" % self.name
+
 
 class Brand(db.Model):
     """Stockage des marques."""
 
-    __tablename__ = 'brand'
+    __tablename__ = "brand"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False, unique=True)
 
     def __repr__(self):
-        return '<Brand %r>' % self.name
+        return "<Brand %r>" % self.name
+
 
 class State(db.Model):
     """Etat d'un objet - défini lors de l'initialisation de la base."""
-    __tablename__ = 'state'
+
+    __tablename__ = "state"
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(50), nullable=False, unique=True)
 
     def __repr__(self):
-        return '<State %r>' % self.label
+        return "<State %r>" % self.label
 
 
 # many2many association between a user (repairer) and an object in the database
-repair_user = db.Table('association_repair_user', db.Model.metadata,
-                       db.Column('repair_id', db.ForeignKey('repair.id')),
-                       db.Column('user_id', db.ForeignKey('user.id'))
+repair_user = db.Table(
+    "association_repair_user",
+    db.Model.metadata,
+    db.Column("repair_id", db.ForeignKey("repair.id")),
+    db.Column("user_id", db.ForeignKey("user.id")),
 )
+
 
 class Repair(db.Model):
     # the main repair form
-    __tablename__ = 'repair'
+    __tablename__ = "repair"
     id = db.Column(db.Integer, primary_key=True)
     # is generated with date and incremental ID
     display_id = db.Column(db.String(11), unique=True)
@@ -82,15 +95,15 @@ class Repair(db.Model):
     phone = db.Column(db.String(20))
     age = db.Column(db.Integer)
     # the category - required
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey("category.id"), nullable=False)
     category = db.relationship("Category")
     # the brand - required
-    brand_id = db.Column(db.Integer, db.ForeignKey('brand.id'), nullable=False)
+    brand_id = db.Column(db.Integer, db.ForeignKey("brand.id"), nullable=False)
     brand = db.relationship("Brand")
     # initial and current state
-    initial_state_id = db.Column(db.Integer, db.ForeignKey('state.id'), nullable=False)
+    initial_state_id = db.Column(db.Integer, db.ForeignKey("state.id"), nullable=False)
     initial_state = db.relationship("State", foreign_keys=[initial_state_id])
-    current_state_id = db.Column(db.Integer, db.ForeignKey('state.id'), nullable=False)
+    current_state_id = db.Column(db.Integer, db.ForeignKey("state.id"), nullable=False)
     current_state = db.relationship("State", foreign_keys=[current_state_id])
     # description of the object, model, serial, value, weight
     otype = db.Column(db.String(50), nullable=False)
@@ -102,79 +115,96 @@ class Repair(db.Model):
     # description of the problem
     description = db.Column(db.Text)
     validated = db.Column(db.Boolean)
-    users = db.relationship("User",
-                            secondary=repair_user)
+    users = db.relationship("User", secondary=repair_user)
     # status of the form - can be uploaded in Repair Monitor
-    close_status_id = db.Column(db.Integer, db.ForeignKey('closestatus.id'), nullable=False, default=1)
+    close_status_id = db.Column(
+        db.Integer, db.ForeignKey("closestatus.id"), nullable=False, default=1
+    )
     close_status = db.relationship("CloseStatus", foreign_keys=[close_status_id])
     # where is the object
     location = db.Column(db.String(50), default="Local")
     # session auquel la réparation est rattachée (optionnel)
-    session_id = db.Column(db.Integer, db.ForeignKey('session.id'), nullable=True)
+    session_id = db.Column(db.Integer, db.ForeignKey("session.id"), nullable=True)
 
 
 # association many2many entre session et user (participants)
-session_user = db.Table('association_session_user', db.Model.metadata,
-                        db.Column('session_id', db.ForeignKey('session.id')),
-                        db.Column('user_id', db.ForeignKey('user.id'))
+session_user = db.Table(
+    "association_session_user",
+    db.Model.metadata,
+    db.Column("session_id", db.ForeignKey("session.id")),
+    db.Column("user_id", db.ForeignKey("user.id")),
 )
+
 
 class Session(db.Model):
     """Session de réparation (événement: lieu + créneau + participants)."""
-    __tablename__ = 'session'
+
+    __tablename__ = "session"
     id = db.Column(db.Integer, primary_key=True)
-    # Localisation normalisée via table Location (migration ultérieure remplace l'ancien champ string)
-    location_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=True)
+    # Localisation normalisée via table Location (migration remplace ancien champ string).
+    location_id = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=True)
     location = db.relationship("Location", foreign_keys=[location_id])
     opened_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
     closed_at = db.Column(db.DateTime(timezone=True))
-    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     owner = db.relationship("User", foreign_keys=[owner_id])
     comment = db.Column(db.Text)
     participants = db.relationship("User", secondary=session_user, backref="sessions")
     repairs = db.relationship("Repair", backref="session")
 
+
 class Location(db.Model):
     """Lieu d'une session (normalisation)."""
-    __tablename__ = 'location'
+
+    __tablename__ = "location"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
 
 
 class Note(db.Model):
     """Note attachée à chaque fiche réparation."""
-    __tablename__ = 'note'
+
+    __tablename__ = "note"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     user = db.relationship("User")
     date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
     content = db.Column(db.Text)
-    repair_id = db.Column(db.Integer, db.ForeignKey('repair.id', ondelete='CASCADE'), nullable=False)
+    repair_id = db.Column(
+        db.Integer, db.ForeignKey("repair.id", ondelete="CASCADE"), nullable=False
+    )
     repair = db.relationship("Repair", foreign_keys=[repair_id])
+
 
 class Log(db.Model):
     """Historique des modifications de la fiche - toute transformation doit être loggée."""
-    __tablename__ = 'log'
+
+    __tablename__ = "log"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     user = db.relationship("User")
     date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
     content = db.Column(db.Text)
-    repair_id = db.Column(db.Integer, db.ForeignKey('repair.id', ondelete='CASCADE'), nullable=False)
+    repair_id = db.Column(
+        db.Integer, db.ForeignKey("repair.id", ondelete="CASCADE"), nullable=False
+    )
     repair = db.relationship("Repair", foreign_keys=[repair_id])
+
 
 class NotificationType(enum.Enum):
     todo = 1
     mention = 2
 
+
 class Notification(db.Model):
     """Système de notification."""
-    __tablename__ = 'notification'
+
+    __tablename__ = "notification"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     user = db.relationship("User")
     deadline = db.Column(db.DateTime(timezone=True))
-    note_id = db.Column(db.Integer, db.ForeignKey('note.id', ondelete='CASCADE'), nullable=False)
+    note_id = db.Column(db.Integer, db.ForeignKey("note.id", ondelete="CASCADE"), nullable=False)
     note = db.relationship("Note")
     notification_type = db.Column(db.Enum(NotificationType))
 
@@ -184,13 +214,14 @@ class MembershipLog(db.Model):
 
     Logue chaque changement de champ last_membership d'un utilisateur par un administrateur.
     """
-    __tablename__ = 'membershiplog'
+
+    __tablename__ = "membershiplog"
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
-    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    admin = db.relationship('User', foreign_keys=[admin_id])
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user = db.relationship('User', foreign_keys=[user_id])
+    admin_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    admin = db.relationship("User", foreign_keys=[admin_id])
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user = db.relationship("User", foreign_keys=[user_id])
     old_value = db.Column(db.Integer)
     new_value = db.Column(db.Integer)
     note = db.Column(db.String(200), default="")
@@ -198,36 +229,45 @@ class MembershipLog(db.Model):
 
 class BoardRoleLog(db.Model):
     """Historique des changements de rôle de bureau (admin uniquement)."""
-    __tablename__ = 'boardrolelog'
+
+    __tablename__ = "boardrolelog"
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
-    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    admin = db.relationship('User', foreign_keys=[admin_id])
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user = db.relationship('User', foreign_keys=[user_id])
+    admin_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    admin = db.relationship("User", foreign_keys=[admin_id])
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user = db.relationship("User", foreign_keys=[user_id])
     old_role = db.Column(db.String(30))
     new_role = db.Column(db.String(30))
 
+
 class SpareStatus(db.Model):
     """Statut d'une pièce détachée."""
-    __tablename__ = 'sparestatus'
+
+    __tablename__ = "sparestatus"
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(50), nullable=False, unique=True)
 
+
 class SpareChange(db.Model):
     """Modification d'une pièce détachée liée à une réparation."""
-    __tablename__ = 'sparechange'
+
+    __tablename__ = "sparechange"
     id = db.Column(db.Integer, primary_key=True)
     item = db.Column(db.String(100), nullable=False)
     source = db.Column(db.String(200))
     note = db.Column(db.Text, default="")
-    spare_status_id = db.Column(db.Integer, db.ForeignKey('sparestatus.id'), nullable=False, default=0)
+    spare_status_id = db.Column(
+        db.Integer, db.ForeignKey("sparestatus.id"), nullable=False, default=0
+    )
     spare_status = db.relationship("SpareStatus", foreign_keys=[spare_status_id])
-    repair_id = db.Column(db.Integer, db.ForeignKey('repair.id'), nullable=False)
+    repair_id = db.Column(db.Integer, db.ForeignKey("repair.id"), nullable=False)
     repair = db.relationship("Repair", foreign_keys=[repair_id])
+
 
 class CloseStatus(db.Model):
     """Statut de clôture d'une fiche réparation."""
-    __tablename__ = 'closestatus'
+
+    __tablename__ = "closestatus"
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(50), nullable=False, unique=True)

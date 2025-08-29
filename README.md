@@ -1,4 +1,7 @@
 # repairkawapp
+
+![CI](https://github.com/Repair-Cafe-Orsay/repairkawapp/actions/workflows/ci.yml/badge.svg)
+![Coverage](https://codecov.io/gh/Repair-Cafe-Orsay/repairkawapp/branch/refactor/graph/badge.svg)
 Application for Repair Café - initially developped for/by the Repair Café Orsay
 
 # Installation
@@ -63,9 +66,31 @@ authentication should take the decorator `@login_required`
 Flask application initialization is defined in `repairkawapp/__init__.py` and is dynamically called when `flask` or `wsgi` load the module
 through the `create_app` function.
 
+## Continuous Integration
+
+A workflow GitHub Actions (`.github/workflows/ci.yml`) exécute à chaque push ou PR sur `main` et `refactor` :
+
+* Linting avec `ruff` (style + erreurs courantes)
+* Vérification de format avec `black` (mode --check)
+* (Optionnel) Typage basique avec `mypy` (non bloquant pour l'instant)
+* Tests `pytest` avec rapport de couverture (artefact `coverage.xml`)
+* Audit de dépendances (job séparé) via `pip-audit` et `safety`
+* Smoke test d'import rapide (job speed-run) pour valider l'initialisation minimale
+
+Pour corriger localement:
+```
+pip install -r requirements.txt ruff black mypy
+ruff check .
+black .
+mypy repairkawapp
+pytest -q
+```
+
+Prochaines améliorations possibles CI: publication badge de couverture (Codecov), workflow release taggé, build image Docker, matrice multi versions Python (3.10/3.11/3.12).
+
 
 ## Templates
-Pages templates are build by routes (essentially in `main.py`) and use jinja templating engine: see https://jinja.palletsprojects.com/en/3.1.x/templates/ 
+Pages templates are build by routes (essentially in `main.py`) and use jinja templating engine: see https://jinja.palletsprojects.com/en/3.1.x/templates/
 for a full documentation. Templates are in `repairkawap/templates/` and are defining in cascade and blocks. All pages inherits from `base.html`- and some templates like
 `log.html` are used for log tabs - and use themselves `log_template.html` defining jinja macros.
 

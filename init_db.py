@@ -1,6 +1,7 @@
-from repairkawapp import db, create_app
-from repairkawapp.models import Category, Brand, User, State, CloseStatus, SpareStatus
 from werkzeug.security import generate_password_hash
+
+from repairkawapp import create_app, db
+from repairkawapp.models import Brand, Category, CloseStatus, SpareStatus, State, User
 
 # Initial initialization of mysql database, for database model upgrade - see alembic
 
@@ -11,9 +12,13 @@ with create_app().app_context():
         for line in f:
             if not line.startswith("#"):
                 (email, name) = line.strip().split("\t")
-                db.session.add(User(email=email,
-                                    name=name,
-                                    password=generate_password_hash("password-rco", method='pbkdf2:sha256')))
+                db.session.add(
+                    User(
+                        email=email,
+                        name=name,
+                        password=generate_password_hash("password-rco", method="pbkdf2:sha256"),
+                    )
+                )
 
     # Icons and Category ID are matching Repair Monitor for simpler upload
     db.session.add(Category(rm_icon_id=1678, name="A - Électroménager"))

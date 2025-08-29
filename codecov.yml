@@ -1,0 +1,47 @@
+# Codecov configuration for RepairKawapp
+# Documentation: https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  precision: 2
+  round: down
+  range: 40..90
+  status:
+    project:
+      default:
+        # Current global ~71%; keep target a bit below to avoid noise while improving.
+        target: 70%
+        threshold: 1%   # allowed drop before failing status
+        base: auto
+    patch:
+      default:
+        # Encourage good patch coverage but stay lenient for tiny text-only changes.
+        target: 70%
+        threshold: 5%
+        base: auto
+  notify:
+    after_n_builds: 1
+
+comment:
+  layout: reach, diff, flags, files
+  behavior: default
+  require_changes: false   # still comment even if coverage unchanged
+  require_base: false
+  require_head: false
+
+ignore:
+  - "repairkawapp/static/**"
+  - "repairkawapp/templates/**"
+  - "repairkawapp/__pycache__/**"
+  - "**/migrations/**"
+  - "alembic/**"
+  - "uploads/**"
+
+# Flags example (unused yet, defined for future splitting)
+flags:
+  backend:
+    paths:
+      - repairkawapp/
+    carryforward: true
+
+# Turn off automatic patch status changes when only docstring/header edits occur
+# (heuristic via matching filenames or extensions could be added later if needed).

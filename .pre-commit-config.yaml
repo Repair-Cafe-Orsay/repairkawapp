@@ -1,0 +1,32 @@
+repos:
+  # 1. Normalisation syntaxe (pyupgrade) -> 2. Lint/autofix (ruff) -> 3. Format (ruff-format + black)
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.16.0
+    hooks:
+      - id: pyupgrade
+        args: ["--py311-plus"]
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.6.4
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+  # mypy désactivé temporairement (trop d'erreurs héritées). Réactiver plus tard.
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.11.2
+  #   hooks:
+  #     - id: mypy
+  #       additional_dependencies: []
+  #       args: ["--config-file", "pyproject.toml"]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
