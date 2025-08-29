@@ -85,10 +85,10 @@ def test_create_repair(login):
     with login.application.app_context():
         repairs = Repair.query.all()
         assert len(repairs) == 1
-    r = repairs[0]
-    # Normalisation désormais en majuscules (voir normalize_brand)
-    assert r.brand.name == "SONY"
-    assert r.name == "Client Test"
-    assert r.display_id.startswith("25")  # year prefix (25 for 2025)
-    assert r.validated is True
-    assert r.created.strftime("%Y-%m-%d") == form_date
+        r = repairs[0]
+        # Normalisation désormais en majuscules (voir normalize_brand)
+        assert r.brand.name == "SONY"
+        assert r.name == "Client Test"
+        assert r.display_id.startswith("25")  # year prefix (25 for 2025)
+        assert r.validated is True
+        assert r.created.strftime("%Y-%m-%d") == form_date
