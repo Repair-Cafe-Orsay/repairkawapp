@@ -1,5 +1,7 @@
 """Services métier pour les réparations (isoler la logique de `main.py`)."""
 
+import re
+import unicodedata
 from datetime import date, datetime
 
 from flask_login import current_user
@@ -8,10 +10,26 @@ from sqlalchemy.orm import Session
 from ..models import Brand, Category, CloseStatus, Log, Note, Repair, State, User
 
 
+def normalize_brand(raw: str) -> str:
+    """Normalise une marque (trim, désaccentue, majuscules, espaces réduits).
+
+    Permet de réduire les doublons (ex: 'Philips', 'PHILIPS ', 'Phílïps').
+    """
+    if not raw:
+        return ""
+    s = raw.strip()
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
+    s = re.sub(r"[\./,_-]+", " ", s)
+    s = re.sub(r"\s+", " ", s)
+    return s.upper()
+
+
 def get_or_create_brand(session: Session, brand_name: str) -> Brand:
-    brand = session.query(Brand).filter_by(name=brand_name).first()
+    norm = normalize_brand(brand_name)
+    brand = session.query(Brand).filter_by(name=norm).first()
     if not brand:
-        brand = Brand(name=brand_name)
+        brand = Brand(name=norm)
         session.add(brand)
     return brand
 

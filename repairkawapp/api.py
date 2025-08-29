@@ -93,6 +93,24 @@ def brandsearch():
     return jsonify(matching_results=results)
 
 
+@api.route("/api/brands", methods=["GET"])
+def api_brands():
+    """Liste de marques (préfixe optionnel) max 50 résultats triés alpha.
+
+    Utilise ILIKE si disponible, sinon LIKE (collation DB pour insensibilité).
+    """
+    q = (request.args.get("q") or "").strip()
+    query = db.session.query(Brand)
+    if q:
+        like = f"{q}%"
+        try:
+            query = query.filter(Brand.name.ilike(like))  # type: ignore[attr-defined]
+        except Exception:  # pragma: no cover - fallback si SGBD ne supporte pas ILIKE
+            query = query.filter(Brand.name.like(like))
+    names = [b.name for b in query.order_by(Brand.name.asc()).limit(50).all()]
+    return jsonify(names)
+
+
 @api.route("/deleteimg/<string:repair_id>/<path:path>", methods=["GET"])
 @login_required
 def del_file(repair_id, path):
@@ -280,6 +298,7 @@ def stats():
             },
             "visitors": stats_raw["visitors"],
             "total": stats_raw["total"],
+            "total_sessions": stats_raw.get("total_sessions", 0),
         }
     )
 

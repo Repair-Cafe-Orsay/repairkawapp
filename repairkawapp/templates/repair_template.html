@@ -66,10 +66,11 @@
 
   <div class="input-group">
     <div class="form-check">
-      <input class="form-check-input" type="checkbox" value="1" id="invalidCheck" required disabled {{r['validated'] and 'checked'}}>
-      <label class="form-check-label" for="invalidCheck">
-        Conditions acceptées
+      <input class="form-check-input" type="checkbox" value="1" id="invalidCheckView" disabled {{r['validated'] and 'checked'}}>
+      <label class="form-check-label" for="invalidCheckView">
+        Règlement intérieur accepté
       </label>
+      <a href="#" class="ms-2 small" data-show-reglement>Voir le règlement</a>
     </div>
   </div>
   <div class="input-group">
@@ -188,11 +189,27 @@
       }
     </script>
   </div>
-  <div class="input-group required-highlight">
-        <span class="input-group-text bg-secondary required-indicator" id="inputGroup-sizing-default">Marque</span>
-        <input style="text-transform: uppercase;" type="text" name="brand" class="form-control" required placeholder="LAMARQUE / INCONNU" value="{{r and r['brand'].name}}">
-        <span class="input-group-text bg-secondary" id="inputGroup-sizing-default">Modèle</span>
-        <input type="text" class="form-control" name="model" value="{{r and r['model']}}">
+  <div class="input-group required-highlight align-items-stretch" id="brandSelectorGroup">
+    <span class="input-group-text bg-secondary required-indicator">Marque</span>
+    <div class="dropdown flex-grow-1" id="brandDropdownWrapper" style="position:relative">
+      <button class="btn btn-primary w-100 text-start dropdown-toggle" type="button" id="brandDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" data-current="">
+        <span class="brand-current">{{ (r and r['brand'].name) or 'INCONNU' }}</span>
+      </button>
+      <ul class="dropdown-menu w-100 p-0" aria-labelledby="brandDropdownBtn" style="max-height:260px; overflow:auto" id="brandDropdownList">
+        <li class="px-2 pt-2 pb-1">
+          <input type="text" class="form-control form-control-sm" id="brandFilterInput" autocomplete="off" placeholder="Filtrer ou créer...">
+        </li>
+        <li><hr class="dropdown-divider my-1"></li>
+        <div id="brandOptions"></div>
+        <li class="text-center small py-1" id="brandEmptyHint" style="display:none">Aucune marque</li>
+        <li><hr class="dropdown-divider my-1"></li>
+        <li><a href="#" class="dropdown-item text-primary fw-bold" id="brandCreateItem" style="display:none">➕ Créer « <span id="brandCreateLabel"></span> »</a></li>
+      </ul>
+    </div>
+    <input type="hidden" name="brand" id="brandHidden" value="{{ (r and r['brand'].name) or 'INCONNU' }}" required>
+    <span class="input-group-text bg-secondary">Modèle</span>
+    <input type="text" class="form-control" name="model" value="{{r and r['model']}}">
+    <div class="invalid-feedback">Marque obligatoire</div>
   </div>
   <div class="input-group justify-content-around">
     <div class="card col-3 update rounded">
@@ -248,10 +265,12 @@
 
   <div class="input-group required-highlight">
     <div class="form-check required-indicator">
-      <input class="form-check-input" type="checkbox" name="validated" value="1" id="invalidCheck" required {{r and r['validated'] and 'checked' or ''}}>
-      <label class="form-check-label" for="invalidCheck">
-        Accepter les conditions
+  <input class="form-check-input" type="checkbox" name="validated" value="1" id="invalidCheckForm" required {{r and r['validated'] and 'checked' or ''}} {{ r and r['validated'] and 'disabled' or ''}}>
+  {% if r and r['validated'] %}<input type="hidden" name="validated" value="1">{% endif %}
+  <label class="form-check-label" for="invalidCheckForm">
+        J'ai lu et j'accepte le règlement intérieur
       </label>
+      <a href="#" class="ms-2 small" data-show-reglement>Lire le règlement</a>
       <div class="invalid-feedback">
         Vous devez accepter avant de soumettre !
       </div>
@@ -320,5 +339,139 @@
       return false;
     }
   });
+  // ---- Sélecteur de marque filtrable ----
+  (function(){
+    const DEFAULT_BRAND = 'INCONNU';
+    var cache = [];
+    var listEl = $('#brandOptions');
+    var filterInput = $('#brandFilterInput');
+    var hidden = $('#brandHidden');
+    var btn = $('#brandDropdownBtn');
+    var createItem = $('#brandCreateItem');
+    var createLabel = $('#brandCreateLabel');
+    function render(options, filter){
+      listEl.empty();
+      const normFilter = (filter||'').toUpperCase();
+      const shown = [];
+      const base = Array.from(new Set([DEFAULT_BRAND].concat(options))).sort();
+      base.forEach(function(name){
+        if (normFilter && !name.startsWith(normFilter)) return;
+        shown.push(name);
+        var a = $('<a/>').attr('href','#').addClass('dropdown-item').text(name).data('value', name);
+        if (hidden.val() && hidden.val().toUpperCase()===name) a.addClass('active fw-bold');
+        listEl.append($('<li/>').append(a));
+      });
+      $('#brandEmptyHint').toggle(shown.length===0);
+      const raw = filterInput.val().trim();
+      const up = raw.toUpperCase();
+      const canCreate = raw.length>1 && !shown.includes(up);
+      createItem.toggle(canCreate);
+      createLabel.text(raw);
+    }
+    function load(filter){
+      var q = (filter||'').trim();
+      $.getJSON('/api/brands'+(q?('?q='+encodeURIComponent(q)):'') , function(data){
+        var upper = data.map(function(n){ return n.toUpperCase(); });
+        cache = Array.from(new Set(cache.concat(upper))).sort();
+        render(cache, q);
+      });
+    }
+    $('#brandDropdownWrapper').on('shown.bs.dropdown', function(){
+      if(!cache.length) load(''); else render(cache, filterInput.val());
+      setTimeout(function(){ filterInput.trigger('focus'); }, 50);
+    });
+    filterInput.on('keyup change', function(){
+      var val = $(this).val();
+      if (val.length>=3) load(val); else render(cache, val);
+    });
+    listEl.on('click', 'a.dropdown-item', function(e){
+      e.preventDefault();
+      var v = $(this).data('value');
+      hidden.val(v);
+  btn.find('.brand-current').text(v);
+      btn.attr('data-current', v);
+      btn.removeClass('btn-outline-primary').addClass('btn-primary');
+      var dd = bootstrap.Dropdown.getInstance(btn[0]);
+      dd && dd.hide();
+    });
+    createItem.on('click', function(e){
+      e.preventDefault();
+      var raw = filterInput.val().trim();
+      if(!raw) return;
+      hidden.val(raw.toUpperCase());
+  btn.find('.brand-current').text(raw.toUpperCase());
+      btn.attr('data-current', raw.toUpperCase());
+      btn.removeClass('btn-outline-primary').addClass('btn-primary');
+      var dd = bootstrap.Dropdown.getInstance(btn[0]);
+      dd && dd.hide();
+    });
+    // Initialisation / sélection par défaut
+    if (!hidden.val()) hidden.val(DEFAULT_BRAND);
+  btn.find('.brand-current').text(hidden.val());
+  if (hidden.val()) btn.removeClass('btn-outline-primary').addClass('btn-primary');
+    if (hidden.val()==='INCONNU') load('');
+  })();
+</script>
+<!-- Modal Règlement Intérieur -->
+<div class="modal fade" id="reglementModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Règlement interne au Repair Café</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body small">
+        <ul class="ps-3">
+          <li>Les réparations sont effectuées <strong>gratuitement</strong> par des <strong>bénévoles</strong>.</li>
+          <li>Les visiteurs participent autant que possible eux‑mêmes aux réparations (esprit <strong>DIY</strong>).</li>
+          <li><strong>Responsabilité limitée :</strong> ni les organisateurs ni les réparateurs ne peuvent être tenus responsables de dommages ou pertes découlant des conseils ou interventions (sauf dispositions légales impératives de protection des consommateurs).</li>
+          <li>Une <strong>contribution libre</strong> est appréciée.</li>
+          <li>Le matériel neuf utilisé (câbles, fiches, fusibles, pièces, fermetures éclair, etc.) est <strong>payé à part</strong>.</li>
+          <li>Les objets sont apportés <strong>aux risques</strong> des visiteurs.</li>
+          <li>Aucune <strong>garantie de résultat</strong> n'est fournie sur les réparations.</li>
+          <li>Les réparateurs peuvent <strong>refuser</strong> certains objets.</li>
+          <li>Ils ne sont pas obligés de <strong>remonter</strong> un appareil irréparable.</li>
+          <li>Les visiteurs assurent l'<strong>élimination appropriée</strong> des objets irréparables.</li>
+          <li>En cas d'affluence : <strong>un seul objet</strong> par personne à la fois (reprendre la file pour un second).</li>
+        </ul>
+        <p class="mt-3 text-muted">En cochant la case, vous confirmez avoir lu et accepté l'ensemble de ces points.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+        <button type="button" class="btn btn-primary" data-accept-reglement>J'accepte</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  (function(){
+    var reglementModal = null;
+    function ensureModal(){
+      if (reglementModal) return reglementModal;
+      if (!window.bootstrap) return null; // bootstrap pas encore chargé
+      var el = document.getElementById('reglementModal');
+      if (!el) return null;
+      reglementModal = new bootstrap.Modal(el);
+      return reglementModal;
+    }
+    $(document).on('click','[data-show-reglement]', function(e){
+      e.preventDefault();
+      var m = ensureModal();
+      if (!m) {
+        // réessayer très brièvement jusqu'à dispo (cas chargement bundle)
+        var tries = 0;
+        var iv = setInterval(function(){
+          tries++; var mm = ensureModal(); if(mm){ mm.show(); clearInterval(iv);} if(tries>20) clearInterval(iv);
+        }, 100);
+        return;
+      }
+      m.show();
+    });
+    $(document).on('click','[data-accept-reglement]', function(){
+      $('#invalidCheckForm').prop('checked', true).trigger('change');
+      var m = ensureModal();
+      if (m) m.hide();
+    });
+  })();
 </script>
 {% endmacro %}

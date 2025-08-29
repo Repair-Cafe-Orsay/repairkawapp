@@ -39,6 +39,22 @@ html {
   --rk-space-6: 24px;
 }
 
+/* Action button semantic helpers */
+.btn-create { background: var(--rk-color-primary); color:#fff; border-color: var(--rk-color-primary); }
+.btn-create:hover { background:#0b5ed7; color:#fff; }
+.btn-update { background: var(--rk-color-warning); color:#000; border-color: var(--rk-color-warning); }
+.btn-update:hover { background:#e0ac07; color:#000; }
+.btn-delete { background: var(--rk-color-danger); color:#fff; border-color: var(--rk-color-danger); }
+.btn-delete:hover { background:#c14440; color:#fff; }
+/* Outline legacy conversions (if some remain) */
+.btn-outline-primary.btn-create,
+.btn-outline-primary.btn-update,
+.btn-outline-danger.btn-delete {
+  /* unify to filled style visually */
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
+}
+
 /* Global layout adjustments */
 body {
   margin-bottom: 30px;
@@ -380,6 +396,16 @@ nav a.link-primary, nav a.link-secondary {
 label.bg-secondary, span.bg-secondary {
   color: white;
 }
+
+/* Brand dropdown: pousser le caret complètement à droite */
+#brandDropdownBtn {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.5rem;
+  padding-right: .85rem; /* compense l'icône caret */
+}
+#brandDropdownBtn .brand-current { flex:1 1 auto; }
 
 .repairstatus .card-header, .age .card-header {
   color:  white;

@@ -1,21 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="title">Bienvenue {{ name }}</h1>
+<h1 class="title mb-3">Bienvenue {{ name }}</h1>
 
-<div class="mb-3">
-  {% if user_period %}
-    <p>Cotisation : <strong>1er sept {{ user_period[0] }} – 31 août {{ user_period[1] }}</strong></p>
-  {% else %}
-    <p>Cotisation : <strong>Aucune</strong></p>
-  {% endif %}
-  <!-- Alertes cotisation retirées (bannière globale gère l'information) -->
-</div>
-
-<div id="reportrange" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
-    <i class="fa fa-calendar"></i>&nbsp;
-    <span></span> <i class="fa fa-caret-down"></i>
+<div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+  <label class="form-label fw-semibold m-0" for="reportrange">Période sélectionnée :</label>
+  <div id="reportrange" style="background:#fff; cursor:pointer; padding:6px 12px; border:1px solid #ccc; min-width:320px; border-radius:6px;">
+    <i class="fa fa-calendar"></i>&nbsp;<span></span> <i class="fa fa-caret-down"></i>
   </div>
+</div>
   <hr class="mt-2 mb-3">
   <div class="row mb-3">
     <div class="card border-secondary col-sm-12 col-lg-6 update rounded g-0">
@@ -29,8 +22,11 @@
   </div>
   <div class="row mb-3">
     <div class="card border-secondary col-sm-12 col-lg-6 update rounded g-0">
-      <div class="card-header text-center">Fréquentation (visiteurs uniques)</div>
-      <div class="card-body"><div id="count_visitors"></div></div>
+      <div class="card-header text-center">Fréquentation</div>
+      <div class="card-body text-center">
+        <div id="count_visitors" class="mb-2"></div>
+        <div id="count_sessions" class=""></div>
+      </div>
     </div>
   </div>
 
@@ -53,7 +49,37 @@
    svg2.selectAll('mybar').data(dataCat).enter().append('rect').attr('x', function(d){return x(d.key);}).attr('y', function(d){return y(d.value);}).attr('width', x.bandwidth()).attr('height', function(d){return height - margin - bottom_margin - y(d.value);}).attr('fill','#69b3a2');
    d3.select('#count_visitors svg').remove(); var svg3 = d3.select('#count_visitors').append('svg').attr('width',width).attr('height',height).append('g').attr('transform','translate('+bottom_margin+','+margin+')'); svg3.append('text').text(totalCount).attr('class','label');
  }
- $(function(){ var start = moment().subtract(29,'days'); var end = moment(); function cb(start,end){ $('#reportrange span').html(start.format('dddd D MMMM YYYY') + ' - ' + end.format('dddd D MMMM YYYY')); $.getJSON("{{url_for('api.stats')}}", { from: start.format('YYYY-MM-D'), to: end.format('YYYY-MM-D') }, function(data){ d3_display(data); }); }
- $('#reportrange').daterangepicker({ locale: french_daterangepicker, startDate:start, endDate:end, ranges:{ "Aujourd'hui":[moment(),moment()], 'Hier':[moment().subtract(1,'days'), moment().subtract(1,'days')], 'Depuis une semaine':[moment().subtract(6,'days'), moment()], 'Depuis un mois':[moment().subtract(29,'days'), moment()], 'Ce mois':[moment().startOf('month'), moment().endOf('month')], 'Le mois dernier':[moment().subtract(1,'month').startOf('month'), moment().subtract(1,'month').endOf('month')], 'Cette année':[moment().startOf('year'), moment().endOf('year')] } }, cb); cb(start,end); });
+ $(function(){
+   // Période académique: 1er sept année départ -> 31 août année suivante
+   var today = moment();
+   var academicStartYear = (today.month() >= 8) ? today.year() : (today.year() - 1); // month() 0=Jan => >=8 => Septembre
+   var start = moment({year: academicStartYear, month:8, day:1}); // 1 Sept
+   var end = moment({year: academicStartYear+1, month:7, day:31}); // 31 Août
+   if (today.isBefore(end)) { end = today; } // ne pas dépasser aujourd'hui
+   function cb(start,end){
+     $('#reportrange span').html(start.format('D MMM YYYY') + ' – ' + end.format('D MMM YYYY'));
+     $.getJSON("{{url_for('api.stats')}}", { from: start.format('YYYY-MM-D'), to: end.format('YYYY-MM-D') }, function(data){
+        d3_display(data);
+        // Affichage fréquentation distinct (texte clair)
+        if (data) {
+          $('#count_visitors').html('<div class="label">Visiteurs uniques: '+ (data.visitors !== undefined ? data.visitors : '?') +'</div>');
+          $('#count_sessions').html('<div class="label">Séances: '+ (data.total_sessions !== undefined ? data.total_sessions : '?') +'</div>');
+        }
+     });
+   }
+   $('#reportrange').daterangepicker({
+     locale: french_daterangepicker,
+     startDate:start,
+     endDate:end,
+     ranges:{
+       "Année académique courante":[ start, moment({year: academicStartYear+1, month:7, day:31}) ],
+       "Aujourd'hui":[moment(),moment()],
+       'Depuis une semaine':[moment().subtract(6,'days'), moment()],
+       'Depuis un mois':[moment().subtract(29,'days'), moment()],
+       'Cette année civile':[moment().startOf('year'), moment().endOf('year')]
+     }
+   }, cb);
+   cb(start,end);
+ });
 </script>
 {% endblock %}

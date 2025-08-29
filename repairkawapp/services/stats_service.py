@@ -7,7 +7,7 @@ from datetime import date, datetime
 from sqlalchemy import distinct, func
 from sqlalchemy.orm import Session
 
-from ..models import Category, CloseStatus, Repair
+from ..models import Category, CloseStatus, Repair, Session as RepairSession
 
 
 def parse_period(arg_from: str | None, arg_to: str | None):
@@ -57,9 +57,17 @@ def compute_stats(session: Session, date_from: date, date_to: date):
     )
 
     total = sum(count for count, _, _ in all_repairs_close_status)
+    # Nombre de séances ouvertes (opened_at) dont l'ouverture dans la période
+    total_sessions = (
+        session.query(func.count(RepairSession.id))
+        .filter(RepairSession.opened_at >= date_from)
+        .filter(RepairSession.opened_at <= date_to)
+        .scalar()
+    )
     return {
         "categories_raw": all_repairs_category,
         "status_raw": all_repairs_close_status,
         "visitors": visitors,
         "total": total,
+        "total_sessions": total_sessions,
     }
