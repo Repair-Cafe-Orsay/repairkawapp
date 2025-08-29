@@ -261,10 +261,18 @@ def attach_session(repair_id):
     return redirect(url_for("main.edit_repair", repair_id=repair_id))
 
 
-@main.route("/media/<path:filename>")
-def media_file(filename):
-    r"""api to retrieve files without direct access to upload directory"""
+@main.route("/uploads/<path:filename>")
+def uploaded_file(filename):
+    """Servez un fichier uploadé (original ou vignette cache/...)."""
     return send_from_directory(current_app.config["UPLOAD_FOLDER"], filename)
+
+
+# Route legacy conservée (redirection permanente) pour compatibilité anciens liens
+@main.route("/media/<path:filename>")
+def legacy_media_file(filename):  # pragma: no cover - simple redirection
+    from flask import redirect
+
+    return redirect(url_for("main.uploaded_file", filename=filename), code=301)
 
 
 @main.route("/update/<string:id>", methods=["POST"])

@@ -48,8 +48,8 @@
     <span class="input-group-text bg-secondary col-3">Photo</span>
     <input type="file" name="photo" accept="image/*" class="form-control">
     {% if u.photo_filename %}
-      <a href="{{ url_for('main.media_file', filename=u.photo_filename) }}" target="_blank" class="ms-2">Voir</a>
-      <img src="{{ url_for('main.media_file', filename=u.photo_filename) }}" alt="photo" style="height:50px" class="ms-2 rounded">
+  <a href="{{ url_for('main.uploaded_file', filename=u.photo_filename) }}" target="_blank" class="ms-2">Voir</a>
+  <img src="{{ url_for('main.uploaded_file', filename=u.photo_filename) }}" alt="photo" style="height:50px" class="ms-2 rounded">
     {% endif %}
   </div>
   <div class="input-group">

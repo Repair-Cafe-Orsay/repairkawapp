@@ -9,7 +9,7 @@
 	"UPLOAD_FOLDER": "PATHTO/repairkawapp/uploads",
 	"URL_SERIALIZER_SECRET": "url-sanitizer-secret-for-tokens",
 	"THUMBNAIL_MEDIA_ROOT": "PATHTO/repairkawapp/uploads",
-	"THUMBNAIL_MEDIA_THUMBNAIL_ROOT": "PATHTO/uploads/cache",
+	"THUMBNAIL_MEDIA_THUMBNAIL_ROOT": "PATHTO/repairkawapp/uploads/cache",
 	"THUMBNAIL_MEDIA_URL": "/media/",
 	"THUMBNAIL_MEDIA_THUMBNAIL_URL": "/media/cache/",
     "MAIL_SERVER": "MAIL_SERVER",

@@ -31,7 +31,7 @@
       <input type="hidden" name="crop_h" id="crop_h">
       {% if photo_filename %}
         <div class="mb-2">
-          <img src="{{ url_for('main.media_file', filename=photo_filename) }}" alt="photo" style="max-width:150px;max-height:150px" class="img-thumbnail">
+          <img src="{{ url_for('main.uploaded_file', filename=photo_filename) }}" alt="photo" style="max-width:150px;max-height:150px" class="img-thumbnail">
         </div>
       {% endif %}
       {% if photo_error %}

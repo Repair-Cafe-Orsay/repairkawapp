@@ -130,7 +130,7 @@
           <div class="carousel-inner">
           {% for p in images %}
               <div class="carousel-item {{p[0]==0 and 'active' or ''}}">
-                <img class="d-block w-100" src="{{url_for('main.media_file', filename=p[1])}}" alt="">
+                <img class="d-block w-100" src="{{url_for('main.uploaded_file', filename=p[1])}}" alt="">
               </div>
           {% endfor %}
           </div>
@@ -209,7 +209,7 @@
       <div class="col-lg-3 col-md-4 col-6 oneimg" data-bs-target="#galleryCaroussel" data-bs-slide-to="{{p[0]}}">
         <a href="#" class="d-block mb-4 h-100">
           <div class="img-wrapper">
-            <img class="img-responsive img-fluid img-thumbnail" src="{{url_for('main.media_file', filename=p[2])}}" alt="">
+            <img class="img-responsive img-fluid img-thumbnail" src="{{url_for('main.uploaded_file', filename=p[2])}}" alt="">
             <div class="img-overlay">
               <button type="button" class="btn btn-danger" data-delete-index="{{ p[0] }}" data-delete-path="{{ p[1] }}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
