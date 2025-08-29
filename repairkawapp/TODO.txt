@@ -1,0 +1,5 @@
+- réinitialisation password par un admin
+- introduire la notion d'entités multiples - à définir
+- current year/last year - comme période
+
+- clean-up sur les marques?
