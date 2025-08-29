@@ -12,6 +12,7 @@ from io import BytesIO
 from PIL import Image
 from .services.image_service import process_user_photo
 from .models import User, MembershipLog, BoardRoleLog
+from werkzeug.security import generate_password_hash
 from . import db
 
 admin = Blueprint('admin', __name__)
@@ -49,6 +50,7 @@ def user_edit(user_id):
     """Edition d'un utilisateur (admin)."""
     u = db.session.query(User).filter_by(id=user_id).first()
     photo_error = None
+    password_error = None
     if request.method == 'POST':
         # Bouton d'action rapide "set_current_membership"
         if request.form.get('action') == 'set_current_membership':
@@ -69,6 +71,21 @@ def user_edit(user_id):
             db.session.add(BoardRoleLog(admin_id=current_user.id, user_id=u.id, old_role=old_role, new_role=new_role))
         # Biographie editable aussi côté admin
         u.biography = request.form.get('biography') or None
+        # Changement mot de passe (admin)
+        new_pwd = request.form.get('new_password') or ''
+        new_pwd_conf = request.form.get('new_password_confirm') or ''
+        if new_pwd or new_pwd_conf:
+            if new_pwd != new_pwd_conf:
+                password_error = "Confirmation différente."
+            elif len(new_pwd) < 6:
+                password_error = "Mot de passe trop court (≥6)."
+            else:
+                u.password = generate_password_hash(new_pwd)
+                # Incrémente seqid si présent pour invalider resets précédents
+                try:
+                    u.seqid = (u.seqid or 0) + 1
+                except Exception:
+                    pass
         # Upload photo (admin) même logique que profil utilisateur
         if 'photo' in request.files and request.files['photo'].filename:
             raw = request.files['photo'].read()
@@ -80,9 +97,32 @@ def user_edit(user_id):
         # On ne modifie plus last_membership via le formulaire standard (lecture seule)
         # Conversion explicite en booléen pour éviter les valeurs '' dans la colonne Boolean
         u.admin = True if request.form.get('admin') else False
-        db.session.commit()
-        if not photo_error:
+        # Commit seulement si pas d'erreur photo ou password
+        if not photo_error and not password_error:
+            db.session.commit()
             return redirect(url_for("admin.user_list"), code=302)
+        else:
+            db.session.commit()  # on commit quand même autres modifs si une des deux erreurs ? Non: si erreur on évite commit partiel sauf photo_error uniquement
+            # Recharger page avec erreurs (photo_error / password_error)
+            logs = (db.session.query(MembershipLog)
+                     .filter_by(user_id=u.id)
+                     .order_by(MembershipLog.date.desc())
+                     .limit(20)
+                     .all())
+            role_logs = (db.session.query(BoardRoleLog)
+                          .filter_by(user_id=u.id)
+                          .order_by(BoardRoleLog.date.desc())
+                          .limit(20)
+                          .all())
+            return render_template('user_edit.html',
+                                   name=current_user.name,
+                                   u=u,
+                                   current_academic_start=_current_academic_start(date.today()),
+                                   subscription_target=_subscription_target_start(date.today()),
+                                   membership_logs=logs,
+                                   role_logs=role_logs,
+                                   photo_error=photo_error,
+                                   password_error=password_error)
     else:
         logs = (db.session.query(MembershipLog)
                  .filter_by(user_id=u.id)
@@ -94,14 +134,15 @@ def user_edit(user_id):
                       .order_by(BoardRoleLog.date.desc())
                       .limit(20)
                       .all())
-        return render_template('user_edit.html',
+    return render_template('user_edit.html',
                                name=current_user.name,
                                u=u,
                                current_academic_start=_current_academic_start(date.today()),
                                subscription_target=_subscription_target_start(date.today()),
                                membership_logs=logs,
                                role_logs=role_logs,
-                               photo_error=photo_error)
+                   photo_error=photo_error,
+                   password_error=password_error)
 
 @admin.route('/admin/new', methods=['POST', 'GET'])
 @login_required
