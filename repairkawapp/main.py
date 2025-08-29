@@ -19,6 +19,7 @@ from .models import (
 )
 from . import db, thumb
 from PIL import Image
+from .services.image_service import process_user_photo
 from .services.repair_service import (
     get_or_create_brand, create_repair, update_repair, apply_update
 )
@@ -64,42 +65,12 @@ def profile():
         # Mise à jour biographie (toujours sauvegardée même si erreur photo)
         current_user.biography = request.form.get('biography') or None
         if 'photo' in request.files and request.files['photo'].filename:
-            f = request.files['photo']
-            # Validation taille (3 Mo max)
-            MAX_PHOTO_BYTES = 3 * 1024 * 1024
-            # Lire contenu en mémoire pour validation + traitement
-            raw = f.read()
-            if len(raw) > MAX_PHOTO_BYTES:
-                photo_error = f"Fichier trop volumineux (>{MAX_PHOTO_BYTES//1024} Ko)."  # garde bio
+            raw = request.files['photo'].read()
+            filename, err = process_user_photo(raw, current_app.config['UPLOAD_FOLDER'], current_user.id, request.form.get)
+            if err:
+                photo_error = err
             else:
-                try:
-                    img = Image.open(BytesIO(raw))
-                    img = img.convert('RGBA') if img.mode in ('P','LA') else img.convert('RGB')
-                    # Récup coordonnées de recadrage si fournies
-                    try:
-                        x = int(float(request.form.get('crop_x', 0)))
-                        y = int(float(request.form.get('crop_y', 0)))
-                        w = int(float(request.form.get('crop_w', 0)))
-                        h = int(float(request.form.get('crop_h', 0)))
-                    except (TypeError, ValueError):
-                        x = y = 0; w = h = 0
-                    W, H = img.size
-                    # Si recadrage valide sinon on force un carré centré
-                    if w <= 0 or h <= 0 or x < 0 or y < 0 or x+w > W or y+h > H:
-                        side = min(W, H)
-                        x = (W - side)//2
-                        y = (H - side)//2
-                        w = h = side
-                    # Applique recadrage
-                    img = img.crop((x, y, x + w, y + h))
-                    # Redimensionne à 400x400 pour standardiser
-                    img = img.resize((400, 400), Image.LANCZOS)
-                    filename = f"user_{current_user.id}_{int(datetime.now().timestamp())}.jpg"
-                    path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                    img.save(path, format='JPEG', quality=88)
-                    current_user.photo_filename = filename
-                except Exception:
-                    photo_error = "Erreur lors du traitement de l'image (format non supporté?)."
+                current_user.photo_filename = filename
         db.session.commit()
         if not photo_error:
             return redirect(url_for('main.profile'))

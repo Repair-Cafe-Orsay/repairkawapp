@@ -10,6 +10,7 @@ from datetime import date, datetime
 import os
 from io import BytesIO
 from PIL import Image
+from .services.image_service import process_user_photo
 from .models import User, MembershipLog, BoardRoleLog
 from . import db
 
@@ -70,36 +71,12 @@ def user_edit(user_id):
         u.biography = request.form.get('biography') or None
         # Upload photo (admin) même logique que profil utilisateur
         if 'photo' in request.files and request.files['photo'].filename:
-            f = request.files['photo']
-            raw = f.read()
-            MAX_PHOTO_BYTES = 3 * 1024 * 1024
-            if len(raw) > MAX_PHOTO_BYTES:
-                photo_error = f"Fichier trop volumineux (>{MAX_PHOTO_BYTES//1024} Ko)."
+            raw = request.files['photo'].read()
+            filename, err = process_user_photo(raw, current_app.config['UPLOAD_FOLDER'], u.id, request.form.get)
+            if err:
+                photo_error = err
             else:
-                try:
-                    img = Image.open(BytesIO(raw))
-                    img = img.convert('RGBA') if img.mode in ('P','LA') else img.convert('RGB')
-                    try:
-                        x = int(float(request.form.get('crop_x', 0)))
-                        y = int(float(request.form.get('crop_y', 0)))
-                        w = int(float(request.form.get('crop_w', 0)))
-                        h = int(float(request.form.get('crop_h', 0)))
-                    except (TypeError, ValueError):
-                        x = y = 0; w = h = 0
-                    W, H = img.size
-                    if w <= 0 or h <= 0 or x < 0 or y < 0 or x+w > W or y+h > H:
-                        side = min(W, H)
-                        x = (W - side)//2
-                        y = (H - side)//2
-                        w = h = side
-                    img = img.crop((x, y, x + w, y + h))
-                    img = img.resize((400, 400), Image.LANCZOS)
-                    filename = f"user_{u.id}_{int(datetime.now().timestamp())}.jpg"
-                    path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                    img.save(path, format='JPEG', quality=88)
-                    u.photo_filename = filename
-                except Exception:
-                    photo_error = "Erreur lors du traitement de l'image."
+                u.photo_filename = filename
         # On ne modifie plus last_membership via le formulaire standard (lecture seule)
         # Conversion explicite en booléen pour éviter les valeurs '' dans la colonne Boolean
         u.admin = True if request.form.get('admin') else False
