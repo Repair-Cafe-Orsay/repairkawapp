@@ -113,14 +113,23 @@
     <main>
   {% if current_user.is_authenticated and not request.path.startswith('/admin') and request.path != '/profile' %}
       <div id="session-banner" class="mb-3">
-        <div class="card border-info" id="session-active" style="display:none">
-          <div class="card-body py-2 d-flex justify-content-between align-items-center">
+        <div class="card" id="session-active" style="display:none">
+          <div class="card-body py-2 d-flex justify-content-between align-items-center" id="session-active-body">
             <div>
-              <strong><a href="#" id="sess_link" class="text-decoration-none">Séance <span id="sess_id_label"></span> en cours</a> :</strong> <span id="sess_location"></span>
+              <strong id="sess_title"><a href="#" id="sess_link" class="text-decoration-none">Séance <span id="sess_id_label"></span> en cours</a> :</strong> <span id="sess_location"></span>
               <small class="text-muted">ouverte <span id="sess_opened"></span></small>
+              <div class="small text-danger mt-1 d-none" id="sess_stale_warning">Séance ouverte un jour précédent – vous pouvez en ouvrir une nouvelle si besoin.</div>
             </div>
-            <div class="d-flex gap-1">
+            <div class="d-flex gap-1 align-items-center">
               <a class="btn btn-sm btn-outline-primary" id="btn-session-detail" href="#">Détail séance</a>
+              <form class="d-flex align-items-center ms-2" id="form-open-session-secondary" style="display:none">
+                <select name="location_select" class="form-select form-select-sm me-1 open-secondary-loc" style="min-width:140px">
+                  <option value="" selected disabled>Lieu…</option>
+                  <option value="__new__">➕</option>
+                </select>
+                <input name="new_location" class="form-control form-control-sm me-1 open-secondary-new" placeholder="Nouveau" style="display:none;min-width:140px" />
+                <button class="btn btn-sm btn-danger" type="submit" title="Ouvrir une nouvelle séance (ancienne non fermée)">Forcer</button>
+              </form>
             </div>
           </div>
         </div>
@@ -356,21 +365,37 @@
   // ---- Session UI ----
   function refresh_session_ui() {
     $.getJSON('/api/sessions?opened=1', function(data){
-        if (data.length > 0) {
-          const s = data[0];
-          $('#session-active').show();
-          $('#session-none').hide();
-          $('#sess_location').text(s.location || '(Lieu non défini)');
-          $('#sess_id_label').text('#'+s.id);
-          // s.opened_at est en UTC (suffixe Z) -> conversion locale
-          $('#sess_opened').text(moment.utc(s.opened_at).local().fromNow());
-          const detailUrl = '/sessions/' + s.id;
-          $('#btn-session-detail').attr('href', detailUrl);
-          $('#sess_link').attr('href', detailUrl);
+      if (data.length > 0) {
+        const s = data[0];
+        $('#session-active').show();
+        $('#session-none').hide();
+        $('#sess_location').text(s.location || '(Lieu non défini)');
+        $('#sess_id_label').text('#'+s.id);
+        $('#sess_opened').text(moment.utc(s.opened_at).local().fromNow());
+        const detailUrl = '/sessions/' + s.id;
+        $('#btn-session-detail').attr('href', detailUrl);
+        $('#sess_link').attr('href', detailUrl);
+        // Vérifie si la date est aujourd'hui (locale)
+        const openedLocal = moment.utc(s.opened_at).local();
+        const stale = !openedLocal.isSame(moment(), 'day');
+        // Reset état avant application
+        $('#form-open-session-secondary').hide();
+        $('#session-active').removeClass('border-danger border-info');
+        $('#sess_title').removeClass('text-danger');
+        $('#sess_stale_warning').addClass('d-none');
+        if (stale) {
+          $('#session-active').addClass('border-danger').removeClass('border-info');
+          $('#sess_title').addClass('text-danger');
+          $('#sess_stale_warning').removeClass('d-none');
+          // Afficher le mini formulaire d'ouverture forcée
+          $('#form-open-session-secondary').show();
         } else {
-          $('#session-active').hide();
-          $('#session-none').show();
+          $('#session-active').addClass('border-info');
         }
+      } else {
+        $('#session-active').hide();
+        $('#session-none').show();
+      }
     });
   }
   // Chargement et gestion dropdown lieux
@@ -383,6 +408,16 @@
         $('<option/>').attr('value', name).text(name).insertBefore(sel.find('option[value="__new__"]'));
       });
       if (current) sel.val(current);
+      // secondaire
+      const sel2 = $('#form-open-session-secondary select.open-secondary-loc');
+      if (sel2.length){
+        const cur2 = sel2.val();
+        sel2.find('option').not('[value=""],[value="__new__"]').remove();
+        data.forEach(function(name){
+          $('<option/>').attr('value', name).text(name).insertBefore(sel2.find('option[value="__new__"]'));
+        });
+        if(cur2) sel2.val(cur2);
+      }
     });
   }
   $(document).on('change', '#session-location-select', function(){
@@ -419,6 +454,30 @@
           }
         }
       }
+    });
+  });
+  // Form secondaire (ouverture forcée)
+  $(document).on('change', '#form-open-session-secondary select.open-secondary-loc', function(){
+    const sel = $(this);
+    const newInput = sel.closest('form').find('input.open-secondary-new');
+    if (sel.val() === '__new__') { newInput.val('').show().focus(); } else { newInput.hide(); }
+  });
+  $(document).on('submit', '#form-open-session-secondary', function(e){
+    e.preventDefault();
+    const form = $(this);
+    const sel = form.find('select.open-secondary-loc').val();
+    const loc = sel === '__new__' ? form.find('input.open-secondary-new').val().trim() : sel;
+    if(!loc){
+      form.addClass('shake');
+      setTimeout(()=> form.removeClass('shake'), 600);
+      return;
+    }
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    $.ajax({
+      type:'POST', url:'/api/session/open', contentType:'application/json', data: JSON.stringify({location: loc, opened_time: hh+':'+mm}),
+      success:function(){ refresh_session_ui(); load_locations_dropdown(); if(window.location.pathname.startsWith('/sessions')) window.location.reload(); }
     });
   });
   load_locations_dropdown();
