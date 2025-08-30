@@ -49,6 +49,65 @@ class Category(db.Model):
         return "<Category %r>" % self.name
 
 
+class ObjectType(db.Model):
+    """Type d'objet d'une catégorie (ex: 'Machine à café').
+
+    Sert de référentiel optionnel pour qualifier plus finement la réparation.
+    """
+
+    __tablename__ = "object_type"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    # Catégorie parente
+    category_id = db.Column(db.Integer, db.ForeignKey("category.id"), nullable=False)
+    category = db.relationship("Category", backref=db.backref("object_types", lazy=True))
+
+    # Variantes (synonymes / alias d'affichage)
+    variants = db.relationship(
+        "ObjectVariant",
+        backref="object_type",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
+
+    # Sous-types (granularité supplémentaire)
+    subtypes = db.relationship(
+        "ObjectSubtype",
+        backref="object_type",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
+
+    __table_args__ = (db.Index("idx_object_type_category", "category_id"),)
+
+    def __repr__(self):
+        return "<ObjectType %r>" % self.name
+
+
+class ObjectVariant(db.Model):
+    """Variante / alias d'un type d'objet (ex: 'Cafetière', 'Machine Espresso')."""
+
+    __tablename__ = "object_variant"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    object_type_id = db.Column(db.Integer, db.ForeignKey("object_type.id"), nullable=False)
+
+    def __repr__(self):
+        return "<ObjectVariant %r>" % self.name
+
+
+class ObjectSubtype(db.Model):
+    """Sous-type d'un type d'objet (ex: pour 'Machine à café' : 'Expresso', 'Filtre')."""
+
+    __tablename__ = "object_subtype"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    object_type_id = db.Column(db.Integer, db.ForeignKey("object_type.id"), nullable=False)
+
+    def __repr__(self):
+        return "<ObjectSubtype %r>" % self.name
+
+
 class Brand(db.Model):
     """Stockage des marques."""
 
@@ -127,6 +186,11 @@ class Repair(db.Model):
     location = db.Column(db.String(50), default="Local")
     # session auquel la réparation est rattachée (optionnel)
     session_id = db.Column(db.Integer, db.ForeignKey("session.id"), nullable=True)
+    # Références facultatives vers le référentiel objet
+    object_type_id = db.Column(db.Integer, db.ForeignKey("object_type.id"), nullable=True)
+    object_type = db.relationship("ObjectType")
+    object_subtype_id = db.Column(db.Integer, db.ForeignKey("object_subtype.id"), nullable=True)
+    object_subtype = db.relationship("ObjectSubtype")
 
 
 # association many2many entre session et user (participants)
