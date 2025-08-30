@@ -130,6 +130,7 @@ def objecttypes_admin_list():
         sort=sort,
         dir=direction,
         categories=categories,
+        name=current_user.name,
     )
 
 
@@ -220,6 +221,7 @@ def objecttype_admin_detail(ot_id: int):
         categories=categories,
         repairs=associated_repairs,
         has_repairs=len(associated_repairs) > 0,
+        name=current_user.name,
     )
 
 
