@@ -60,6 +60,11 @@
       {% endif %}
     {% endfor %}
     </select>
+    {% if r.session_id %}
+    <div class="form-text small text-muted fst-italic" style="margin-left:25%;margin-top:-4px;font-size:.7rem;">
+      Uniquement participants de la séance #{{ r.session_id }}. Pour un réparateur absent ici : l'ajouter d'abord aux participants de la séance. Sélection multiple : Ctrl/Cmd (ajouts), Maj (plage).
+    </div>
+    {% endif %}
     <select class="col-9 form-select" hidden name="previous_users" multiple>
     {% for user in r.users %}
         <option value="{{user.id}}" selected>{{user.name}}</option>

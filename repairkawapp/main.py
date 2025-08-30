@@ -309,12 +309,29 @@ def get_update(id):
                 "cache/" + thumb.get_thumbnail(p.split("/")[-1], "200x200").split("/")[-1],
             )
         )
+    # Restriction : si la fiche est rattachée à une séance, on limite les réparateurs
+    # sélectionnables aux participants de cette séance (participants + owner).
+    if r.session_id:
+        session_obj = r.session  # relationship déjà chargée (lazy) si accès.
+        allowed_ids = {u.id for u in session_obj.participants}
+        allowed_ids.add(session_obj.owner_id)
+        # On récupère uniquement ces utilisateurs pour l'affichage (hors déjà sélectionnés).
+        # Les réparateurs déjà associés (r.users) restent listés même s'ils ne
+        # sont plus participants : on peut les retirer mais pas les réajouter.
+        candidate_users = (
+            User.query.filter(User.id.in_(allowed_ids)).order_by(User.name.asc()).all()
+            if allowed_ids
+            else []
+        )
+    else:
+        candidate_users = User.query.order_by(User.name.asc()).all()
+
     return render_template(
         "update.html",
         name=current_user.name,
         categories=Category.query.order_by(Category.name).all(),
         states=State.query.order_by(State.id).all(),
-        users=User.query.order_by(User.name).all(),
+        users=candidate_users,
         notes=db.session.query(Note, Notification)
         .filter_by(repair=r)
         .order_by(Note.id.desc())
