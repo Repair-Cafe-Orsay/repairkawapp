@@ -96,7 +96,7 @@
       <tbody>
         {% for r in repairs %}
           <tr>
-            <td><a href="/repairs/{{ r.id }}">{{ r.display_id }}</a></td>
+            <td><a href="{{ url_for('main.get_update', id=r.display_id) }}" title="Ouvrir la fiche">{{ r.display_id }}</a></td>
             <td>{{ r.name }}</td>
             <td>{{ r.category.name }}</td>
             <td>{{ r.otype }}</td>
