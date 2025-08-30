@@ -259,11 +259,16 @@
                 }
             });
         })
+        // Script legacy de sélection catégorie (ancienne version du formulaire)
+        // Désactivé si nouvelle structure (.cat-btn-content) présente pour éviter d'écraser le DOM.
         $(function(){
-            $("#categoryDropdown li a").click(function(){
-              $("#categoryDropdown button").text($(this).text());
-              $("#category").val($(this).attr("val"));
-           });
+            if($("#categoryDropdown button .cat-btn-content").length===0){
+              $("#categoryDropdown li a").on('click.legacyCat', function(){
+                $("#categoryDropdown button").text($(this).text());
+                const valAttr = $(this).attr("val");
+                if(valAttr){ $("#category").val(valAttr); }
+             });
+            }
         });
   $(document).ready(function() {
     $(function() {
@@ -303,7 +308,10 @@
         }, false)
       })
 
-      $("#categorySelect a.cselected").click();
+      // Initialisation legacy auto-click (ignore si nouveau composant présent)
+      if($("#categoryDropdown button .cat-btn-content").length===0){
+        $("#categorySelect a.cselected").click();
+      }
       update_notifs();
   })
 

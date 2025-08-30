@@ -1,5 +1,9 @@
-- réinitialisation password par un admin
-- introduire la notion d'entités multiples - à définir
-- current year/last year - comme période
+- éditeur pour le type/variante/catégorie: utilisateur admin y accède par un entrée dans le menu admin, et peut voir une table avec l'ensemble des types, la catégorie, et les variantes. En clickant sur une entrée (de la même manière que pour les utilisateurs): on peut voir une page sur le type, changer l'assignation à une catégorie, rajouter/modifier des variantes, modifier le norm du type et voir l'ensemble des objets associés. L'utilisateur peut effacer un type, s'il n'y a plus d'objet associé. L'utilisateur peut aussi rajouter un typ
+- possibilité de créer séance passée (membre du bureau ou admin only)
+- seulement membre du bureau peut changer la souscription
+- possibilité d'attacher une fiche à une séance passée par ID -> dans ce cas, le ID est bien défini
 
+- migrer otype existant vers nouvelle catégorisation
+
+- mode mobile à améliorer
 - clean-up sur les marques?

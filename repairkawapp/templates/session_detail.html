@@ -93,7 +93,7 @@
 <ul>
   {% for r in session.repairs %}
     <li>
-      <a href="/update/{{ r.display_id }}">{{ r.display_id }}</a> - {{ r.otype }} ({{ r.brand.name if r.brand }})
+  <a href="/update/{{ r.display_id }}">{{ r.display_id }}</a> - {{ (r.object_type and r.object_type.name and r.otype and (r.object_type.name ~ ' (' ~ r.otype ~ ')')) or r.otype or (r.object_type and r.object_type.name) }} ({{ r.brand.name if r.brand }})
     </li>
   {% endfor %}
 </ul>

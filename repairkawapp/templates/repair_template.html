@@ -23,7 +23,7 @@
         {% if render_category_icon is defined %}{{ render_category_icon(r['category']) }}{% else %}<i class="bi bi-{{ r['category'].icon_name or 'question-circle' }}"></i>{% endif %}&nbsp;{{r['category'].name}}
       </span>
     <input class="form-control" style="display: none" id="category" required value="{{r['category'].id}}" readonly>
-    <input class="form-control" placeholder="Type de l'objet" required value="{{r['otype']}}" readonly>
+  <input class="form-control" placeholder="Type de l'objet" required value="{{ (r.object_type and r.object_type.name and r['otype'] and (r.object_type.name ~ ' (' ~ r['otype'] ~ ')')) or r['otype'] or (r.object_type and r.object_type.name) }}" readonly>
   </div>
   <div class="input-group">
         <span class="input-group-text bg-secondary col-2" id="inputGroup-sizing-default">Marque</span>
@@ -157,45 +157,53 @@
     <input type="text" class="form-control" name="phone" placeholder="0612345678" oninput="check_phone(this)" value="{{r and r['phone'] or from_user.get('phone','')}}">
   </div>
   <div class="input-group required-highlight align-items-start flex-nowrap" id="objectTypeLine">
-    <div class="flex-grow-1 me-1" style="min-width:14rem; max-width:20rem">
-      <label class="form-label small mb-1 required-indicator">Type référentiel</label>
+  <!-- Type standard (issu du référentiel) -->
+  <div class="me-1" style="min-width:15rem; max-width:21rem">
+  <label class="form-label small mb-1 required-indicator">Type standard</label>
       <div class="position-relative">
-        <input type="text" class="form-control" id="objectTypeSearch" placeholder="Chercher type ou variante (ex: Cafetière)" autocomplete="off">
-        <div class="list-group position-absolute w-100 shadow-sm" id="objectTypeResults" style="z-index:1000; max-height:260px; overflow:auto; display:none"></div>
+  <input type="text" class="form-control" id="objectTypeSearch" placeholder="Chercher type ou variante (ex: Cafetière)" autocomplete="off" value="{{ (r and r.object_type and r.object_type.name) or '' }}">
+    <div class="list-group position-absolute w-100 shadow-sm" id="objectTypeResults" style="z-index:1000; max-height:260px; overflow:auto; display:none"></div>
       </div>
-      <input type="hidden" name="object_type_id" id="object_type_id">
+  <input type="hidden" name="object_type_id" id="object_type_id" value="{{ (r and r.object_type_id) or '' }}">
     </div>
-    <div class="me-1" style="width:14rem">
-      <label class="form-label small mb-1">Catégorie</label>
+    <!-- Sous-type directement à côté -->
+    <div class="me-1" style="width:13rem" id="subtypeWrapper">
+      <label class="form-label small mb-1">Sous-type</label>
+      <select class="form-select" name="object_subtype_id" id="object_subtype_id" disabled>
+        <option value="">—</option>
+      </select>
+      <div class="small text-danger mt-1 d-none" id="subtypeInlineMsg">Sélectionnez un sous-type.</div>
+    </div>
+    <!-- Catégorie (agrandie, bleu plein) -->
+    <div class="me-1" style="width:16rem">
+      <label class="form-label small mb-1 required-indicator">Catégorie</label>
       <div class="dropdown" id="categoryDropdown">
-        <button class="btn btn-outline-primary w-100 text-start dropdown-toggle" type="button" data-bs-toggle="dropdown" id="categoryBtn">Sélectionner</button>
+        {% set initial_cat_short = (r and (r.category.name.split(' - ',1)[1] if ' - ' in r.category.name else r.category.name)) or 'Sélectionner' %}
+        <button class="btn btn-primary w-100 text-start dropdown-toggle" type="button" data-bs-toggle="dropdown" id="categoryBtn">
+          <span class="cat-btn-content text-truncate">{{ initial_cat_short }}</span>
+        </button>
         <ul id="categorySelect" class="dropdown-menu w-100 dropdown-category" style="max-height:260px; overflow:auto">
           {% for category in categories %}
+          {% set short_name = category.name.split(' - ', 1)[1] if ' - ' in category.name else category.name %}
           <li>
-            <a class="dropdown-item d-flex align-items-center gap-2 {{r and r.category.id==category.id and 'cselected' or ''}}" href="#" val={{category.id}}>
+            <a class="dropdown-item d-flex align-items-center gap-2 {{r and r.category.id==category.id and 'cselected' or ''}}" href="#" data-cat-id="{{category.id}}" data-icon-class="{{ category.icon_name or 'question-circle' }}" data-short="{{ short_name }}">
               {% if render_category_icon is defined %}{{ render_category_icon(category) }}{% else %}<i class="bi bi-{{ category.icon_name or 'question-circle' }}"></i>{% endif %}
-              <span>{{category.name}}</span>
+              <span class="cat-name">{{ short_name }}</span>
             </a>
           </li>
           {% endfor %}
         </ul>
       </div>
-      <input type="hidden" id="category" name="category" required>
+  <input type="hidden" id="category" name="category" required value="{{ r and r.category.id }}">
       <div class="invalid-feedback">Catégorie obligatoire</div>
     </div>
-    <div class="me-1" style="width:14rem" id="subtypeWrapper">
-      <label class="form-label small mb-1">Sous-type</label>
-      <select class="form-select" name="object_subtype_id" id="object_subtype_id" disabled>
-        <option value="">—</option>
-      </select>
-      <div class="invalid-feedback">Sous-type requis</div>
-    </div>
-    <div class="flex-grow-1">
+    <!-- Type libre réduit -->
+  <div class="flex-grow-1" style="min-width:12rem">
       <label class="form-label small mb-1">Type libre (optionnel)</label>
       <input class="form-control" id="otype_free" name="otype" placeholder="Saisir ou laisser vide" value="{{r and r['otype']}}">
-      <div class="form-text">Pré-rempli par le type référentiel; modifiable.</div>
     </div>
   </div>
+  <div class="small form-text mt-n2 mb-2" id="typeHelpMsg"></div>
   <script>
     (function(){
       var search = $('#objectTypeSearch');
@@ -206,24 +214,91 @@
       var subtypeSel = $('#object_subtype_id');
       var otypeFree = $('#otype_free');
       var pendingReq = null;
+      var helpMsg = $('#typeHelpMsg');
+      // Cache noms de catégories (id -> short) pour fallback si l'ancre n'est pas trouvée (cas edge)
+      var categoryNameMap = {};
+      $('#categorySelect a').each(function(){
+        var id = String($(this).data('cat-id'));
+        var nm = $(this).data('short') || $(this).find('.cat-name').text().trim();
+        categoryNameMap[id] = nm;
+      });
+  // (renderCategoryBtn supprimé – toute logique centralisée dans setCategory)
+      // Mise à jour unifiée de la catégorie (hidden + marquage + libellé)
+      function setCategory(cat_id){
+  cat_id = cat_id ? String(cat_id) : '';
+        catHidden.val(cat_id);
+        $('#categorySelect a').removeClass('cselected');
+        var shortName = '';
+        if(cat_id){
+          var anchor = $('#categorySelect a[data-cat-id="'+cat_id+'"]');
+          if(anchor.length){
+            anchor.addClass('cselected');
+            shortName = anchor.data('short') || anchor.find('.cat-name').text().trim();
+          } else {
+            // Fallback map (au cas où l'attribut ne matcherait pas pour une raison de type)
+            shortName = categoryNameMap[cat_id] || '';
+          }
+        }
+        var contentSpan = catBtn.find('.cat-btn-content');
+        if(!contentSpan.length){
+          contentSpan = $('<span class="cat-btn-content text-truncate"/>');
+          catBtn.empty().append(contentSpan).append(' '); // conserve toggle caret via CSS
+        }
+        contentSpan.text(shortName || 'Sélectionner');
+      }
+      function setHelp(text, mode){
+        helpMsg.text(text);
+        helpMsg.removeClass('text-danger text-warning');
+        if(mode==='error') helpMsg.addClass('text-danger'); else if(mode==='warn') helpMsg.addClass('text-warning');
+      }
+      function updateHelp(){
+        var typed = search.val().trim();
+        var hasType = !!otHidden.val();
+        var subtypeRequired = subtypeSel.is('[required]');
+        var subtypeMissing = subtypeRequired && !subtypeSel.val();
+        // Reset classes
+        search.removeClass('is-invalid');
+        subtypeSel.removeClass('is-invalid');
+        var stMsg = $('#subtypeInlineMsg');
+        stMsg.addClass('d-none');
+        if(typed && !hasType){
+          setHelp("Type inconnu : choisissez dans la liste ou laissez vide et utilisez 'Type libre'.", 'error');
+          helpMsg.removeClass('text-end');
+          search.addClass('is-invalid');
+        } else if(hasType && subtypeMissing){
+          // Affiche message dédié aligné au sélecteur
+          helpMsg.text(''); helpMsg.removeClass('text-end text-danger text-warning');
+          stMsg.removeClass('d-none');
+          subtypeSel.addClass('is-invalid');
+        } else if(hasType){
+          setHelp("N'ajoutez des précisions sur le type que si nécessaire");
+          helpMsg.addClass('text-end');
+        } else {
+          setHelp("Choisissez un type standard. S'il n'existe pas, vous pouvez saisir un type libre à droite.");
+          helpMsg.removeClass('text-end');
+        }
+      }
       function clearResults(){ results.hide().empty(); }
       function selectObjectType(item){
-        otHidden.val(item.id);
-        search.val(item.name);
-        // Catégorie auto
-        catHidden.val(item.category_id);
-        catBtn.text(item.category_name);
-        if(item.has_subtypes){ loadSubtypes(item.id); } else { resetSubtypes(); }
+  otHidden.val(item.id);
+  search.val(item.name);
+// Catégorie auto (toujours forcée)
+  setCategory(item.category_id);
+  // Réinitialiser le sous-type précédent avant chargement
+  subtypeSel.val('');
+  if(item.has_subtypes){ loadSubtypes(item.id); } else { resetSubtypes(); }
         clearResults();
+        updateHelp();
       }
-  function resetSubtypes(){ subtypeSel.prop('disabled', true).removeAttr('required').val('').html('<option value="">—</option>'); }
+  function resetSubtypes(){ subtypeSel.prop('disabled', true).removeAttr('required').val('').html('<option value="">—</option>'); updateHelp(); }
       function loadSubtypes(ot_id){
         $.getJSON('/api/objecttype/'+ot_id, function(data){
           var list = data.subtypes||[];
-            var opts = '<option value="">—</option>';
-            list.forEach(function(st){ opts += '<option value="'+st.id+'">'+st.name+'</option>'; });
-            subtypeSel.html(opts).prop('disabled', list.length===0);
-            if(list.length){ subtypeSel.attr('required','required'); } else { subtypeSel.removeAttr('required'); }
+          var opts = '<option value="">—</option>';
+          list.forEach(function(st){ opts += '<option value="'+st.id+'">'+st.name+'</option>'; });
+          subtypeSel.html(opts).prop('disabled', list.length===0);
+          if(list.length){ subtypeSel.attr('required','required'); } else { subtypeSel.removeAttr('required'); }
+          updateHelp();
         });
       }
       var lastQuery=''; var debounceTimer=null;
@@ -240,9 +315,12 @@
               results.empty();
               if(!list.length){ clearResults(); return; }
               list.forEach(function(it){
+                var catDisplay = it.category_name;
+                var sepIdx = catDisplay.indexOf(' - ');
+                if(sepIdx>0){ catDisplay = catDisplay.substring(sepIdx+3); }
                 var a = $('<a/>').attr('href','#')
                   .addClass('list-group-item list-group-item-action')
-                  .html('<div class="d-flex justify-content-between align-items-baseline"><span>'+it.name+'</span><small class="text-muted ms-2">'+it.category_name+'</small></div>')
+                  .html('<div class="d-flex justify-content-between align-items-baseline"><span>'+it.name+'</span><small class="text-muted ms-2">'+catDisplay+'</small></div>')
                   .data('item', it);
                 results.append(a);
               });
@@ -250,29 +328,50 @@
             })
             .always(function(){ pendingReq=null; });
         }, 180);
+        updateHelp();
+      });
+      // Enter interdit si type non sélectionné
+      search.on('keydown', function(e){
+        if(e.key==='Enter'){
+          if(!otHidden.val() && search.val().trim().length){
+            e.preventDefault(); e.stopPropagation(); updateHelp();
+          }
+        }
       });
       results.on('click','a', function(e){ e.preventDefault(); selectObjectType($(this).data('item')); });
       $(document).on('click', function(e){ if(!results.is(e.target) && results.has(e.target).length===0 && !search.is(e.target)){ clearResults(); } });
       // Catégorie dropdown sélection manuelle (permet override)
-      $('#categorySelect').on('click','a.dropdown-item', function(e){
-        e.preventDefault(); var id=$(this).attr('val'); var label=$(this).text().trim();
-        catHidden.val(id); catBtn.text(label); $('#categorySelect a').removeClass('cselected'); $(this).addClass('cselected');
-        // Réinitialise le type référentiel si sélection manuelle
-        otHidden.val(''); search.val(''); resetSubtypes();
+    $('#categorySelect').on('click','a.dropdown-item', function(e){
+  e.preventDefault(); var id=$(this).data('cat-id');
+  setCategory(id);
+  // Réinitialise le type standard si sélection manuelle
+  otHidden.val(''); search.val(''); subtypeSel.val(''); resetSubtypes(); updateHelp();
+      });
+      // Validation avant soumission
+  $("form[action='{{ url_for('main.post_object') }}']").on('submit.objecttypecheck', function(e){
+        var hasTyped = search.val().trim().length>0;
+        var subtypeRequired = subtypeSel.is('[required]');
+        if((hasTyped && !otHidden.val()) || (otHidden.val() && subtypeRequired && !subtypeSel.val())){
+          e.preventDefault(); e.stopImmediatePropagation(); updateHelp(); search.trigger('focus'); return false; }
       });
       // Initialisation en mode édition (valeurs injectées via data attributes JSON-safe)
       // Données initiales encodées en JSON pour éviter le parsing JS de Jinja
       var initDataScript = document.getElementById('initObjectTypeData');
       var initData = initDataScript ? JSON.parse(initDataScript.textContent) : {};
       if(Object.keys(initData).length===0){ initData={category_id:null, category_name:null, object_type_id:null, object_type_name:'', object_subtype_id:null}; }
-      if(initData.category_id){ catHidden.val(initData.category_id); catBtn.text(initData.category_name); }
+  // Initialisation catégorie (uniquement via setCategory désormais)
+  // Harmonisation : utiliser la nouvelle fonction pour refléter l'état initial (éventuellement surchargée ci-dessus)
+  if(initData.category_id){ setCategory(initData.category_id); }
       if(initData.object_type_id){
+        // Remplir le champ de recherche avec le nom du type standard, otype libre reste tel quel
         otHidden.val(initData.object_type_id); search.val(initData.object_type_name);
         if(initData.object_subtype_id){
           loadSubtypes(initData.object_type_id);
-          setTimeout(function(){ subtypeSel.val(initData.object_subtype_id); }, 400);
+          setTimeout(function(){ subtypeSel.val(initData.object_subtype_id); updateHelp(); }, 400);
         }
       }
+      subtypeSel.on('change', updateHelp);
+      updateHelp();
     })();
   </script>
   <script id="initObjectTypeData" type="application/json">{
@@ -293,7 +392,7 @@
   <div class="input-group required-highlight align-items-stretch" id="brandSelectorGroup">
     <span class="input-group-text bg-secondary required-indicator">Marque</span>
     <div class="dropdown flex-grow-1" id="brandDropdownWrapper" style="position:relative">
-      <button class="btn btn-primary w-100 text-start dropdown-toggle" type="button" id="brandDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" data-current="">
+  <button class="btn btn-outline-dark w-100 text-start dropdown-toggle" type="button" id="brandDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" data-current="">
         <span class="brand-current">{{ (r and r['brand'].name) or 'INCONNU' }}</span>
       </button>
       <ul class="dropdown-menu w-100 p-0" aria-labelledby="brandDropdownBtn" style="max-height:260px; overflow:auto" id="brandDropdownList">
@@ -491,7 +590,7 @@
       hidden.val(v);
   btn.find('.brand-current').text(v);
       btn.attr('data-current', v);
-      btn.removeClass('btn-outline-primary').addClass('btn-primary');
+  // plus de changement de style : on reste en bouton neutre
       var dd = bootstrap.Dropdown.getInstance(btn[0]);
       dd && dd.hide();
     });
@@ -502,14 +601,14 @@
       hidden.val(raw.toUpperCase());
   btn.find('.brand-current').text(raw.toUpperCase());
       btn.attr('data-current', raw.toUpperCase());
-      btn.removeClass('btn-outline-primary').addClass('btn-primary');
+  // style inchangé (neutre)
       var dd = bootstrap.Dropdown.getInstance(btn[0]);
       dd && dd.hide();
     });
     // Initialisation / sélection par défaut
     if (!hidden.val()) hidden.val(DEFAULT_BRAND);
   btn.find('.brand-current').text(hidden.val());
-  if (hidden.val()) btn.removeClass('btn-outline-primary').addClass('btn-primary');
+  // style toujours neutre (outline-dark)
     if (hidden.val()==='INCONNU') load('');
   })();
 </script>

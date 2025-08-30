@@ -1,24 +1,29 @@
-"""Module API de RepairKawapp.
+"""Endpoints API (JSON/AJAX) de RepairKawapp.
 
-RepairKawapp – Repair Café management application
-Licence: MIT (voir fichier LICENSE)
-Auteur principal: Jean Senellart
-
-Nettoyage global : imports organisés, PEP8, docstrings, harmonisation du style.
+Ce fichier avait été corrompu (imports/blueprint supprimés). Restauration des
+imports essentiels + création du blueprint `api`.
 """
+
+from __future__ import annotations
 
 import glob
 import os
 from datetime import datetime
 
-from flask import Blueprint, current_app, jsonify, render_template, request
+from flask import (
+    Blueprint,
+    current_app,
+    jsonify,
+    render_template,
+    request,
+)
 from flask_login import current_user, login_required
-from flask_mail import Message
 from werkzeug.utils import secure_filename
 
 from . import db, mail
 from .models import (
     Brand,
+    Category,
     Location,
     Notification,
     NotificationType,
@@ -39,6 +44,11 @@ from .services.session_service import (
 )
 from .services.spare_service import add_spare, delete_spare
 from .services.stats_service import compute_stats, get_cached_lists, parse_period
+
+try:  # mail peut ne pas être configuré en tests
+    from flask_mail import Message
+except Exception:  # pragma: no cover
+    Message = None  # type: ignore
 
 api = Blueprint("api", __name__)
 
@@ -223,12 +233,21 @@ def repairsearch():
         else:
             repairs = repairs.outerjoin(User, Repair.users).filter(User.id.is_(None))
     if searchValue:
+        from .models import ObjectType as OT, ObjectVariant as OV  # import tardif
+
         repairs = repairs.join(Brand)
+        # gauche pour types (peut être NULL)
+        repairs = repairs.outerjoin(OT, Repair.object_type_id == OT.id)
+        repairs = repairs.outerjoin(OV, OV.object_type_id == OT.id)
+        like_any = "%" + searchValue + "%"
+        prefix = searchValue + "%"
         repairs = repairs.filter(
-            Repair.display_id.like(searchValue + "%")
-            | Repair.name.like("%" + searchValue + "%")
-            | Repair.otype.like("%" + searchValue + "%")
-            | Brand.name.like(searchValue + "%")
+            Repair.display_id.like(prefix)
+            | Repair.name.like(like_any)
+            | Repair.otype.like(like_any)
+            | Brand.name.like(prefix)
+            | OT.name.like(like_any)
+            | OV.name.like(like_any)
         )
     if request.args.get("category"):
         repairs = repairs.filter_by(category_id=request.args.get("category"))
@@ -244,6 +263,12 @@ def repairsearch():
     repairs = repairs.order_by(Repair.display_id.desc()).paginate(
         page=page, per_page=length, error_out=False
     )
+
+    def _format_otype(rep):  # otype affiché combiné libre + standard
+        if rep.object_type and rep.object_type.name and rep.otype:
+            return f"{rep.object_type.name} ({rep.otype})"
+        return rep.otype or (rep.object_type and rep.object_type.name) or ""
+
     json = jsonify(
         {
             "repairs": [
@@ -251,8 +276,9 @@ def repairsearch():
                     "id": r.display_id,
                     "name": r.name,
                     "category": r.category.name,
-                    "otype": r.otype,
-                    "brand": r.brand and r.brand.name or "",
+                    "otype": _format_otype(r),
+                    "brand": r.brand.name if r.brand else "",
+                    "object_type_name": r.object_type.name if r.object_type else "",
                     "close_status": r.close_status.label[0],
                 }
                 for r in repairs.items
@@ -600,7 +626,7 @@ def api_objecttypes_search():
       q: préfixe (insensible à la casse) – facultatif (sinon tout, limité)
     Réponse: liste de dicts {id,name,category_id,category_name,has_subtypes}
     """
-    from .models import Category, ObjectType, ObjectVariant  # import tardif
+    from .models import ObjectType, ObjectVariant  # import tardif
 
     q = (request.args.get("q") or "").strip()
     query = db.session.query(ObjectType).join(Category)

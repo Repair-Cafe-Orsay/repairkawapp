@@ -104,7 +104,9 @@ def create_repair(session: Session, form, category: Category, state: State, bran
         brand=brand,
         initial_state=state,
         current_state=state,
-        otype=form.get("otype") or (object_type and object_type.name) or "",
+        # otype libre: ne copie plus systématiquement le nom du type standard pour éviter
+        # confusion lors de l'édition. Si type standard choisi et aucun libre saisi => vide.
+        otype=form.get("otype") or (object_type is None and (form.get("otype") or "")) or "",
         model=form["model"],  # requis
         serial_number=form.get("sn"),  # optionnel
         year=form.get("year") and int(form["year"]) or None,
@@ -143,8 +145,14 @@ def update_repair(
     object_type, object_subtype = _extract_object_refs(session, form)
     repair.object_type = object_type
     repair.object_subtype = object_subtype if object_subtype and object_type else None
-    # otype: libre si fourni, sinon fallback éventuel type référentiel
-    repair.otype = form.get("otype") or (object_type and object_type.name) or repair.otype
+    # otype: libre si fourni; sinon passage libre->standard sans libre => efface.
+    submitted_free = form.get("otype")
+    if submitted_free is not None:
+        if submitted_free.strip():
+            repair.otype = submitted_free
+        else:
+            # vide explicite -> si object_type présent on garde vide, sinon on laisse précédent vide
+            repair.otype = "" if object_type else ""
     repair.model = form["model"]
     repair.serial_number = form.get("sn")
     repair.year = form.get("year") and int(form["year"]) or None
