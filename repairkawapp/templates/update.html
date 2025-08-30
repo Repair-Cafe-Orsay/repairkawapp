@@ -7,6 +7,7 @@
 {% block content %}
 
 {% set s = r.session %}
+<a href="{{ url_for('main.repairs_home') }}" class="btn btn-sm btn-outline-secondary mb-3">← Retour</a>
 <div class="d-flex flex-column flex-lg-row align-items-lg-end align-items-start mt-4 mb-1 gap-2">
   <h1 class="m-0 fw-light">Fiche {{ r.display_id }} - {{ r.close_status.label }}</h1>
   <div class="ms-lg-3 small">
