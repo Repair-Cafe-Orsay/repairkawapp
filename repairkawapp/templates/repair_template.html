@@ -287,13 +287,15 @@
       }
       function clearResults(){ results.hide().empty(); }
       function selectObjectType(item){
-  otHidden.val(item.id);
-  search.val(item.name);
-// Catégorie auto (toujours forcée)
-  setCategory(item.category_id);
-  // Réinitialiser le sous-type précédent avant chargement
-  subtypeSel.val('');
-  if(item.has_subtypes){ loadSubtypes(item.id); } else { resetSubtypes(); }
+        otHidden.val(item.id);
+        search.val(item.name);
+        // On efface le type libre si présent (passage à un standard)
+        if(otypeFree.val().trim().length){ otypeFree.val(''); }
+        // Catégorie auto (toujours forcée)
+        setCategory(item.category_id);
+        // Réinitialiser le sous-type précédent avant chargement
+        subtypeSel.val('');
+        if(item.has_subtypes){ loadSubtypes(item.id); } else { resetSubtypes(); }
         clearResults();
         updateHelp();
       }
@@ -352,7 +354,7 @@
   e.preventDefault(); var id=$(this).data('cat-id');
   setCategory(id);
   // Réinitialise le type standard si sélection manuelle
-  otHidden.val(''); search.val(''); subtypeSel.val(''); resetSubtypes(); updateHelp();
+  otHidden.val(''); search.val(''); subtypeSel.val(''); if(otypeFree.val().trim().length){ /* garder libre si l'utilisateur re-catégorise sans type */ } resetSubtypes(); updateHelp();
       });
       // Validation avant soumission
   $("form[action='{{ url_for('main.post_object') }}']").on('submit.objecttypecheck', function(e){
