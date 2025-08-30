@@ -17,7 +17,12 @@
         </div>
         <div class="col-sm-5 col-md-4">
           <label class="form-label mb-1">Lieu</label>
-          <input type="text" name="location" class="form-control" placeholder="Lieu" required />
+          <select name="location_select" id="past-location-select" class="form-select" required>
+            <option value="" selected>(Choisir)</option>
+            <!-- options dynamiques insérées via JS avant l'option nouveau -->
+            <option value="__new__">(Nouveau lieu…)</option>
+          </select>
+          <input type="text" name="location_new" id="past-new-location" class="form-control mt-1 d-none" placeholder="Nouveau lieu" />
         </div>
         <div class="col-sm-12 col-md-3">
           <button type="submit" class="btn btn-primary w-100" id="btn-create-past">Créer</button>
@@ -96,7 +101,14 @@ document.addEventListener('DOMContentLoaded', function(){
   })();
   $('#form-create-past-session').on('submit', function(e){
     e.preventDefault();
-    const payload = Object.fromEntries(new FormData(this).entries());
+    const fd = new FormData(this);
+    let locSel = fd.get('location_select');
+    let loc = locSel === '__new__' ? (fd.get('location_new') || '').trim() : (locSel || '').trim();
+    if(!loc){
+      $('#past-session-alert').removeClass('d-none').removeClass('alert-warning').addClass('alert-danger').text('Lieu requis.');
+      return;
+    }
+    const payload = { date: fd.get('date'), time: fd.get('time'), location: loc };
     $.ajax({
       type:'POST',
       url:'/api/session/past',
@@ -113,6 +125,25 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
   {% endif %}
+  // Chargement des lieux (réutilisation logique entête)
+  (function loadPastLocations(){
+    $.getJSON('/api/locations', function(data){
+      const sel = $('#past-location-select');
+      const current = sel.val();
+      sel.find('option').not('[value=""],[value="__new__"]').remove();
+      data.forEach(function(name){
+        $('<option/>').attr('value', name).text(name).insertBefore(sel.find('option[value="__new__"]'));
+      });
+      if(current) sel.val(current);
+    });
+  })();
+  $(document).on('change', '#past-location-select', function(){
+    if($(this).val()==='__new__'){
+      $('#past-new-location').removeClass('d-none').val('').focus();
+    } else {
+      $('#past-new-location').addClass('d-none');
+    }
+  });
   // --- Calendrier minimal (grille mois courant + marqueurs des jours avec séance) ---
   (function(){
     const daysWithArr = JSON.parse('{{ session_days|tojson|safe }}');
