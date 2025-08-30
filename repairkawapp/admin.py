@@ -112,16 +112,29 @@ def objecttypes_admin_list():
         out.sort(key=lambda x: ((x["category"] or ""), x["name"]), reverse=reverse)
     else:  # default tri par nom
         out.sort(key=lambda x: x["name"], reverse=reverse)
+    creation_error = None
     if request.method == "POST":
-        # Création nouveau type
+        # Création nouveau type (unicité name+category)
         name = (request.form.get("name") or "").strip()
         cat_id = request.form.get("category_id")
         if name and cat_id and cat_id.isdigit():
             cat = db.session.query(Category).filter_by(id=int(cat_id)).first()
             if cat:
-                db.session.add(ObjectType(name=name, category=cat))
-                db.session.commit()
-                return redirect(url_for("admin.objecttypes_admin_list"))
+                exists = (
+                    db.session.query(ObjectType)
+                    .filter(ObjectType.name == name, ObjectType.category_id == cat.id)
+                    .first()
+                )
+                if exists:
+                    creation_error = "Type déjà existant pour cette catégorie."
+                else:
+                    try:
+                        db.session.add(ObjectType(name=name, category=cat))
+                        db.session.commit()
+                        return redirect(url_for("admin.objecttypes_admin_list"))
+                    except Exception:  # fallback si contrainte DB atteint malgré check
+                        db.session.rollback()
+                        creation_error = "Contrainte d'unicité violée (nom+catégorie)."
     categories = Category.query.order_by(Category.name.asc()).all()
     return render_template(
         "objecttype_list.html",
@@ -131,6 +144,7 @@ def objecttypes_admin_list():
         dir=direction,
         categories=categories,
         name=current_user.name,
+        creation_error=creation_error,
     )
 
 

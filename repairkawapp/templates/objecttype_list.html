@@ -25,6 +25,9 @@
       </div>
       <input type="hidden" name="csrf_disabled" value="1" />
     </form>
+    {% if creation_error %}
+      <div class="alert alert-danger mt-3 mb-0 py-2 px-3 small">{{ creation_error }}</div>
+    {% endif %}
   </div>
  </div>
 <div class="mx-auto" style="max-width:1100px;">

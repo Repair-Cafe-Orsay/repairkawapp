@@ -6,6 +6,7 @@ Nettoyage global : imports organisés, PEP8, docstrings, harmonisation du style.
 import enum
 
 from flask_login import UserMixin
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.sql import func
 
 from . import db
@@ -78,7 +79,10 @@ class ObjectType(db.Model):
         cascade="all, delete-orphan",
     )
 
-    __table_args__ = (db.Index("idx_object_type_category", "category_id"),)
+    __table_args__ = (
+        db.Index("idx_object_type_category", "category_id"),
+        UniqueConstraint("name", "category_id", name="uix_object_type_name_category"),
+    )
 
     def __repr__(self):
         return "<ObjectType %r>" % self.name
