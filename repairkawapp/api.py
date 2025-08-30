@@ -586,3 +586,66 @@ def api_locations():
         query = query.filter(Location.name.like(like))
     names = [loc.name for loc in query.order_by(Location.name.asc()).limit(50).all()]
     return jsonify(names)
+
+
+# -------------------- Object Types --------------------
+
+
+@api.route("/api/objecttypes", methods=["GET"])
+@login_required
+def api_objecttypes_search():
+    """Recherche des ObjectType (nom ou variantes) – retourne 50 max.
+
+    Paramètres:
+      q: préfixe (insensible à la casse) – facultatif (sinon tout, limité)
+    Réponse: liste de dicts {id,name,category_id,category_name,has_subtypes}
+    """
+    from .models import Category, ObjectType, ObjectVariant  # import tardif
+
+    q = (request.args.get("q") or "").strip()
+    query = db.session.query(ObjectType).join(Category)
+    if q:
+        like = f"{q}%"
+        # jointure externe aux variantes pour matcher sur leurs noms aussi
+        query = query.outerjoin(ObjectVariant).filter(
+            (ObjectType.name.ilike(like))  # type: ignore[attr-defined]
+            | (ObjectVariant.name.ilike(like))  # type: ignore[attr-defined]
+        )
+    # Limite de sécurité
+    results = query.order_by(ObjectType.name.asc()).limit(50).all() if not q or len(q) < 100 else []
+    # Pré-chargement subtypes pour indicateur (évite N requêtes) via relationship déjà lazy
+    out = []
+    for ot in results:
+        has_subtypes = bool(getattr(ot, "subtypes", []))
+        out.append(
+            {
+                "id": ot.id,
+                "name": ot.name,
+                "category_id": ot.category_id,
+                "category_name": ot.category.name,
+                "has_subtypes": has_subtypes,
+            }
+        )
+    return jsonify(out)
+
+
+@api.route("/api/objecttype/<int:ot_id>", methods=["GET"])
+@login_required
+def api_objecttype_detail(ot_id: int):
+    """Détail d'un ObjectType (catégorie + sous-types)."""
+    from .models import ObjectType  # import tardif
+
+    ot = db.session.query(ObjectType).filter_by(id=ot_id).first()
+    if not ot:
+        return jsonify({}), 404
+    subtypes = [
+        {"id": st.id, "name": st.name} for st in sorted(ot.subtypes, key=lambda s: s.name.lower())
+    ]
+    return jsonify(
+        {
+            "id": ot.id,
+            "name": ot.name,
+            "category": {"id": ot.category_id, "name": ot.category.name},
+            "subtypes": subtypes,
+        }
+    )

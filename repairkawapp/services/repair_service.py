@@ -7,7 +7,18 @@ from datetime import date, datetime
 from flask_login import current_user
 from sqlalchemy.orm import Session
 
-from ..models import Brand, Category, CloseStatus, Log, Note, Repair, State, User
+from ..models import (
+    Brand,
+    Category,
+    CloseStatus,
+    Log,
+    Note,
+    ObjectSubtype,
+    ObjectType,
+    Repair,
+    State,
+    User,
+)
 
 
 def normalize_brand(raw: str) -> str:
@@ -59,9 +70,29 @@ def generate_display_id(
     return prefix + f"{day_repairs.count() + 1:03d}"
 
 
+def _extract_object_refs(session: Session, form) -> tuple[ObjectType | None, ObjectSubtype | None]:
+    """Récupère les références object_type/subtype selon champs du formulaire.
+
+    Champs attendus:
+      object_type_id (int) optionnel
+      object_subtype_id (int) optionnel (validé seulement si parent correspond)
+    """
+    ot_id = form.get("object_type_id")
+    st_id = form.get("object_subtype_id")
+    ot = st = None
+    if ot_id and ot_id.isdigit():
+        ot = session.query(ObjectType).filter_by(id=int(ot_id)).first()
+    if st_id and st_id.isdigit():
+        st = session.query(ObjectSubtype).filter_by(id=int(st_id)).first()
+        if st and ot and st.object_type_id != ot.id:
+            st = None  # parent mismatch -> ignore
+    return ot, st
+
+
 def create_repair(session: Session, form, category: Category, state: State, brand: Brand) -> Repair:
     created_date = datetime.strptime(form["date"], "%Y-%m-%d") if form.get("date") else date.today()
     # Champs optionnels accédés via get() pour éviter BadRequestKeyError si absents du formulaire
+    object_type, object_subtype = _extract_object_refs(session, form)
     r = Repair(
         display_id=generate_display_id(session, created_date, form.get("manual_id")),
         created=created_date,
@@ -73,7 +104,7 @@ def create_repair(session: Session, form, category: Category, state: State, bran
         brand=brand,
         initial_state=state,
         current_state=state,
-        otype=form["otype"],  # requis
+        otype=form.get("otype") or (object_type and object_type.name) or "",
         model=form["model"],  # requis
         serial_number=form.get("sn"),  # optionnel
         year=form.get("year") and int(form["year"]) or None,
@@ -81,6 +112,8 @@ def create_repair(session: Session, form, category: Category, state: State, bran
         weight=form.get("weight") and int(form["weight"]) or None,
         description=form["description"],  # requis (required dans le formulaire)
         validated=form.get("validated") != "",
+        object_type=object_type,
+        object_subtype=object_subtype,
     )
     session.add(r)
     session.add(Log(user_id=current_user.id, content="Création de la fiche", repair=r))
@@ -107,7 +140,11 @@ def update_repair(
     repair.category = category
     repair.brand = brand
     repair.initial_state = state
-    repair.otype = form["otype"]
+    object_type, object_subtype = _extract_object_refs(session, form)
+    repair.object_type = object_type
+    repair.object_subtype = object_subtype if object_subtype and object_type else None
+    # otype: libre si fourni, sinon fallback éventuel type référentiel
+    repair.otype = form.get("otype") or (object_type and object_type.name) or repair.otype
     repair.model = form["model"]
     repair.serial_number = form.get("sn")
     repair.year = form.get("year") and int(form["year"]) or None

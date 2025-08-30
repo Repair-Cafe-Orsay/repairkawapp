@@ -156,41 +156,133 @@
     <span class="input-group-text bg-secondary">Téléphone</span>
     <input type="text" class="form-control" name="phone" placeholder="0612345678" oninput="check_phone(this)" value="{{r and r['phone'] or from_user.get('phone','')}}">
   </div>
-  <div class="input-group required-highlight">
-     <div class="dropdown required-indicator" id="categoryDropdown">
-      <button class="btnCategory btn btn-primary dropdown-toggle" type="button"data-bs-toggle="dropdown">
-        Catégorie
-        <span class="caret"></span>
-      </button>
-      <ul id="categorySelect" class="dropdown-menu dropdown-category">
-    {% for category in categories %}
-        <li>
-          <a class="dropdown-item d-flex align-items-center gap-2 {{r and r.category.id==category.id and 'cselected' or ''}}" href="#" val={{category.id}}>
-            {% if render_category_icon is defined %}{{ render_category_icon(category) }}{% else %}<i class="bi bi-{{ category.icon_name or 'question-circle' }}"></i>{% endif %}
-            <span>{{category.name}}</span>
-          </a>
-        </li>
-    {% endfor %}
-      </ul>
+  <div class="input-group required-highlight align-items-start flex-nowrap" id="objectTypeLine">
+    <div class="flex-grow-1 me-1" style="min-width:18rem">
+      <label class="form-label small mb-1 required-indicator">Type référentiel</label>
+      <div class="position-relative">
+        <input type="text" class="form-control" id="objectTypeSearch" placeholder="Chercher type (ex: Machine à café)" autocomplete="off">
+        <div class="list-group position-absolute w-100 shadow-sm" id="objectTypeResults" style="z-index:1000; max-height:260px; overflow:auto; display:none"></div>
+      </div>
+      <input type="hidden" name="object_type_id" id="object_type_id">
     </div>
-    <input hidden id="category" name="category" required>
-    <div class="invalid-feedback">
-        Catégorie obligatoire !
+    <div class="me-1" style="width:14rem">
+      <label class="form-label small mb-1">Catégorie</label>
+      <div class="dropdown" id="categoryDropdown">
+        <button class="btn btn-outline-primary w-100 text-start dropdown-toggle" type="button" data-bs-toggle="dropdown" id="categoryBtn">Sélectionner</button>
+        <ul id="categorySelect" class="dropdown-menu w-100 dropdown-category" style="max-height:260px; overflow:auto">
+          {% for category in categories %}
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-2 {{r and r.category.id==category.id and 'cselected' or ''}}" href="#" val={{category.id}}>
+              {% if render_category_icon is defined %}{{ render_category_icon(category) }}{% else %}<i class="bi bi-{{ category.icon_name or 'question-circle' }}"></i>{% endif %}
+              <span>{{category.name}}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <input type="hidden" id="category" name="category" required>
+      <div class="invalid-feedback">Catégorie obligatoire</div>
+    </div>
+    <div class="me-1" style="width:14rem" id="subtypeWrapper">
+      <label class="form-label small mb-1">Sous-type</label>
+      <select class="form-select" name="object_subtype_id" id="object_subtype_id" disabled>
+        <option value="">—</option>
+      </select>
+    </div>
+    <div class="flex-grow-1">
+      <label class="form-label small mb-1">Type libre (optionnel)</label>
+      <input class="form-control" id="otype_free" name="otype" placeholder="Saisir ou laisser vide" value="{{r and r['otype']}}">
+      <div class="form-text">Pré-rempli par le type référentiel; modifiable.</div>
     </div>
   </div>
-  <div class="input-group required-highlight">
-    <span class="input-group-text bg-secondary required-indicator">Type</span>
-    <input class="form-control" id="exampleFormControlInput1" name="otype" placeholder="Type de l'objet" required value="{{r and r['otype']}}">
-    <div class="invalid-feedback">
-        Type obligatoire !
-    </div>
-    <script>
-      /* reloading the page remove the value */
-      if ($("#category").val()) {
-        $("#categoryDropdown button").text($("#categoryDropdown li a[val="+$("#category").val()+"]").text())
+  <script>
+    (function(){
+      var search = $('#objectTypeSearch');
+      var results = $('#objectTypeResults');
+      var otHidden = $('#object_type_id');
+      var catHidden = $('#category');
+      var catBtn = $('#categoryBtn');
+      var subtypeSel = $('#object_subtype_id');
+      var otypeFree = $('#otype_free');
+      var pendingReq = null;
+      function clearResults(){ results.hide().empty(); }
+      function selectObjectType(item){
+        otHidden.val(item.id);
+        search.val(item.name);
+        // Catégorie auto
+        catHidden.val(item.category_id);
+        catBtn.text(item.category_name);
+        if(item.has_subtypes){ loadSubtypes(item.id); } else { resetSubtypes(); }
+        if(!otypeFree.val()) otypeFree.val(item.name);
+        clearResults();
       }
-    </script>
-  </div>
+      function resetSubtypes(){ subtypeSel.prop('disabled', true).html('<option value="">—</option>'); }
+      function loadSubtypes(ot_id){
+        $.getJSON('/api/objecttype/'+ot_id, function(data){
+          var opts = '<option value="">—</option>';
+          (data.subtypes||[]).forEach(function(st){ opts += '<option value="'+st.id+'">'+st.name+'</option>'; });
+          subtypeSel.html(opts).prop('disabled', (data.subtypes||[]).length===0);
+        });
+      }
+      var lastQuery=''; var debounceTimer=null;
+      search.on('keyup change', function(){
+        var q = $(this).val().trim();
+        if(q===lastQuery){ return; }
+        lastQuery = q;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function(){
+          if(q.length<2){ clearResults(); return; }
+          if(pendingReq) pendingReq.abort();
+          pendingReq = $.ajax({url:'/api/objecttypes', data:{q:q}, dataType:'json'})
+            .done(function(list){
+              results.empty();
+              if(!list.length){ clearResults(); return; }
+              list.forEach(function(it){
+                var a = $('<a/>').attr('href','#').addClass('list-group-item list-group-item-action').text(it.name+' · '+it.category_name).data('item', it);
+                results.append(a);
+              });
+              results.show();
+            })
+            .always(function(){ pendingReq=null; });
+        }, 180);
+      });
+      results.on('click','a', function(e){ e.preventDefault(); selectObjectType($(this).data('item')); });
+      $(document).on('click', function(e){ if(!results.is(e.target) && results.has(e.target).length===0 && !search.is(e.target)){ clearResults(); } });
+      // Catégorie dropdown sélection manuelle (permet override)
+      $('#categorySelect').on('click','a.dropdown-item', function(e){
+        e.preventDefault(); var id=$(this).attr('val'); var label=$(this).text().trim();
+        catHidden.val(id); catBtn.text(label); $('#categorySelect a').removeClass('cselected'); $(this).addClass('cselected');
+      });
+      // Initialisation en mode édition (valeurs injectées via data attributes JSON-safe)
+      // Données initiales encodées en JSON pour éviter le parsing JS de Jinja
+      var initDataScript = document.getElementById('initObjectTypeData');
+      var initData = initDataScript ? JSON.parse(initDataScript.textContent) : {};
+      if(Object.keys(initData).length===0){ initData={category_id:null, category_name:null, object_type_id:null, object_type_name:'', object_subtype_id:null}; }
+      if(initData.category_id){ catHidden.val(initData.category_id); catBtn.text(initData.category_name); }
+      if(initData.object_type_id){
+        otHidden.val(initData.object_type_id); search.val(initData.object_type_name);
+        if(initData.object_subtype_id){
+          loadSubtypes(initData.object_type_id);
+          setTimeout(function(){ subtypeSel.val(initData.object_subtype_id); }, 400);
+        }
+      }
+    })();
+  </script>
+  <script id="initObjectTypeData" type="application/json">{
+    {% if r %}
+    "category_id": {{ r.category.id }},
+    "category_name": {{ r.category.name|tojson }},
+    "object_type_id": {{ r.object_type_id or 'null' }},
+    "object_type_name": {{ (r.object_type and r.object_type.name) or '' | tojson }},
+    "object_subtype_id": {{ r.object_subtype_id or 'null' }}
+    {% else %}
+    "category_id": null,
+    "category_name": null,
+    "object_type_id": null,
+    "object_type_name": "",
+    "object_subtype_id": null
+    {% endif %}
+  }</script>
   <div class="input-group required-highlight align-items-stretch" id="brandSelectorGroup">
     <span class="input-group-text bg-secondary required-indicator">Marque</span>
     <div class="dropdown flex-grow-1" id="brandDropdownWrapper" style="position:relative">
