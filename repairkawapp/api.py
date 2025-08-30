@@ -606,7 +606,7 @@ def api_objecttypes_search():
     query = db.session.query(ObjectType).join(Category)
     if q:
         like = f"{q}%"
-        # jointure externe aux variantes pour matcher sur leurs noms aussi
+        # jointure externe aux variantes pour matcher sur leurs noms aussi (prefix match)
         query = query.outerjoin(ObjectVariant).filter(
             (ObjectType.name.ilike(like))  # type: ignore[attr-defined]
             | (ObjectVariant.name.ilike(like))  # type: ignore[attr-defined]
