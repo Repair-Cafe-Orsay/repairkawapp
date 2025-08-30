@@ -42,7 +42,7 @@ def compute_stats(session: Session, date_from: date, date_to: date):
     all_repairs_close_status = repairs_status.group_by(Repair.close_status_id).all()
 
     repairs_category = (
-        session.query(Category.name, func.count(Repair.category_id), Category.rm_icon_id)
+        session.query(Category.name, func.count(Repair.category_id), Category.icon_name)
         .outerjoin(Repair, Repair.category_id == Category.id)
         .filter(Repair.created >= date_from)
         .filter(Repair.created <= date_to)

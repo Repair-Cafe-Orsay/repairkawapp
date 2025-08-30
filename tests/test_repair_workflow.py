@@ -33,8 +33,8 @@ def app():
     with app.app_context():
         db.create_all()
         # reference data
-        Category(name="Electronique", rm_icon_id=1)
-        db.session.add(Category(name="Electro", rm_icon_id=2))
+        db.session.add(Category(name="Electronique", rm_icon_id=1, icon_name="lightning"))
+        db.session.add(Category(name="Electro", rm_icon_id=2, icon_name="pc"))
         st1 = State(label="Réception")
         st2 = State(label="Diagnostic")
         db.session.add_all([st1, st2])

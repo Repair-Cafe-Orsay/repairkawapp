@@ -66,10 +66,10 @@
   {% endif %}
 </div>
 <hr>
-<h5>Participants ({{ participants|length }})</h5>
+<h5>Réparateurs ({{ participants|length }})</h5>
 <div class="row g-3 mb-3 align-items-stretch" id="participants-block">
   <div class="col-md-6 d-flex flex-column">
-    <label class="form-label">Autres réparateurs présents</label>
+  <label class="form-label">Autres réparateurs présents</label>
     <select id="participants-select" class="form-select" multiple size="8">
       {% for u in all_users %}
         {% if u.id != session.owner_id %}
@@ -77,7 +77,7 @@
         {% endif %}
       {% endfor %}
     </select>
-    <div class="form-text">Sélection multiple (Ctrl / Cmd). Le responsable est implicite.</div>
+  <div class="form-text">Sélection multiple (Ctrl / Cmd). Le responsable est implicite.</div>
   </div>
   <div class="col-md-6 d-flex flex-column">
     <label class="form-label">Filtrer</label>
@@ -285,7 +285,7 @@ $('#btn-close').on('click', function(){
   if (nbParticipants < 1) {
     checks.push(rkConfirm({
       title: 'Participants insuffisants',
-      message: 'Ajoutez au moins un autre réparateur (sélectionnez-le dans la liste) avant de fermer.',
+  message: 'Ajoutez au moins un autre réparateur (sélectionnez-le dans la liste) avant de fermer.',
       confirmText: 'OK',
       cancelText: null,
       confirmBtnClass: 'btn-warning'
@@ -297,7 +297,7 @@ $('#btn-close').on('click', function(){
   }
   rkConfirm({
     title: 'Confirmer fermeture',
-    message: 'Participants sélectionnés: '+nbParticipants+'\nConfirmer la fermeture ? (Le commentaire et les participants seront enregistrés)',
+  message: 'Réparateurs sélectionnés: '+nbParticipants+'\nConfirmer la fermeture ? (Le commentaire et la liste seront enregistrés)',
     confirmText: 'Oui, fermer',
     confirmBtnClass: 'btn-success'
   }).then(function(ok){ if(!ok) return; if(saveParticipants(()=>doClose())){/* fermeture lancée après save */} });
@@ -332,7 +332,7 @@ $('#participant-filter').on('input', function(){
 function saveParticipants(onSuccess){
   let sel = $('#participants-select').val() || [];
   if (sel.length < 1) {
-    $('#participants-status').text('Ajoutez au moins un autre réparateur.').removeClass('alert-info').addClass('alert-danger').show();
+  $('#participants-status').text('Ajoutez au moins un autre réparateur.').removeClass('alert-info').addClass('alert-danger').show();
     return false;
   }
   // Ajouter owner implicitement
@@ -343,7 +343,7 @@ function saveParticipants(onSuccess){
     contentType:'application/json',
     data: JSON.stringify(payload),
     success:function(){
-      $('#participants-status').text('Participants enregistrés ('+sel.length+' + responsable).').removeClass('alert-danger').addClass('alert-info').show();
+  $('#participants-status').text('Réparateurs enregistrés ('+sel.length+' + responsable).').removeClass('alert-danger').addClass('alert-info').show();
       setTimeout(()=> $('#participants-status').fadeOut(), 2000);
       if(onSuccess) onSuccess();
   // Réinitialise l'état (participants seulement)

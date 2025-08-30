@@ -25,7 +25,7 @@ def app():
     with app.app_context():
         db.create_all()
         # minimal reference data
-        cat = Category(name="Electronique", rm_icon_id=1)
+        cat = Category(name="Electronique", rm_icon_id=1, icon_name="lightning")
         st = State(label="Réception")
         cs = CloseStatus(id=1, label="Ouverte")
         db.session.add_all([cat, st, cs])

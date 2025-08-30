@@ -7,6 +7,8 @@
     <link rel="shortcut icon" href="/static/img/favicon.ico" type="image/vnd.microsoft.icon">
     <title>RepairKawapp</title>
     <link href="/static/bootstrap-5.1.1-dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Librairie d'icônes libre (Bootstrap Icons) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="/static/css/style.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="/static/css/jquery.dataTables.css">
     <script src="/static/js/jquery-2.2.0.min.js"></script>
@@ -113,7 +115,7 @@
         <div class="card border-info" id="session-active" style="display:none">
           <div class="card-body py-2 d-flex justify-content-between align-items-center">
             <div>
-              <strong>Séance en cours :</strong> <span id="sess_location"></span>
+              <strong><a href="#" id="sess_link" class="text-decoration-none">Séance <span id="sess_id_label"></span> en cours</a> :</strong> <span id="sess_location"></span>
               <small class="text-muted">ouverte <span id="sess_opened"></span></small>
             </div>
             <div class="d-flex gap-1">
@@ -350,9 +352,12 @@
           $('#session-active').show();
           $('#session-none').hide();
           $('#sess_location').text(s.location || '(Lieu non défini)');
+          $('#sess_id_label').text('#'+s.id);
           // s.opened_at est en UTC (suffixe Z) -> conversion locale
           $('#sess_opened').text(moment.utc(s.opened_at).local().fromNow());
-          $('#btn-session-detail').attr('href', '/sessions/' + s.id);
+          const detailUrl = '/sessions/' + s.id;
+          $('#btn-session-detail').attr('href', detailUrl);
+          $('#sess_link').attr('href', detailUrl);
         } else {
           $('#session-active').hide();
           $('#session-none').show();

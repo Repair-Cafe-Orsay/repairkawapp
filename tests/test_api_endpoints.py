@@ -35,8 +35,8 @@ def app():
         db.create_all()
         db.session.add_all(
             [
-                Category(name="Electro", rm_icon_id=1),
-                Category(name="Textile", rm_icon_id=2),
+                Category(name="Electro", rm_icon_id=1, icon_name="lightning"),
+                Category(name="Textile", rm_icon_id=2, icon_name="thread"),
             ]
         )
         st1 = State(label="Réception")

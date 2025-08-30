@@ -116,4 +116,14 @@ def create_app(config_override=None):
                 pass
         return {"membership_up_to_date": True}
 
+    # Contexte global icône catégorie
+    @app.context_processor
+    def inject_icon_helper():
+        try:
+            from .icon_utils import render_category_icon
+
+            return {"render_category_icon": render_category_icon}
+        except Exception:
+            return {}
+
     return app

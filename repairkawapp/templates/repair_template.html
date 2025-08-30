@@ -19,9 +19,8 @@
     {% endif %}
   </div>
   <div class="input-group">
-      <span class="input-group-text bg-secondary product-icon-{{r['category'].rm_icon_id}}">
-        <div class="x-product-icon-1693" style="filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(157deg) brightness(107%) contrast(102%);"></div>&nbsp;
-        {{r['category'].name}}
+      <span class="input-group-text bg-secondary">
+        {% if render_category_icon is defined %}{{ render_category_icon(r['category']) }}{% else %}<i class="bi bi-{{ r['category'].icon_name or 'question-circle' }}"></i>{% endif %}&nbsp;{{r['category'].name}}
       </span>
     <input class="form-control" style="display: none" id="category" required value="{{r['category'].id}}" readonly>
     <input class="form-control" placeholder="Type de l'objet" required value="{{r['otype']}}" readonly>
@@ -165,8 +164,11 @@
       </button>
       <ul id="categorySelect" class="dropdown-menu dropdown-category">
     {% for category in categories %}
-        <li class="product-icon-{{category.rm_icon_id}}">
-          <a class="dropdown-item {{r and r.category.id==category.id and 'cselected' or ''}}" href="#" val={{category.id}}>{{category.name}}</a>
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 {{r and r.category.id==category.id and 'cselected' or ''}}" href="#" val={{category.id}}>
+            {% if render_category_icon is defined %}{{ render_category_icon(category) }}{% else %}<i class="bi bi-{{ category.icon_name or 'question-circle' }}"></i>{% endif %}
+            <span>{{category.name}}</span>
+          </a>
         </li>
     {% endfor %}
       </ul>

@@ -41,6 +41,8 @@ class Category(db.Model):
     __tablename__ = "category"
     id = db.Column(db.Integer, primary_key=True)
     rm_icon_id = db.Column(db.Integer, nullable=True)
+    # Nouveau: nom d'icône libre (ex: classe Bootstrap Icons ou Font Awesome)
+    icon_name = db.Column(db.String(50), nullable=True)
     name = db.Column(db.String(50), nullable=False, unique=True)
 
     def __repr__(self):

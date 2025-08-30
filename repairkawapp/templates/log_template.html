@@ -1,5 +1,21 @@
 {% macro log_template(l) %}
-    <li>{{l.content}} ({{l.date.strftime('%Y-%m-%d')}} à {{l.date.strftime('%H:%M')}} par {{l.user.name}})</li>
+        {% set content = l.content %}
+        {# Remplace les occurrences de "séance 123" ou "Séance 123" / "seance 123" par un lien #}
+        {% set content = content|replace('seance ', 'séance ') %}
+        {% set parts = content.split(' ') %}
+        <li>
+            {%- for p in parts -%}
+                {%- if p.lower().startswith('séance') and loop.index < parts|length -%}
+                    {{ p }}
+                {%- elif p.startswith('#') and p[1:]|int(0) > 0 -%}
+                    <a href="/sessions/{{ p[1:]|int }}">{{ p }}</a>
+                {%- else -%}
+                    {{ p }}
+                {%- endif -%}
+                {%- if not loop.last %} {% endif -%}
+            {%- endfor -%}
+            ({{l.date.strftime('%Y-%m-%d')}} à {{l.date.strftime('%H:%M')}} par {{l.user.name}})
+        </li>
 {% endmacro %}
 
 {% macro log_list(logs) %}
