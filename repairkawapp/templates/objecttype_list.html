@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Types d'objet</h2>
+<form class="row g-2 mb-3" method="get" action="{{ url_for('admin.objecttypes_admin_list') }}">
+  <div class="col-auto">
+    <input type="text" class="form-control" name="q" placeholder="Recherche..." value="{{ q }}" />
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-primary" type="submit">Rechercher</button>
+  </div>
+</form>
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>Créer un nouveau type</strong>
+  </div>
+  <div class="card-body">
+    <form class="row gy-2 gx-2 align-items-end" method="post">
+      <div class="col-md-4">
+        <label class="form-label">Nom</label>
+        <input name="name" class="form-control" required />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Catégorie</label>
+        <select name="category_id" class="form-select" required>
+          <option value="" disabled selected>Choisir...</option>
+          {% for c in categories %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Nouveau</button>
+      </div>
+      <input type="hidden" name="csrf_disabled" value="1" />
+    </form>
+  </div>
+</div>
+<table class="table table-sm table-striped align-middle">
+  <thead>
+    <tr>
+  <th>Nom</th>
+  <th>Variantes</th>
+  <th>Catégorie</th>
+  <th class="text-end"># Objets</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in types %}
+    <tr>
+  <td><a href="{{ url_for('admin.objecttype_admin_detail', ot_id=t.id) }}">{{ t.name }}</a></td>
+  <td>{% if t.variants %}{{ t.variants|join(', ') }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+  <td>{{ t.category }}</td>
+  <td class="text-end">{{ t.nb_repairs }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if not types %}
+  <div class="alert alert-info">Aucun résultat.</div>
+{% endif %}
+{% endblock %}

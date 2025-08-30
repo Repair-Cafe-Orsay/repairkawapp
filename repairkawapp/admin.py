@@ -15,7 +15,7 @@ from flask_login import current_user, login_required
 from werkzeug.security import generate_password_hash
 
 from . import db
-from .models import BoardRoleLog, MembershipLog, User
+from .models import BoardRoleLog, Category, MembershipLog, ObjectType, ObjectVariant, Repair, User
 from .services.image_service import process_user_photo
 
 admin = Blueprint("admin", __name__)
@@ -32,6 +32,142 @@ def user_list():
         name=current_user.name,
         filter_email=email,
         users=User.query.order_by(User.last_membership.desc()).order_by(User.name).all(),
+    )
+
+
+# ------------------------------- Gestion Types / Variantes -------------------------------
+
+
+def _admin_only():
+    if not current_user.admin:
+        from flask import abort
+
+        abort(403)
+
+
+@admin.route("/admin/objecttypes", methods=["GET", "POST"])
+@login_required
+def objecttypes_admin_list():
+    _admin_only()
+    q = (request.args.get("q") or "").strip().lower()
+    types_query = (
+        ObjectType.query.join(Category)
+        .outerjoin(ObjectVariant)
+        .add_columns(Category.name.label("cat_name"))
+    )
+    if q:
+        like = f"%{q}%"
+        types_query = types_query.filter(
+            ObjectType.name.ilike(like)  # type: ignore[attr-defined]
+            | Category.name.ilike(like)  # type: ignore[attr-defined]
+            | ObjectVariant.name.ilike(like)  # type: ignore[attr-defined]
+        )
+    # Agrégations en mémoire (DB simple) pour compter objets & variantes
+    rows = types_query.order_by(ObjectType.name.asc()).all() if len(q) < 100 else []
+    # Préparer structure: {type: {variants:[], count_repairs:int}}
+    # Récupération counts repairs via une requête groupée
+    repair_counts = {
+        rid: cnt
+        for rid, cnt in (
+            db.session.query(ObjectType.id, db.func.count(Repair.id))
+            .outerjoin(Repair, Repair.object_type_id == ObjectType.id)
+            .group_by(ObjectType.id)
+            .all()
+        )
+    }
+    out = []
+    seen = set()
+    for ot, cat_name in rows:  # type: ignore[misc]
+        if ot.id in seen:
+            continue
+        seen.add(ot.id)
+        variants = [v.name for v in ot.variants]
+        out.append(
+            {
+                "id": ot.id,
+                "name": ot.name,
+                "category": cat_name,
+                "variants": variants,
+                "nb_repairs": repair_counts.get(ot.id, 0),
+            }
+        )
+    if request.method == "POST":
+        # Création nouveau type
+        name = (request.form.get("name") or "").strip()
+        cat_id = request.form.get("category_id")
+        if name and cat_id and cat_id.isdigit():
+            cat = db.session.query(Category).filter_by(id=int(cat_id)).first()
+            if cat:
+                db.session.add(ObjectType(name=name, category=cat))
+                db.session.commit()
+                return redirect(url_for("admin.objecttypes_admin_list"))
+    categories = Category.query.order_by(Category.name.asc()).all()
+    return render_template(
+        "objecttype_list.html",
+        types=out,
+        q=q,
+        categories=categories,
+    )
+
+
+@admin.route("/admin/objecttypes/<int:ot_id>", methods=["GET", "POST", "DELETE"])
+@login_required
+def objecttype_admin_detail(ot_id: int):
+    _admin_only()
+    ot = db.session.query(ObjectType).filter_by(id=ot_id).first()
+    if not ot:
+        return redirect(url_for("admin.objecttypes_admin_list"))
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "update_type":
+            new_name = (request.form.get("name") or "").strip()
+            cat_id = request.form.get("category_id")
+            if new_name:
+                ot.name = new_name
+            if cat_id and cat_id.isdigit():
+                cat = db.session.query(Category).filter_by(id=int(cat_id)).first()
+                if cat:
+                    ot.category = cat
+            db.session.commit()
+            return redirect(url_for("admin.objecttype_admin_detail", ot_id=ot.id))
+        elif action == "add_variant":
+            vname = (request.form.get("variant_name") or "").strip()
+            if vname:
+                db.session.add(ObjectVariant(name=vname, object_type=ot))
+                db.session.commit()
+            return redirect(url_for("admin.objecttype_admin_detail", ot_id=ot.id))
+        elif action == "delete_variant":
+            vid = request.form.get("variant_id")
+            if vid and vid.isdigit():
+                (
+                    db.session.query(ObjectVariant)
+                    .filter_by(id=int(vid), object_type_id=ot.id)
+                    .delete()
+                )
+                db.session.commit()
+            return redirect(url_for("admin.objecttype_admin_detail", ot_id=ot.id))
+        elif action == "delete_type":
+            # Suppression si aucun Repair
+            has_repairs = (
+                db.session.query(Repair).filter(Repair.object_type_id == ot.id).first() is not None
+            )
+            if not has_repairs:
+                db.session.query(ObjectType).filter_by(id=ot.id).delete()
+                db.session.commit()
+                return redirect(url_for("admin.objecttypes_admin_list"))
+    categories = Category.query.order_by(Category.name.asc()).all()
+    associated_repairs = (
+        db.session.query(Repair)
+        .filter(Repair.object_type_id == ot.id)
+        .order_by(Repair.display_id)
+        .all()
+    )
+    return render_template(
+        "objecttype_detail.html",
+        ot=ot,
+        categories=categories,
+        repairs=associated_repairs,
+        has_repairs=len(associated_repairs) > 0,
     )
 
 

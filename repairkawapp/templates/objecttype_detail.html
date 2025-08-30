@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block content %}
+<a href="{{ url_for('admin.objecttypes_admin_list') }}" class="btn btn-sm btn-outline-secondary mb-3">← Retour</a>
+<h2>Type: {{ ot.name }}</h2>
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Modifier le type</div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="action" value="update_type" />
+          <div class="mb-3">
+            <label class="form-label">Nom</label>
+            <input class="form-control" name="name" value="{{ ot.name }}" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Catégorie</label>
+            <select class="form-select" name="category_id" required>
+              {% for c in categories %}
+                <option value="{{ c.id }}" {% if c.id == ot.category_id %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button class="btn btn-warning" type="submit">Modifier</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Variantes</span>
+        <form method="post" class="d-flex" style="gap:.5rem">
+          <input type="hidden" name="action" value="add_variant" />
+          <input name="variant_name" class="form-control form-control-sm" placeholder="Nouvelle variante" required />
+          <button class="btn btn-primary btn-sm" type="submit">Nouveau</button>
+        </form>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for v in ot.variants|sort(attribute='name') %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>{{ v.name }}</span>
+            <form method="post" onsubmit="return confirm('Supprimer variante ?');">
+              <input type="hidden" name="action" value="delete_variant" />
+              <input type="hidden" name="variant_id" value="{{ v.id }}" />
+              <button class="btn btn-outline-danger btn-sm" type="submit">×</button>
+            </form>
+          </li>
+        {% else %}
+          <li class="list-group-item text-muted">Aucune variante.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Objets associés ({{ repairs|length }})</span>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm mb-0">
+      <thead><tr><th>ID</th><th>Nom</th><th>Catégorie</th><th>Type libre</th></tr></thead>
+      <tbody>
+        {% for r in repairs %}
+          <tr>
+            <td><a href="/repairs/{{ r.id }}">{{ r.display_id }}</a></td>
+            <td>{{ r.name }}</td>
+            <td>{{ r.category.name }}</td>
+            <td>{{ r.otype }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="text-muted">Aucun objet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<form method="post" onsubmit="return confirm('Supprimer ce type ?');">
+  <input type="hidden" name="action" value="delete_type" />
+  <button class="btn btn-danger" type="submit" {% if has_repairs %}disabled title="Des objets y sont encore associés"{% endif %}>Supprimer</button>
+</form>
+{% endblock %}
