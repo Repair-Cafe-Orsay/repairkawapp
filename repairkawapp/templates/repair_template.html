@@ -115,7 +115,14 @@
   <input type="string" hidden name="rid" value="{{r and r['id'] or ''}}">
   <div class="input-group">
     <span class="input-group-text bg-secondary col-2">Date</span>
-    <input type="date" class="form-control" name="date" value="{{today or r['created']}}" {{r and 'disabled' or ''}}>
+    {# Si une séance courante existe, on force la date de création à celle de la séance (jour local) et on la verrouille #}
+    {% if current_session and current_session.opened_at %}
+      {% set session_date = current_session.opened_at.date().isoformat() %}
+      <input type="date" class="form-control" name="date_display" value="{{ session_date }}" disabled>
+      <input type="hidden" name="date" value="{{ session_date }}">
+    {% else %}
+      <input type="date" class="form-control" name="date" value="{{ today or (r and r['created']) }}" {{ r and 'disabled' or ''}}>
+    {% endif %}
     <div class="col-2"></div>
     <span class="input-group-text bg-secondary col-2">ID Manuel</span>
     <input type="string" class="form-control" name="manual_id" placeholder="Facultatif" id="input_manual_id" value="{{r.display_id and r.display_id[7:] or ''}}">
