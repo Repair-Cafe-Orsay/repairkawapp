@@ -34,6 +34,9 @@
 <h2>
   Séances récentes
 </h2>
+<!-- Données templating exposées de façon neutre pour le JS -->
+<span id="sessions-flags" data-is-admin="{{ 1 if current_user.admin else 0 }}" class="d-none"></span>
+<script id="session-days-data" type="application/json">{{ session_days|tojson|safe }}</script>
 <form class="row gy-3 gx-4 align-items-start mb-3" method="get" action="/sessions" id="sessions-filters">
   <div class="col-md-3 col-sm-6 d-flex flex-column">
     <label for="lieu-select" class="fw-semibold mb-1">Lieu</label>
@@ -68,7 +71,7 @@
     <tr class="{% if not s.closed_at %}table-warning{% endif %}">
       <td class="text-nowrap"><a href="/sessions/{{ s.id }}" class="btn btn-sm btn-outline-primary">Voir</a></td>
       <td>{{ s.id }} {% if not s.closed_at %}<span class="badge bg-warning text-dark">Ouverte</span>{% else %}<span class="badge bg-secondary">Fermée</span>{% endif %}</td>
-  <td>{{ s.location and s.location.name or '' }}</td>
+  <td>{{ s.location.name if s.location else '' }}</td>
   <td>{{ s.opened_at|local_dt }}</td>
   <td>{{ s.closed_at|local_dt }}</td>
       <td>{{ s.participants|length }}</td>
@@ -86,8 +89,11 @@
 </table>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+  // Récupération des indicateurs injectés via attributs (évite Jinja dans le JS pour les linters)
+  const flagsEl = document.getElementById('sessions-flags');
+  const IS_ADMIN = flagsEl && flagsEl.dataset.isAdmin === '1';
   // Vérifier séance ouverte pour activer/désactiver création séance passée
-  {% if current_user.admin %}
+  if(IS_ADMIN){
   (function checkOpen(){
     $.getJSON('/api/sessions?opened=1', function(data){
       const hasOpen = data.length>0;
@@ -126,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     });
   });
-  {% endif %}
+  }
   // Chargement des lieux (réutilisation logique entête)
   (function loadPastLocations(){
     $.getJSON('/api/locations', function(data){
@@ -148,7 +154,12 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   // --- Calendrier minimal (grille mois courant + marqueurs des jours avec séance) ---
   (function(){
-    const daysWithArr = JSON.parse('{{ session_days|tojson|safe }}');
+        // Lecture JSON depuis un <script type="application/json"> pour éviter Jinja direct dans le JS
+        const daysWithScript = document.getElementById('session-days-data');
+        let daysWithArr = [];
+        if(daysWithScript){
+          try { daysWithArr = JSON.parse(daysWithScript.textContent || '[]'); } catch(e){ console.error('Session days JSON invalide', e); }
+        }
     const daysWith = new Set(daysWithArr);
     const cal = document.getElementById('sessions-calendar');
     if (!cal) return;
