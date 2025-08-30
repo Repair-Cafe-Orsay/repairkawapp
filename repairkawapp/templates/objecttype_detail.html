@@ -53,6 +53,39 @@
     </div>
   </div>
 </div>
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Sous-types</span>
+        <form method="post" class="d-flex" style="gap:.5rem">
+          <input type="hidden" name="action" value="add_subtype" />
+          <input name="subtype_name" class="form-control form-control-sm" placeholder="Nouveau sous-type" required />
+          <button class="btn btn-primary btn-sm" type="submit">Nouveau</button>
+        </form>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for st in ot.subtypes|sort(attribute='name') %}
+        <li class="list-group-item">
+          <form method="post" class="d-flex align-items-center" style="gap:.5rem;">
+            <input type="hidden" name="action" value="update_subtype" />
+            <input type="hidden" name="subtype_id" value="{{ st.id }}" />
+            <input name="subtype_name" class="form-control form-control-sm" value="{{ st.name }}" required />
+            <button class="btn btn-warning btn-sm" type="submit" title="Modifier">✎</button>
+          </form>
+          <form method="post" class="mt-1" onsubmit="return confirm('Supprimer sous-type ?');">
+            <input type="hidden" name="action" value="delete_subtype" />
+            <input type="hidden" name="subtype_id" value="{{ st.id }}" />
+            <button class="btn btn-outline-danger btn-sm">Supprimer</button>
+          </form>
+        </li>
+        {% else %}
+        <li class="list-group-item text-muted">Aucun sous-type.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
 <div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span>Objets associés ({{ repairs|length }})</span>

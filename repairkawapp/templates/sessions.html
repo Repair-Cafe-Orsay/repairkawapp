@@ -1,6 +1,32 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Séances récentes</h2>
+{% if current_user.admin %}
+  <div class="card mb-3">
+    <div class="card-header">Créer une séance passée</div>
+    <div class="card-body">
+      <div id="past-session-alert" class="alert alert-warning d-none mb-2"></div>
+      <form id="form-create-past-session" class="row g-2 align-items-end">
+        <div class="col-sm-4 col-md-3">
+          <label class="form-label mb-1">Date (YYYY-MM-DD)</label>
+          <input type="date" name="date" class="form-control" required />
+        </div>
+        <div class="col-sm-3 col-md-2">
+          <label class="form-label mb-1">Heure (HH:MM)</label>
+          <input type="time" name="time" class="form-control" />
+        </div>
+        <div class="col-sm-5 col-md-4">
+          <label class="form-label mb-1">Lieu</label>
+          <input type="text" name="location" class="form-control" placeholder="Lieu" required />
+        </div>
+        <div class="col-sm-12 col-md-3">
+          <button type="submit" class="btn btn-primary w-100" id="btn-create-past">Créer</button>
+        </div>
+      </form>
+      <div class="form-text">Permet d'ajouter une séance historique (pas le jour courant). Désactivé si une séance est ouverte.</div>
+    </div>
+  </div>
+{% endif %}
 <form class="row gy-3 gx-4 align-items-start mb-3" method="get" action="/sessions" id="sessions-filters">
   <div class="col-md-3 col-sm-6 d-flex flex-column">
     <label for="lieu-select" class="fw-semibold mb-1">Lieu</label>
@@ -53,6 +79,40 @@
 </table>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+  // Vérifier séance ouverte pour activer/désactiver création séance passée
+  {% if current_user.admin %}
+  (function checkOpen(){
+    $.getJSON('/api/sessions?opened=1', function(data){
+      const hasOpen = data.length>0;
+      const form = $('#form-create-past-session');
+      if(hasOpen){
+        form.find('input,button').prop('disabled', true);
+        $('#past-session-alert').removeClass('d-none').text('Une séance est déjà ouverte (#'+data[0].id+'). Fermez-la avant de créer une séance passée.');
+      } else {
+        form.find('input,button').prop('disabled', false);
+        $('#past-session-alert').addClass('d-none').text('');
+      }
+    });
+  })();
+  $('#form-create-past-session').on('submit', function(e){
+    e.preventDefault();
+    const payload = Object.fromEntries(new FormData(this).entries());
+    $.ajax({
+      type:'POST',
+      url:'/api/session/past',
+      contentType:'application/json',
+      data: JSON.stringify(payload),
+      success:function(js){ window.location = '/sessions/'+js.id; },
+      error:function(xhr){
+        const data = xhr.responseJSON || {}; let msg='Erreur';
+        if(data.error==='open_session_exists') msg='Séance ouverte existante: fermez-la d\'abord (#'+data.session_id+').';
+        else if(data.error==='invalid_datetime') msg='Date/heure invalide.';
+        else if(data.error==='missing_fields') msg='Champs requis manquants.';
+        $('#past-session-alert').removeClass('d-none').removeClass('alert-warning').addClass('alert-danger').text(msg);
+      }
+    });
+  });
+  {% endif %}
   // --- Calendrier minimal (grille mois courant + marqueurs des jours avec séance) ---
   (function(){
     const daysWithArr = JSON.parse('{{ session_days|tojson|safe }}');

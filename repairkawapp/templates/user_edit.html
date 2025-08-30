@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+<a href="{{ url_for('admin.user_list') }}" class="btn btn-sm btn-outline-secondary mb-3">← Retour</a>
 <form class="row gy-1 needs-validation" novalidate  method="POST" enctype="multipart/form-data" action="{{url_for('admin.user_edit', user_id=u['id'])}}" id="admin-user-form">
   <div class="input-group">
     <span class="input-group-text bg-secondary col-3">Nom</span>

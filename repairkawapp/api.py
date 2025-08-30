@@ -405,6 +405,70 @@ def api_session_open():
     )
 
 
+@api.route("/api/session/past", methods=["POST"])
+@login_required
+def api_session_past_create():
+    """Création d'une séance passée (admin uniquement).
+
+    Payload JSON ou form:
+      - date: YYYY-MM-DD (obligatoire)
+      - location: nom lieu (obligatoire)
+      - time: HH:MM (optionnel, heure locale) sinon 09:00 par défaut
+    Refusé s'il existe une séance ouverte actuellement (doit être fermée d'abord).
+    """
+    if not getattr(current_user, "admin", False):
+        return jsonify({"error": "forbidden"}), 403
+    # Y a-t-il une séance ouverte ?
+    opened = (
+        db.session.query(SessionModel)
+        .filter(SessionModel.closed_at.is_(None))
+        .order_by(SessionModel.opened_at.asc())
+        .first()
+    )
+    if opened:
+        return jsonify({"error": "open_session_exists", "session_id": opened.id}), 400
+    payload = request.get_json(silent=True) or request.form
+    date_str = (payload.get("date") or "").strip()
+    location = (payload.get("location") or "").strip()
+    time_str = (payload.get("time") or "09:00").strip() or "09:00"
+    if not date_str or not location:
+        return jsonify({"error": "missing_fields"}), 400
+    try:
+        from datetime import datetime as dt
+
+        import pytz
+
+        parts = date_str.split("-")
+        if len(parts) != 3:
+            raise ValueError("invalid_date")
+        year, month, day = map(int, parts)
+        hh, mm = 9, 0
+        if time_str:
+            try:
+                hh, mm = map(int, time_str.split(":", 1))
+            except Exception:
+                pass
+        naive = dt(year, month, day, hh, mm)
+        tz = pytz.timezone("Europe/Paris")
+        localized = tz.localize(naive)
+        opened_at = localized.astimezone(pytz.utc).replace(tzinfo=None)
+    except Exception:
+        return jsonify({"error": "invalid_datetime"}), 400
+    # Création manuelle sans réutilisation logique open_session
+    from .models import Location as Loc, Session as Sess
+
+    loc = db.session.query(Loc).filter_by(name=location).first()
+    if not loc:
+        loc = Loc(name=location)
+        db.session.add(loc)
+        db.session.flush()
+    s = Sess(location=loc, owner_id=current_user.id, opened_at=opened_at)
+    s.participants.append(current_user)
+    db.session.add(s)
+    db.session.commit()
+    return jsonify({"id": s.id, "opened_at": s.opened_at.isoformat() + "Z"})
+
+
 @api.route("/api/session/join/<int:session_id>", methods=["POST"])
 @login_required
 def api_session_join(session_id):
