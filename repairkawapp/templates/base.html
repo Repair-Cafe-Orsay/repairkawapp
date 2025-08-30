@@ -121,15 +121,15 @@
               <div class="small text-danger mt-1 d-none" id="sess_stale_warning">Séance ouverte un jour précédent – vous pouvez en ouvrir une nouvelle si besoin.</div>
             </div>
             <div class="d-flex gap-1 align-items-center">
-              <a class="btn btn-sm btn-outline-primary" id="btn-session-detail" href="#">Détail séance</a>
-              <form class="d-flex align-items-center ms-2" id="form-open-session-secondary" style="display:none">
-                <select name="location_select" class="form-select form-select-sm me-1 open-secondary-loc" style="min-width:140px">
-                  <option value="" selected disabled>Lieu…</option>
-                  <option value="__new__">➕</option>
-                </select>
-                <input name="new_location" class="form-control form-control-sm me-1 open-secondary-new" placeholder="Nouveau" style="display:none;min-width:140px" />
-                <button class="btn btn-sm btn-danger" type="submit" title="Ouvrir une nouvelle séance (ancienne non fermée)">Forcer</button>
-              </form>
+                <a class="btn btn-sm btn-outline-primary" id="btn-session-detail" href="#">Détail séance</a>
+                <form class="align-items-center ms-2 d-none" id="form-open-session-secondary">
+                  <select name="location_select" class="form-select form-select-sm me-1 open-secondary-loc" style="min-width:140px">
+                    <option value="" selected disabled>Lieu…</option>
+                    <option value="__new__">➕</option>
+                  </select>
+                  <input name="new_location" class="form-control form-control-sm me-1 open-secondary-new" placeholder="Nouveau" style="display:none;min-width:140px" />
+                  <button class="btn btn-sm btn-danger" type="submit" title="Ouvrir une nouvelle séance (ancienne non fermée)">Forcer</button>
+                </form>
             </div>
           </div>
         </div>
@@ -265,7 +265,7 @@
                 },
                 minLength: 2,
                 select: function(event, ui) {
-                    console.log(ui.item.value); // not in your question, but might help later
+                    // sélection autocomplete marque
                 }
             });
         })
@@ -288,7 +288,7 @@
                hash = "#notes"
              }
              var navTab = $('.nav-tabs a[href="'+hash+'"]');
-             console.log(hash, navTab.length)
+             // debug onglet retiré
              if (navTab.length) {
                   var theTab = new bootstrap.Tab(navTab);
                   theTab.show();
@@ -365,37 +365,49 @@
   // ---- Session UI ----
   function refresh_session_ui() {
     $.getJSON('/api/sessions?opened=1', function(data){
-      if (data.length > 0) {
-        const s = data[0];
-        $('#session-active').show();
-        $('#session-none').hide();
-        $('#sess_location').text(s.location || '(Lieu non défini)');
-        $('#sess_id_label').text('#'+s.id);
-        $('#sess_opened').text(moment.utc(s.opened_at).local().fromNow());
-        const detailUrl = '/sessions/' + s.id;
-        $('#btn-session-detail').attr('href', detailUrl);
-        $('#sess_link').attr('href', detailUrl);
-        // Vérifie si la date est aujourd'hui (locale)
-        const openedLocal = moment.utc(s.opened_at).local();
-        const stale = !openedLocal.isSame(moment(), 'day');
-        // Reset état avant application
-        $('#form-open-session-secondary').hide();
-        $('#session-active').removeClass('border-danger border-info');
-        $('#sess_title').removeClass('text-danger');
-        $('#sess_stale_warning').addClass('d-none');
-        if (stale) {
-          $('#session-active').addClass('border-danger').removeClass('border-info');
-          $('#sess_title').addClass('text-danger');
-          $('#sess_stale_warning').removeClass('d-none');
-          // Afficher le mini formulaire d'ouverture forcée
-          $('#form-open-session-secondary').show();
-        } else {
-          $('#session-active').addClass('border-info');
-        }
-      } else {
+      if (!Array.isArray(data) || data.length === 0) {
         $('#session-active').hide();
         $('#session-none').show();
+        return;
       }
+      // Tri décroissant par date d'ouverture
+      const sorted = data.slice().sort(function(a,b){ return (a.opened_at < b.opened_at) ? 1 : -1; });
+      const now = window.moment ? moment() : null;
+      // Y a-t-il au moins UNE session aujourd'hui ?
+      let hasToday = false;
+      if (now && window.moment) {
+        for (const it of sorted) {
+          try { if (it.opened_at && moment.utc(it.opened_at).local().isSame(now,'day')) { hasToday = true; break; } } catch(e){}
+        }
+      }
+      // Session affichée = la plus récente (sorted[0])
+      const s = sorted[0];
+      $('#session-active').show();
+      $('#session-none').hide();
+      $('#sess_location').text(s.location || '(Lieu non défini)');
+      $('#sess_id_label').text('#'+s.id);
+      if (window.moment && s.opened_at) {
+        $('#sess_opened').text(moment.utc(s.opened_at).local().fromNow());
+      } else { $('#sess_opened').text(''); }
+      const detailUrl = '/sessions/' + s.id;
+      $('#btn-session-detail').attr('href', detailUrl);
+      $('#sess_link').attr('href', detailUrl);
+      const stale = !hasToday; // règle métier: bouton forcer si aucune session du jour
+      // Reset visuel
+      $('#session-active').removeClass('border-danger border-info');
+      $('#sess_title').removeClass('text-danger');
+      $('#sess_stale_warning').addClass('d-none');
+      const formSec = document.getElementById('form-open-session-secondary');
+      if (formSec) { formSec.classList.add('d-none'); formSec.classList.remove('d-flex'); }
+      if (stale) {
+        $('#session-active').addClass('border-danger');
+        $('#sess_title').addClass('text-danger');
+        $('#sess_stale_warning').removeClass('d-none');
+        if (formSec) { formSec.classList.remove('d-none'); formSec.classList.add('d-flex'); }
+      } else {
+        $('#session-active').addClass('border-info');
+      }
+  // debug bannière retiré
     });
   }
   // Chargement et gestion dropdown lieux
