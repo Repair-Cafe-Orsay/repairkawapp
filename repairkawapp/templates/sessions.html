@@ -1,9 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Séances récentes</h2>
 {% if current_user.admin %}
   <div class="card mb-3">
-    <div class="card-header">Créer une séance passée</div>
+    <div class="card-header">Créer une séance passée (admin seulement)</div>
     <div class="card-body">
       <div id="past-session-alert" class="alert alert-warning d-none mb-2"></div>
       <form id="form-create-past-session" class="row g-2 align-items-end">
@@ -32,6 +31,9 @@
     </div>
   </div>
 {% endif %}
+<h2>
+  Séances récentes
+</h2>
 <form class="row gy-3 gx-4 align-items-start mb-3" method="get" action="/sessions" id="sessions-filters">
   <div class="col-md-3 col-sm-6 d-flex flex-column">
     <label for="lieu-select" class="fw-semibold mb-1">Lieu</label>
