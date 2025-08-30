@@ -512,22 +512,53 @@
     else
         this.setCustomValidity('');
   });
-  // deuxième popup si pas de séance ouverte lors de l'envoi d'une nouvelle fiche
+  // Confirmation(s) à la soumission (ordre: type non standard -> hors séance)
   $(document).on('submit', 'form[action="{{ url_for("main.post_object") }}"]', function(e){
-    if ($(this).find('input[name=rid]').val()) return true; // édition -> pas concerné
-    e.preventDefault();
     const form = this;
-    $.getJSON('/api/sessions?opened=1', function(data){
-        if (data.length === 0) {
-            rkConfirm({
-              title: 'Créer hors séance',
-              message: 'Aucune séance ouverte. Créer la fiche sans séance ?',
-              confirmText: 'Créer',
-              confirmBtnClass: 'btn-primary'
-            }).then(function(ok){ if(ok) form.submit(); });
-        } else {
-          form.submit();
-        }
+    const isEdit = !!$(form).find('input[name=rid]').val();
+    // Eviter boucle sur submit() programmatique (flag)
+    if (form.__submittingConfirmed) { return true; }
+    // Déterminer si type standard absent mais type libre saisi
+    const hasStandard = !!$('#object_type_id').val();
+    const freeVal = ($('#otype_free').val()||'').trim();
+    const needNonStandardConfirm = !hasStandard && freeVal.length>0;
+    // Chaîne de promesses
+    let p = Promise.resolve(true);
+    if (needNonStandardConfirm) {
+      e.preventDefault();
+      p = p.then(function(){
+        return rkConfirm({
+          title: 'Type non standard',
+          message: "Vous définissez un type d'objet non standard. Confirmez-vous qu'il n'existe pas dans la liste ?",
+          confirmText: 'Confirmer',
+          cancelText: 'Annuler',
+          confirmBtnClass: 'btn-warning'
+        });
+      });
+    } else {
+      // si pas de confirmation type, on empêche quand même pour pouvoir gérer séance éventuelle (création)
+      e.preventDefault();
+    }
+    p.then(function(ok){
+      if(!ok) return; // annulé
+      // Si création (pas edit) et aucune séance ouverte -> confirmation supplémentaire
+      if(!isEdit){
+        return new Promise(function(resolve){
+          $.getJSON('/api/sessions?opened=1', function(data){
+            if(data.length===0){
+              rkConfirm({
+                title: 'Créer hors séance',
+                message: 'Aucune séance ouverte. Créer la fiche sans séance ?',
+                confirmText: 'Créer',
+                cancelText: 'Annuler',
+                confirmBtnClass: 'btn-primary'
+              }).then(resolve);
+            } else { resolve(true); }
+          });
+        }).then(function(ok2){ if(ok2){ form.__submittingConfirmed=true; form.submit(); }});
+      } else {
+        form.__submittingConfirmed=true; form.submit();
+      }
     });
   });
   // Confirmation si on change la séance (objet déjà rattaché à une autre)
