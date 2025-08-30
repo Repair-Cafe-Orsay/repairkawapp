@@ -38,10 +38,27 @@
 <table class="table table-sm table-striped align-middle">
   <thead>
     <tr>
-  <th>Nom</th>
-  <th>Variantes</th>
-  <th>Catégorie</th>
-  <th class="text-end"># Objets</th>
+      {# Utilitaires pour basculer direction #}
+      {% set name_dir = 'desc' if sort=='name' and dir=='asc' else 'asc' %}
+      {% set cat_dir = 'desc' if sort=='category' and dir=='asc' else 'asc' %}
+      <th>
+        <a href="{{ url_for('admin.objecttypes_admin_list', q=q, sort='name', dir=name_dir) }}" class="text-decoration-none">
+          Nom
+          {% if sort=='name' %}
+            <span class="small">{{ '▲' if dir=='asc' else '▼' }}</span>
+          {% endif %}
+        </a>
+      </th>
+      <th>Variantes</th>
+      <th>
+        <a href="{{ url_for('admin.objecttypes_admin_list', q=q, sort='category', dir=cat_dir) }}" class="text-decoration-none">
+          Catégorie
+          {% if sort=='category' %}
+            <span class="small">{{ '▲' if dir=='asc' else '▼' }}</span>
+          {% endif %}
+        </a>
+      </th>
+      <th class="text-end"># Objets</th>
     </tr>
   </thead>
   <tbody>

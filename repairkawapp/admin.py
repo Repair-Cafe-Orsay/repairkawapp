@@ -15,7 +15,16 @@ from flask_login import current_user, login_required
 from werkzeug.security import generate_password_hash
 
 from . import db
-from .models import BoardRoleLog, Category, MembershipLog, ObjectType, ObjectVariant, Repair, User
+from .models import (
+    BoardRoleLog,
+    Category,
+    MembershipLog,
+    ObjectSubtype,
+    ObjectType,
+    ObjectVariant,
+    Repair,
+    User,
+)
 from .services.image_service import process_user_photo
 
 admin = Blueprint("admin", __name__)
@@ -50,6 +59,12 @@ def _admin_only():
 def objecttypes_admin_list():
     _admin_only()
     q = (request.args.get("q") or "").strip().lower()
+    sort = request.args.get("sort", "name")  # name | category
+    direction = request.args.get("dir", "asc")  # asc | desc
+    if sort not in {"name", "category"}:
+        sort = "name"
+    if direction not in {"asc", "desc"}:
+        direction = "asc"
     types_query = (
         ObjectType.query.join(Category)
         .outerjoin(ObjectVariant)
@@ -91,6 +106,12 @@ def objecttypes_admin_list():
                 "nb_repairs": repair_counts.get(ot.id, 0),
             }
         )
+    # Tri en mémoire selon paramètres
+    reverse = direction == "desc"
+    if sort == "category":
+        out.sort(key=lambda x: ((x["category"] or ""), x["name"]), reverse=reverse)
+    else:  # default tri par nom
+        out.sort(key=lambda x: x["name"], reverse=reverse)
     if request.method == "POST":
         # Création nouveau type
         name = (request.form.get("name") or "").strip()
@@ -106,6 +127,8 @@ def objecttypes_admin_list():
         "objecttype_list.html",
         types=out,
         q=q,
+        sort=sort,
+        dir=direction,
         categories=categories,
     )
 
@@ -142,6 +165,35 @@ def objecttype_admin_detail(ot_id: int):
                 (
                     db.session.query(ObjectVariant)
                     .filter_by(id=int(vid), object_type_id=ot.id)
+                    .delete()
+                )
+                db.session.commit()
+            return redirect(url_for("admin.objecttype_admin_detail", ot_id=ot.id))
+        elif action == "add_subtype":
+            sname = (request.form.get("subtype_name") or "").strip()
+            if sname:
+                db.session.add(ObjectSubtype(name=sname, object_type=ot))
+                db.session.commit()
+            return redirect(url_for("admin.objecttype_admin_detail", ot_id=ot.id))
+        elif action == "update_subtype":
+            sid = request.form.get("subtype_id")
+            sname = (request.form.get("subtype_name") or "").strip()
+            if sid and sid.isdigit() and sname:
+                st = (
+                    db.session.query(ObjectSubtype)
+                    .filter_by(id=int(sid), object_type_id=ot.id)
+                    .first()
+                )
+                if st:
+                    st.name = sname
+                    db.session.commit()
+            return redirect(url_for("admin.objecttype_admin_detail", ot_id=ot.id))
+        elif action == "delete_subtype":
+            sid = request.form.get("subtype_id")
+            if sid and sid.isdigit():
+                (
+                    db.session.query(ObjectSubtype)
+                    .filter_by(id=int(sid), object_type_id=ot.id)
                     .delete()
                 )
                 db.session.commit()

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
+<a href="{{ url_for('main.sessions_page') }}" class="btn btn-sm btn-outline-secondary mb-3">← Retour</a>
 <h2>Séance #{{ session.id }} {% if session.closed_at %}<span class="badge bg-secondary">Fermée{% else %}<span class="badge bg-success">Ouverte{% endif %}</span></h2>
 <p class="text-muted small mb-4">
   Ouverte le {{ session.opened_at|local_dt }}{% if session.closed_at %} | Fermée le {{ session.closed_at|local_dt }}{% endif %}
