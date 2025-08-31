@@ -351,6 +351,7 @@ def user_edit(user_id):
         # Founder: seul un fondateur peut modifier ce flag
         if current_user.founder:
             u.founder = True if request.form.get("founder") else False
+        # si non fondateur, founder reste inchangé (lecture seule côté template)
 
         # Commit seulement si pas d'erreur photo ou password -> redirection liste
         if not photo_error and not password_error:

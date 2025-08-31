@@ -7,7 +7,7 @@
   <div class="trombi-grid mb-5">
     {% for u in board %}
   {% set st = status_map.get(u.id) if status_map is defined else None %}
-  <div class="trombi-item trombi-click {% if st=='ancien' %}trombi-ancien{% endif %}" data-name="{{ u.name|e }}" data-role="{{ u.board_title|e }}" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}" data-email="{{ u.email|e }}" data-phone="{{ u.phone or '' }}">
+  <div class="trombi-item trombi-click {% if st=='ancien' %}trombi-ancien{% endif %}" data-name="{{ u.name|e }}" data-role="{{ u.board_title|e }}" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}" data-email="{% if current_user.is_authenticated %}{{ u.email|e }}{% endif %}" data-phone="{% if current_user.is_authenticated %}{{ u.phone or '' }}{% endif %}">
         <div class="trombi-photo-wrapper mb-1 position-relative">
           {% if u.photo_filename %}
             <img src="/uploads/{{ u.photo_filename }}" alt="{{ u.name }}" class="trombi-photo">
@@ -28,7 +28,7 @@
   <div class="trombi-grid">
     {% for u in others %}
   {% set st = status_map.get(u.id) if status_map is defined else None %}
-  <div class="trombi-item trombi-click {% if st=='ancien' %}trombi-ancien{% endif %}" data-name="{{ u.name|e }}" data-role="" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}" data-email="{{ u.email|e }}" data-phone="{{ u.phone or '' }}">
+  <div class="trombi-item trombi-click {% if st=='ancien' %}trombi-ancien{% endif %}" data-name="{{ u.name|e }}" data-role="" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}" data-email="{% if current_user.is_authenticated %}{{ u.email|e }}{% endif %}" data-phone="{% if current_user.is_authenticated %}{{ u.phone or '' }}{% endif %}">
         <div class="trombi-photo-wrapper mb-1 position-relative">
           {% if u.photo_filename %}
             <img src="/uploads/{{ u.photo_filename }}" alt="{{ u.name }}" class="trombi-photo">
@@ -107,13 +107,18 @@ document.addEventListener('DOMContentLoaded', function(){
             }
         }
       } else {
-        nameEl.textContent = n;
+  // Ajoute suffixe membre fondateur si badge présent dans l'item
+  const isFounder = !!this.querySelector('.trombi-founder');
+  nameEl.textContent = isFounder ? (n + ' – membre fondateur') : n;
         if (r) { roleEl.textContent = r; roleEl.style.display='block'; } else { roleEl.style.display='none'; }
         textEl.innerHTML = b ? b.replace(/\n/g,'<br>') : '<em>Aucune biographie.</em>';
         if (em || ph) {
+          // Pour visiteurs non connectés, data-email/phone sont vides donc rien ne s'affiche.
           contactEl.style.display='block';
           contactEl.innerHTML = [em, ph].filter(Boolean).join(' · ');
-        } else { contactEl.style.display='none'; }
+        } else {
+          contactEl.style.display='none';
+        }
         if (!bsModal) { bsModal = new bootstrap.Modal(modalEl); }
         bsModal.show();
       }
@@ -125,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function(){
 .trombi-item.trombi-ancien { opacity:0.5; }
 .trombi-photo-wrapper { position: relative; }
 .trombi-badge { position:absolute; left:4px; bottom:4px; font-size:0.6rem; padding:2px 4px; }
-.trombi-founder { position:absolute; top:4px; left:4px; background:#000; color:#ffc107; font-weight:700; font-size:0.55rem; line-height:1; padding:4px 5px; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 1px #ffc107; }
+.trombi-founder { position:absolute; top:-6px; right:-6px; background:#198754; color:#fff; font-weight:700; font-size:0.65rem; line-height:1; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 2px 4px rgba(0,0,0,.25); z-index:2; }
 </style>
 </script>
 {% endblock %}

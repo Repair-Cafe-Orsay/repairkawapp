@@ -347,6 +347,7 @@ def sendmail():
 @api.route("/api/session/open", methods=["POST"])
 @login_required
 def api_session_open():
+    # Tout réparateur authentifié peut ouvrir une séance (owner = current_user)
     payload = request.get_json(silent=True) or {}
     location = payload.get("location") or request.form.get("location")
     opened_time = payload.get("opened_time") or request.form.get("opened_time")  # HH:MM locale
