@@ -37,7 +37,9 @@
             </td>
             <td>
                 {% if user.last_connection %}
-                    {{ user.last_connection.astimezone().strftime('%Y-%m-%d %H:%M') }}
+                    <span class="last-conn" data-epoch="{{ user.last_connection.timestamp() }}">
+                        {{ user.last_connection.astimezone().strftime('%Y-%m-%d %H:%M') }}
+                    </span>
                 {% endif %}
             </td>
         </tr>
@@ -81,6 +83,24 @@ $(document).ready(function(){
             });
         }
     });
+
+    // Conversion des horodatages last_connection en heure locale navigateur
+    (function convertLastConn(){
+        document.querySelectorAll('span.last-conn[data-epoch]').forEach(el => {
+            const epoch = parseFloat(el.getAttribute('data-epoch'));
+            if (!isNaN(epoch)) {
+                const d = new Date(epoch * 1000);
+                // Format local court (fallback si Intl indisponible)
+                try {
+                    el.textContent = d.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+                } catch(e) {
+                    const pad = n => String(n).padStart(2,'0');
+                    el.textContent = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                }
+                el.title = 'UTC: ' + d.toISOString().replace('T',' ').replace('Z','');
+            }
+        });
+    })();
 
     $('#user_table_id tbody').on('click','button', function(){
         const user_id = $(this).closest('tr').attr('user_id');
