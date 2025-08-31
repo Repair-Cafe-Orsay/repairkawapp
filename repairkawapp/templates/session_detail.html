@@ -1,15 +1,26 @@
 {% extends 'base.html' %}
 {% block content %}
-<a href="{{ url_for('main.sessions_page') }}" class="btn btn-sm btn-outline-secondary mb-3">← Retour</a>
-<h2>Séance #{{ session.id }} {% if session.closed_at %}<span class="badge bg-secondary">Fermée{% else %}<span class="badge bg-success">Ouverte{% endif %}</span></h2>
+<div class="d-flex justify-content-start">
+  <a href="{{ url_for('main.sessions_page') }}" id="btn-back" class="btn btn-sm btn-outline-secondary mb-3">← Retour</a>
+</div>
+<h2 class="d-flex flex-wrap align-items-center gap-3">
+  <span>Séance #{{ session.id }} {% if session.closed_at %}<span class="badge bg-secondary">Fermée{% else %}<span class="badge bg-success">Ouverte{% endif %}</span></span>
+  {% if session.location %}
+    <span class="d-inline-flex align-items-center gap-2 small">
+      <span class="loc-color-dot" data-color="{{ location_color or '#ccc' }}"></span>
+      <span class="text-muted">{{ session.location.name }}</span>
+    </span>
+  {% endif %}
+</h2>
+<script id="location-colors-data" type="application/json">{{ location_colors|tojson|safe }}</script>
 <p class="text-muted small mb-4">
   Ouverte le {{ session.opened_at|local_dt }}{% if session.closed_at %} | Fermée le {{ session.closed_at|local_dt }}{% endif %}
 </p>
 <form id="session-update" class="mb-3">
   <div class="row g-2">
     <div class="col-md-4 col-lg-3">
-      <label class="form-label">Lieu</label>
-      <select class="form-select" name="location_select" id="detail-location-select">
+  <label class="form-label">Lieu</label>
+  <select class="form-select" name="location_select" id="detail-location-select">
         <option value="" disabled {% if not session.location %}selected{% endif %}>Choisir un lieu...</option>
         {% if session.location %}<option value="{{ session.location.name }}" selected>{{ session.location.name }}</option>{% endif %}
         <option value="__new__">➕ Nouveau lieu...</option>
@@ -17,7 +28,7 @@
       <input type="text" class="form-control mt-1" name="new_location" id="detail-new-location" placeholder="Nouveau lieu" style="display:none;" />
     </div>
     <div class="col-md-8 col-lg-9 d-flex align-items-end">
-  <button class="btn btn-warning ms-auto" id="btn-session-update" type="submit" disabled>Mettre à jour</button>
+  <button class="btn btn-warning ms-auto" type="submit">Mettre à jour</button>
     </div>
   </div>
   <div class="row mt-3">
@@ -35,7 +46,7 @@
         <option value="{{ u.id }}" {% if u.id == session.owner_id %}selected{% endif %}>{{ u.name }}</option>
       {% endfor %}
     </select>
-  <button id="btn-change-owner" class="btn btn-warning" type="button" disabled>Changer de responsable</button>
+  <button id="btn-change-owner" class="btn btn-outline-secondary" type="button">Changer de responsable</button>
   </div>
 </div>
 <div class="mb-3">
@@ -43,7 +54,7 @@
     <div class="d-flex gap-2 flex-wrap align-items-center">
   <button id="btn-reopen" class="btn btn-success">Réouvrir la séance</button>
       {% if session.repairs|length == 0 %}
-        <button id="btn-delete" class="btn btn-danger ms-auto">Supprimer (vide)</button>
+        <button id="btn-delete" class="btn btn-outline-danger ms-auto">Supprimer (vide)</button>
       {% endif %}
     </div>
   {% else %}
@@ -55,96 +66,45 @@
           {% if show_now_button %}<button class="btn btn-outline-secondary" type="button" id="btn-set-now">Maintenant</button>{% endif %}
         </div>
       </div>
-  <div class="align-self-end">
-	<button id="btn-close" class="btn btn-success">Fermer la séance</button>
-  </div>
+      <div class="align-self-end">
+  <button id="btn-close" class="btn btn-success">Fermer la séance</button>
+      </div>
       {% if session.repairs|length == 0 %}
         <div class="align-self-end ms-auto">
-          <button id="btn-delete" class="btn btn-danger">Supprimer (vide)</button>
+          <button id="btn-delete" class="btn btn-outline-danger">Supprimer (vide)</button>
         </div>
       {% endif %}
     </div>
   {% endif %}
 </div>
 <hr>
-<h5>Réparateurs ({{ participants|length }})</h5>
-<div class="row g-3 mb-3 align-items-stretch" id="participants-block">
-  <div class="col-md-6 d-flex flex-column">
-  <label class="form-label">Autres réparateurs présents</label>
-    <select id="participants-select" class="form-select" multiple size="8">
-      {% for u in all_users %}
-        {% if u.id != session.owner_id %}
-          <option value="{{ u.id }}" {% if u in participants %}selected{% endif %}>{{ u.name }}</option>
-        {% endif %}
-      {% endfor %}
-    </select>
-  <div class="form-text">Sélection multiple (Ctrl / Cmd). Le responsable est implicite.</div>
-  </div>
-  <div class="col-md-6 d-flex flex-column">
-    <label class="form-label">Filtrer</label>
-    <input type="text" id="participant-filter" class="form-control" placeholder="Filtrer par nom...">
-    <div class="form-text">Tapez quelques lettres pour filtrer.</div>
-    <div class="alert alert-info mt-3 py-2" id="participants-status" style="display:none;"></div>
-    <div class="mt-auto pt-2">
-      <button type="button" class="btn btn-warning w-100" id="btn-save-participants" disabled>Enregistrer la liste</button>
-    </div>
-  </div>
-</div>
+<h5>Participants ({{ participants|length }})</h5>
+<ul>
+  {% for u in participants %}<li>{{ u.name }} ({{ u.email }})</li>{% endfor %}
+</ul>
 <h5>Réparations ({{ session.repairs|length }})</h5>
 <ul>
   {% for r in session.repairs %}
     <li>
-  <a href="/update/{{ r.display_id }}">{{ r.display_id }}</a> - {{ (r.object_type and r.object_type.name and r.otype and (r.object_type.name ~ ' (' ~ r.otype ~ ')')) or r.otype or (r.object_type and r.object_type.name) }} ({{ r.brand.name if r.brand }})
+      <a href="/update/{{ r.display_id }}">{{ r.display_id }}</a> - {{ r.otype }} ({{ r.brand.name if r.brand }})
     </li>
   {% endfor %}
 </ul>
+  <style>
+    .loc-color-dot { width:14px; height:14px; border-radius:50%; border:1px solid #555; display:inline-block; background:#ccc; }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      document.querySelectorAll('.loc-color-dot[data-color]').forEach(el=>{
+        const c = el.getAttribute('data-color');
+        if(c) el.style.backgroundColor = c;
+      });
+    });
+  </script>
 {% if session.repairs|length > 0 %}
   <p class="mt-2"><a class="btn btn-sm btn-outline-primary" href="/repairs?session_id={{ session.id }}">Voir ces fiches (filtre séance #{{ session.id }})</a></p>
 {% endif %}
 <script>
-// ID du responsable (non listé dans le multi-select)
-let ownerId = JSON.parse('{{ session.owner_id|tojson|safe }}');
-// Etat initial pour comparaison
-const initialState = {
-  ownerId: ownerId,
-  location: $('#detail-location-select').val(),
-  comment: $('textarea[name=comment]').val(),
-  participants: (function(){
-    const arr=[]; $('#participants-select option:selected').each(function(){arr.push(parseInt(this.value,10));}); return arr.sort((a,b)=>a-b);
-  })()
-};
-function snapshotParticipants(){
-  const arr=[]; $('#participants-select option:selected').each(function(){arr.push(parseInt(this.value,10));}); return arr.sort((a,b)=>a-b);
-}
-function resetInitialState(parts){
-  if(!parts || parts.owner){ initialState.ownerId = ownerId; }
-  if(!parts || parts.location){ initialState.location = $('#detail-location-select').val(); }
-  if(!parts || parts.comment){ initialState.comment = $('textarea[name=comment]').val(); }
-  if(!parts || parts.participants){ initialState.participants = snapshotParticipants(); }
-}
-function currentParticipants(){
-  return snapshotParticipants();
-}
-function arraysEqual(a,b){ if(a.length!==b.length) return false; for(let i=0;i<a.length;i++){ if(a[i]!==b[i]) return false;} return true; }
-function computeChanges(){
-  const locSel = $('#detail-location-select').val();
-  const loc = locSel === '__new__' ? ($('#detail-new-location').val().trim()||'') : (locSel||'');
-  const commentVal = $('textarea[name=comment]').val();
-  const ownerChanged = ownerId !== initialState.ownerId;
-  // initialState.participants ne contient déjà que les "autres" (hors responsable)
-  const participantsChanged = !arraysEqual(currentParticipants(), initialState.participants);
-  const locationChanged = loc !== (initialState.location||'');
-  const commentChanged = commentVal !== initialState.comment;
-  return {ownerChanged, participantsChanged, locationChanged, commentChanged};
-}
-function refreshButtons(){
-  const ch = computeChanges();
-  $('#btn-session-update').prop('disabled', !(ch.locationChanged || ch.commentChanged || ch.participantsChanged || ch.ownerChanged));
-  $('#btn-save-participants').prop('disabled', !ch.participantsChanged);
-  $('#btn-change-owner').prop('disabled', !ch.ownerChanged);
-}
-$(document).on('input change', '#detail-location-select, #detail-new-location, textarea[name=comment], #participants-select, #new-owner, #participant-filter', refreshButtons);
-$(refreshButtons);
 function load_locations_detail() {
   $.getJSON('/api/locations', function(data){
     const sel = $('#detail-location-select');
@@ -165,100 +125,18 @@ function load_locations_detail() {
 load_locations_detail();
 $('#detail-location-select').on('change', function(){
   if ($(this).val()==='__new__') { $('#detail-new-location').val('').show().focus(); } else { $('#detail-new-location').hide(); }
+  updateLocationDot();
 });
 $('#session-update').on('submit', function(e){
   e.preventDefault();
-  const $form = $(this);
-  // Récupération des champs
   let locSel = $('#detail-location-select').val();
-  let loc = locSel === '__new__' ? ($('#detail-new-location').val().trim() || null) : locSel;
-  const commentVal = $form.find('[name=comment]').val();
-  const newOwnerId = parseInt($('#new-owner').val(), 10);
-  const participantsOthers = ($('#participants-select').val() || []).map(Number); // autres réparateurs
-  // Toujours inclure l'actuel owner tant qu'on n'a pas transféré.
-  if (!participantsOthers.includes(ownerId)) participantsOthers.push(ownerId);
-  const needsParticipantsUpdate = true; // on envoie systématiquement (simple)
-  const needsOwnerChange = !isNaN(newOwnerId) && newOwnerId !== ownerId;
-  const payloadUpdate = { comment: commentVal };
-  if (loc) payloadUpdate.location = loc;
-  if (needsParticipantsUpdate) payloadUpdate.participants = participantsOthers;
-  const doOwnerChange = () => {
-    if(!needsOwnerChange) return Promise.resolve();
-    return new Promise((resolve, reject)=>{
-      $.ajax({
-        type:'POST',
-        url:'/api/session/owner/{{ session.id }}',
-        contentType:'application/json',
-        data: JSON.stringify({owner_id: newOwnerId}),
-        success:function(){ ownerId = newOwnerId; resolve(); },
-        error:function(_,s,e){ reject(new Error('owner_change_failed '+e)); }
-      });
-    });
-  };
-  const doUpdate = () => new Promise((resolve, reject)=>{
-    $.ajax({
-      type:'POST',
-      url:'/api/session/update/{{ session.id }}',
-      contentType:'application/json',
-      data: JSON.stringify(payloadUpdate),
-      success:function(){ resolve(); },
-      error:function(_,s,e){ reject(new Error('update_failed '+e)); }
-    });
-  });
-  // IMPORTANT: d'abord update (participants/location/comment), ensuite transfert de responsabilité
-  doUpdate()
-    .then(()=> doOwnerChange())
-    .then(()=> { location.reload(); })
-    .catch(err=>{
-      $('#participants-status').text('Erreur de mise à jour: '+ err.message).removeClass('alert-info').addClass('alert-danger').show();
-    });
+  let loc = locSel === '__new__' ? $('#detail-new-location').val().trim() : locSel;
+  const payload = {location: loc, comment: $(this).find('[name=comment]').val()};
+  $.ajax({type:'POST', url:'/api/session/update/{{ session.id }}', contentType:'application/json', data: JSON.stringify(payload), success:function(){location.reload();}});
 });
 $('#btn-change-owner').on('click', function(){
-  const newOwnerId = parseInt($('#new-owner').val(), 10);
-  if (isNaN(newOwnerId) || newOwnerId === ownerId) return;
-  $.ajax({
-    type:'POST',
-    url:'/api/session/owner/{{ session.id }}',
-    contentType:'application/json',
-    data: JSON.stringify({owner_id: newOwnerId}),
-    success:function(){
-      const oldOwnerId = ownerId;
-      ownerId = newOwnerId; // mise à jour variable
-      // 1. Ajouter ancien responsable dans la liste des autres réparateurs s'il n'y est pas
-      const $sel = $('#participants-select');
-      if ($sel.find('option[value="'+oldOwnerId+'"]').length === 0){
-        // Tenter de récupérer le nom depuis select #new-owner
-        const oldOwnerName = $('#new-owner option[value="'+oldOwnerId+'"]').text();
-        $('<option/>').val(oldOwnerId).text(oldOwnerName).prop('selected', true).appendTo($sel);
-      } else {
-        $sel.find('option[value="'+oldOwnerId+'"]').prop('selected', true).show();
-      }
-      // 2. Retirer le nouveau responsable de la liste des autres réparateurs
-      $sel.find('option[value="'+newOwnerId+'"]').remove();
-      // 3. Mettre à jour le select de changement de responsable (#new-owner) : conserver tous participants + nouveau responsable
-      // Reconstituer liste #new-owner : options = owner + autres (participants-select)
-      const currentOptions = [];
-      currentOptions.push({id: ownerId, name: $('#new-owner option:selected').text()});
-      $sel.find('option').each(function(){ currentOptions.push({id: parseInt(this.value,10), name: $(this).text()}); });
-      const $ownerSel = $('#new-owner');
-      $ownerSel.empty();
-      currentOptions.forEach(function(o){
-        const opt = $('<option/>').val(o.id).text(o.name);
-        if (o.id === ownerId) opt.prop('selected', true);
-        $ownerSel.append(opt);
-      });
-      // 4. Feedback utilisateur
-      $('#participants-status').text('Responsable changé. Ancien responsable ajouté aux autres.').removeClass('alert-danger').addClass('alert-info').show();
-      setTimeout(()=> $('#participants-status').fadeOut(), 2500);
-  // Après changement de responsable, on réinitialise l'état (owner+participants)
-  resetInitialState({owner:true, participants:true});
-  refreshButtons();
-    },
-    error:function(){
-      $('#participants-status').text("Erreur lors du changement de responsable").removeClass('alert-info').addClass('alert-danger').show();
-    }
-  });
-  refreshButtons();
+  const owner_id = $('#new-owner').val();
+  $.ajax({type:'POST', url:'/api/session/owner/{{ session.id }}', contentType:'application/json', data: JSON.stringify({owner_id: owner_id}), success:function(){location.reload();}});
 });
 const btnNow = $('#btn-set-now');
 if (btnNow.length){
@@ -272,41 +150,10 @@ if (btnNow.length){
 $('#btn-close').on('click', function(){
   const ct = $('#close-time').val();
   const comment = $('textarea[name=comment]').val().trim();
-  const nbParticipants = $('#participants-select option:selected').length;
-  const checks = [];
-  if (comment.length < 4) {
-    checks.push(rkConfirm({
-      title: 'Commentaire requis',
-      message: 'Veuillez saisir un commentaire (au moins 4 caractères) avant de fermer.',
-      confirmText: 'OK',
-      cancelText: null,
-      confirmBtnClass: 'btn-warning'
-    }).then(()=>false));
-  }
-  if (nbParticipants < 1) {
-    checks.push(rkConfirm({
-      title: 'Participants insuffisants',
-  message: 'Ajoutez au moins un autre réparateur (sélectionnez-le dans la liste) avant de fermer.',
-      confirmText: 'OK',
-      cancelText: null,
-      confirmBtnClass: 'btn-warning'
-    }).then(()=>false));
-  }
-  if (checks.length){
-    Promise.all(checks).then(()=>{});
-    return;
-  }
-  rkConfirm({
-    title: 'Confirmer fermeture',
-  message: 'Réparateurs sélectionnés: '+nbParticipants+'\nConfirmer la fermeture ? (Le commentaire et la liste seront enregistrés)',
-    confirmText: 'Oui, fermer',
-    confirmBtnClass: 'btn-success'
-  }).then(function(ok){ if(!ok) return; if(saveParticipants(()=>doClose())){/* fermeture lancée après save */} });
-  function doClose(){
-    const payload = {comment: comment};
-    if (ct) payload.closed_time = ct;
-    $.ajax({type:'POST', url:'/api/session/close/{{ session.id }}', contentType:'application/json', data: JSON.stringify(payload), success:function(){location.reload();}});
-  }
+  if (comment.length < 4) { alert('Commentaire requis (au moins 4 caractères)'); return; }
+  const payload = {comment: comment};
+  if (ct) payload.closed_time = ct;
+  $.ajax({type:'POST', url:'/api/session/close/{{ session.id }}', contentType:'application/json', data: JSON.stringify(payload), success:function(){location.reload();}});
 });
 $('#btn-reopen').on('click', function(){
   $.ajax({type:'POST', url:'/api/session/reopen/{{ session.id }}', success:function(){location.reload();}});
@@ -322,48 +169,26 @@ $('#btn-delete').on('click', function(){
     $.ajax({type:'DELETE', url:'/api/session/delete/{{ session.id }}', success:function(){ window.location = '/sessions'; }});
   });
 });
-// --- Gestion participants ---
-$('#participant-filter').on('input', function(){
-  const q = $(this).val().toLowerCase();
-  $('#participants-select option').each(function(){
-    const txt = $(this).text().toLowerCase();
-    $(this).toggle(txt.indexOf(q) !== -1 || $(this).prop('selected'));
-  });
-});
-function saveParticipants(onSuccess){
-  let sel = $('#participants-select').val() || [];
-  if (sel.length < 1) {
-  $('#participants-status').text('Ajoutez au moins un autre réparateur.').removeClass('alert-info').addClass('alert-danger').show();
-    return false;
-  }
-  // Ajouter owner implicitement
-  const payload = { participants: sel.map(Number).concat([ownerId]) };
-  $.ajax({
-    type:'POST',
-    url:'/api/session/update/{{ session.id }}',
-    contentType:'application/json',
-    data: JSON.stringify(payload),
-    success:function(){
-  $('#participants-status').text('Réparateurs enregistrés ('+sel.length+' + responsable).').removeClass('alert-danger').addClass('alert-info').show();
-      setTimeout(()=> $('#participants-status').fadeOut(), 2000);
-      if(onSuccess) onSuccess();
-  // Réinitialise l'état (participants seulement)
-  resetInitialState({participants:true});
-  refreshButtons();
-    },
-    error:function(){
-      $('#participants-status').text("Erreur d'enregistrement").removeClass('alert-info').addClass('alert-danger').show();
-    }
-  });
-  return true;
+// Couleurs lieux (pour pastille dynamique)
+let RK_LOC_COLORS = {};
+try { RK_LOC_COLORS = JSON.parse(document.getElementById('location-colors-data')?.textContent || '{}'); } catch(e){}
+function updateLocationDot(){
+  const sel = document.getElementById('detail-location-select');
+  const val = sel ? sel.value : null;
+  const dotEls = document.querySelectorAll('.loc-color-dot');
+  const color = RK_LOC_COLORS[val] || (val==='__new__'? '#cccccc' : (val? RK_LOC_COLORS[val] : '{{ location_color or "#ccc" }}'));
+  dotEls.forEach(el=>{ if(color) el.style.backgroundColor = color; });
 }
-$('#btn-save-participants').on('click', function(){ saveParticipants(); });
-$('#participant-filter').on('input', function(){
-  const q = $(this).val().toLowerCase();
-  $('#participants-select option').each(function(){
-    const txt = $(this).text().toLowerCase();
-    $(this).toggle(txt.indexOf(q) !== -1 || $(this).prop('selected'));
-  });
-});
+updateLocationDot();
+</script>
+<script>
+ (function(){
+   const back = document.getElementById('btn-back');
+   if(back){
+     back.addEventListener('click', function(e){
+       if (window.history.length > 1) { e.preventDefault(); window.history.back(); }
+     });
+   }
+ })();
 </script>
 {% endblock %}

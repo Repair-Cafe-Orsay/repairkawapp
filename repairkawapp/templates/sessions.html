@@ -38,6 +38,22 @@
 <!-- Données templating exposées de façon neutre pour le JS -->
 <span id="sessions-flags" data-is-admin="{{ 1 if current_user.admin else 0 }}" class="d-none"></span>
 <script id="session-days-data" type="application/json">{{ session_days|tojson|safe }}</script>
+<script id="day-colors-data" type="application/json">{{ day_colors|tojson|safe }}</script>
+<script id="location-colors-data" type="application/json">{{ location_colors|tojson|safe }}</script>
+<style>
+  .location-badge { display:inline-flex; align-items:center; gap:4px; }
+  .location-badge .loc-dot { width:12px; height:12px; border-radius:50%; border:1px solid #666; }
+  .day-color-dots { position:absolute; left:2px; bottom:2px; display:flex; gap:2px; }
+  .day-color-dots span { width:6px; height:6px; border-radius:50%; border:1px solid #555; }
+  #sessions-calendar { position:relative; }
+  .cal-legend-toggle { position:absolute; right:24px; bottom:6px; z-index:5; width:22px; height:22px; padding:0; line-height:20px; font-size:14px; background:#0d6efd; color:#fff; border:1px solid #0a58ca; }
+  .cal-legend-popup { position:absolute; right:0; bottom:30px; z-index:10; background:#fff; border:1px solid #ccc; box-shadow:0 2px 6px rgba(0,0,0,.15); border-radius:4px; min-width:200px; max-height:260px; overflow:auto; display:none; }
+  .cal-legend-popup header { display:flex; align-items:center; justify-content:space-between; padding:4px 8px; border-bottom:1px solid #eee; font-weight:600; font-size:12px; }
+  .cal-legend-popup ul { list-style:none; margin:0; padding:4px 4px 6px 4px; font-size:12px; }
+  .cal-legend-popup li { display:flex; align-items:center; gap:6px; padding:2px 4px; border-radius:3px; }
+  .cal-legend-popup .dot { width:12px; height:12px; border-radius:50%; border:1px solid rgba(0,0,0,.5); flex-shrink:0; }
+  .cal-legend-close { background:transparent; border:none; font-size:16px; line-height:1; padding:0 4px; cursor:pointer; }
+</style>
 <form class="row gy-3 gx-4 align-items-start mb-3" method="get" action="/sessions" id="sessions-filters">
   <div class="col-md-3 col-sm-6 d-flex flex-column">
     <label for="lieu-select" class="fw-semibold mb-1">Lieu</label>
@@ -72,7 +88,14 @@
     <tr class="{% if not s.closed_at %}table-warning{% endif %}">
     <td class="text-nowrap"><a href="/sessions/{{ s.id }}" class="btn btn-sm btn-outline-primary">Voir</a></td>
     <td>{{ s.id }} {% if not s.closed_at %}<span class="badge bg-warning text-dark">Ouverte</span>{% else %}<span class="badge bg-secondary">Fermée</span>{% endif %}</td>
-  <td>{{ s.location.name if s.location else '' }}</td>
+  <td>
+    {% if s.location %}
+      <span class="location-badge" data-loc="{{ s.location.name }}">
+        <span class="loc-dot"></span>
+        {{ s.location.name }}
+      </span>
+    {% endif %}
+  </td>
   <td>{{ s.opened_at|local_dt }}</td>
   <td>{{ s.owner.name if s.owner else '' }}</td>
       <td>{{ s.participants|length }}</td>
@@ -95,44 +118,44 @@ document.addEventListener('DOMContentLoaded', function(){
   const IS_ADMIN = flagsEl && flagsEl.dataset.isAdmin === '1';
   // Vérifier séance ouverte pour activer/désactiver création séance passée
   if(IS_ADMIN){
-  (function checkOpen(){
-    $.getJSON('/api/sessions?opened=1', function(data){
-      const hasOpen = data.length>0;
-      const form = $('#form-create-past-session');
-      if(hasOpen){
-        form.find('input,button').prop('disabled', true);
-        $('#past-session-alert').removeClass('d-none').text('Une séance est déjà ouverte (#'+data[0].id+'). Fermez-la avant de créer une séance passée.');
-      } else {
-        form.find('input,button').prop('disabled', false);
-        $('#past-session-alert').addClass('d-none').text('');
+    (function checkOpen(){
+      $.getJSON('/api/sessions?opened=1', function(data){
+        const hasOpen = data.length>0;
+        const form = $('#form-create-past-session');
+        if(hasOpen){
+          form.find('input,button').prop('disabled', true);
+          $('#past-session-alert').removeClass('d-none').text('Une séance est déjà ouverte (#'+data[0].id+'). Fermez-la avant de créer une séance passée.');
+        } else {
+          form.find('input,button').prop('disabled', false);
+          $('#past-session-alert').addClass('d-none').text('');
+        }
+      });
+    })();
+    $('#form-create-past-session').on('submit', function(e){
+      e.preventDefault();
+      const fd = new FormData(this);
+      let locSel = fd.get('location_select');
+      let loc = locSel === '__new__' ? (fd.get('location_new') || '').trim() : (locSel || '').trim();
+      if(!loc){
+        $('#past-session-alert').removeClass('d-none').removeClass('alert-warning').addClass('alert-danger').text('Lieu requis.');
+        return;
       }
+      const payload = { date: fd.get('date'), time: fd.get('time'), location: loc };
+      $.ajax({
+        type:'POST',
+        url:'/api/session/past',
+        contentType:'application/json',
+        data: JSON.stringify(payload),
+        success:function(js){ window.location = '/sessions/'+js.id; },
+        error:function(xhr){
+          const data = xhr.responseJSON || {}; let msg='Erreur';
+          if(data.error==='open_session_exists') msg='Séance ouverte existante: fermez-la d\'abord (#'+data.session_id+').';
+          else if(data.error==='invalid_datetime') msg='Date/heure invalide.';
+          else if(data.error==='missing_fields') msg='Champs requis manquants.';
+          $('#past-session-alert').removeClass('d-none').removeClass('alert-warning').addClass('alert-danger').text(msg);
+        }
+      });
     });
-  })();
-  $('#form-create-past-session').on('submit', function(e){
-    e.preventDefault();
-    const fd = new FormData(this);
-    let locSel = fd.get('location_select');
-    let loc = locSel === '__new__' ? (fd.get('location_new') || '').trim() : (locSel || '').trim();
-    if(!loc){
-      $('#past-session-alert').removeClass('d-none').removeClass('alert-warning').addClass('alert-danger').text('Lieu requis.');
-      return;
-    }
-    const payload = { date: fd.get('date'), time: fd.get('time'), location: loc };
-    $.ajax({
-      type:'POST',
-      url:'/api/session/past',
-      contentType:'application/json',
-      data: JSON.stringify(payload),
-      success:function(js){ window.location = '/sessions/'+js.id; },
-      error:function(xhr){
-        const data = xhr.responseJSON || {}; let msg='Erreur';
-        if(data.error==='open_session_exists') msg='Séance ouverte existante: fermez-la d\'abord (#'+data.session_id+').';
-        else if(data.error==='invalid_datetime') msg='Date/heure invalide.';
-        else if(data.error==='missing_fields') msg='Champs requis manquants.';
-        $('#past-session-alert').removeClass('d-none').removeClass('alert-warning').addClass('alert-danger').text(msg);
-      }
-    });
-  });
   }
   // Chargement des lieux (réutilisation logique entête)
   (function loadPastLocations(){
@@ -168,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function(){
     let current = new Date();
     current.setDate(1); // début du mois
 
-    function render(){
+  function render(){
       const year = current.getFullYear();
       const month = current.getMonth();
       const first = new Date(year, month, 1);
@@ -184,16 +207,72 @@ document.addEventListener('DOMContentLoaded', function(){
       names.forEach(n=> html+='<div class="text-center fw-lighter">'+n+'</div>');
       for (let i=0;i<startDow;i++){ html+='<div></div>'; }
       for (let d=1; d<=lastDay; d++){
-        // Construire la date en local sans décalage UTC (sinon toISOString() recule de 1 jour en été CET)
         const dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
         const has = daysWith.has(dateStr);
-        html += '<button type="button" data-date="'+dateStr+'" class="btn btn-sm p-0 text-center border '+(has? 'btn-outline-primary':'btn-outline-light text-muted')+'" style="height:32px;line-height:30px;">'+d+(has?'•':'')+'</button>';
+        html += '<button type="button" data-date="'+dateStr+'" class="btn btn-sm p-0 text-center position-relative border '+(has? 'btn-outline-primary':'btn-outline-light text-muted')+'" style="height:32px;line-height:30px;">'+d+'</button>';
       }
       html += '</div></div>';
-      cal.innerHTML = html;
+  cal.innerHTML = html;
+  ensureLegend();
     }
 
-    render();
+    // Lecture des couleurs (date -> [hex,...])
+    let dayColorsMap = new Map();
+    (function(){
+      const el = document.getElementById('day-colors-data');
+      if(!el) return;
+      try {
+        const arr = JSON.parse(el.textContent || '[]');
+        arr.forEach(obj=>{ if(obj && obj.date && Array.isArray(obj.colors)) dayColorsMap.set(obj.date, obj.colors); });
+      } catch(e){ console.error('Couleurs jour invalides', e); }
+    })();
+
+    // Couleurs par lieu (pour légende)
+    let locColors = {};
+    try { locColors = JSON.parse(document.getElementById('location-colors-data')?.textContent || '{}'); } catch(e){}
+
+    function ensureLegend(){
+      if(!cal.querySelector('.cal-legend-toggle')){
+        const btn = document.createElement('button');
+        btn.type='button'; btn.className='btn btn-sm btn-outline-secondary cal-legend-toggle'; btn.textContent='?'; btn.title='Couleurs des lieux';
+        cal.appendChild(btn);
+        const pop = document.createElement('div');
+        pop.className='cal-legend-popup';
+        pop.innerHTML='<header>Lieux <button type="button" class="cal-legend-close" aria-label="Fermer">×</button></header><ul></ul>';
+        cal.appendChild(pop);
+        const ul = pop.querySelector('ul');
+        Object.keys(locColors).sort((a,b)=> a.localeCompare(b,'fr')).forEach(name=>{
+          const li=document.createElement('li');
+          li.innerHTML='<span class="dot" style="background:'+locColors[name]+'"></span><span>'+name+'</span>';
+          ul.appendChild(li);
+        });
+        btn.addEventListener('click', ()=>{ pop.style.display = pop.style.display==='block' ? 'none':'block'; });
+        pop.querySelector('.cal-legend-close').addEventListener('click', ()=>{ pop.style.display='none'; });
+        document.addEventListener('click', function onDoc(e){
+          if(!pop.contains(e.target) && e.target!==btn){ pop.style.display='none'; }
+        });
+      }
+    }
+
+    function injectDayDots(){
+      dayColorsMap.forEach((colors, date)=>{
+        const btn = cal.querySelector('button[data-date="'+date+'"]');
+        if(!btn) return;
+        // éviter doublons
+        if(btn.querySelector('.day-color-dots')) return;
+        const wrap = document.createElement('span');
+        wrap.className='day-color-dots';
+        colors.slice(0,4).forEach(c=>{ // limite 4 pour lisibilité
+          const dot=document.createElement('span');
+          dot.style.backgroundColor=c;
+          wrap.appendChild(dot);
+        });
+        btn.appendChild(wrap);
+      });
+    }
+
+  render();
+  injectDayDots();
 
     let activeDate = null; // ISO yyyy-mm-dd
     cal.addEventListener('click', function(e){
@@ -287,6 +366,17 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     syncClearBtn();
   }
+  // Pastilles couleur pour les lieux dans la table
+  (function(){
+    let locColors = {};
+    try { locColors = JSON.parse(document.getElementById('location-colors-data')?.textContent || '{}'); } catch(e){}
+    document.querySelectorAll('.location-badge').forEach(el=>{
+      const name = el.getAttribute('data-loc');
+      const color = locColors[name] || '#cccccc';
+      const dot = el.querySelector('.loc-dot');
+      if(dot) dot.style.backgroundColor = color;
+    });
+  })();
 });
 </script>
 {% endblock %}

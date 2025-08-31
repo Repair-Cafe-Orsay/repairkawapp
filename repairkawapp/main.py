@@ -8,6 +8,7 @@ Nettoyage global : imports organisés, PEP8, docstrings, suppression des répét
 """
 
 import glob
+import hashlib
 import os
 from datetime import date, datetime
 
@@ -50,6 +51,78 @@ from .services.repair_service import (
 
 main = Blueprint("main", __name__)
 LOCAL_TIMEZONE = pytz.timezone("Europe/Paris")
+
+
+def _pastel_color_for(name: str) -> str:
+    """Retourne une couleur vive (mais douce) hex stable dérivée du nom.
+
+    HSL choisi pour meilleure lisibilité dans de très petites pastilles :
+    S=65%, L=60% (contre 40/75 auparavant trop délavé).
+    Hue = hash(name) % 360.
+    """
+    if not name:
+        return "#cccccc"
+    hval = int(hashlib.md5(name.encode("utf-8")).hexdigest()[:8], 16)
+    h = hval % 360
+    s = 0.65
+    light = 0.60
+    c = (1 - abs(2 * light - 1)) * s
+    hp = h / 60.0
+    x = c * (1 - abs(hp % 2 - 1))
+    if 0 <= hp < 1:
+        r1, g1, b1 = c, x, 0
+    elif 1 <= hp < 2:
+        r1, g1, b1 = x, c, 0
+    elif 2 <= hp < 3:
+        r1, g1, b1 = 0, c, x
+    elif 3 <= hp < 4:
+        r1, g1, b1 = 0, x, c
+    elif 4 <= hp < 5:
+        r1, g1, b1 = x, 0, c
+    else:
+        r1, g1, b1 = c, 0, x
+    m = light - c / 2
+    r, g, b = (int(round(255 * (v + m))) for v in (r1, g1, b1))
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def _location_color(loc) -> str:
+    """Couleur pour un objet Location en fonction de son id (répartition uniforme).
+
+    Utilise l'angle d'or (~137.508°) pour espacer les teintes afin d'éviter
+    les couleurs proches pour les ids consécutifs. Saturation/Luminosité comme
+    les pastilles vives (S=65%, L=60%).
+    """
+    try:
+        lid = getattr(loc, "id", None)
+        name = getattr(loc, "name", "") or "?"
+        if lid is None:
+            # fallback sur hash du nom si id encore absent (cas migration)
+            return _pastel_color_for(name)
+        golden = 137.508
+        h = (lid * golden) % 360
+        s = 0.65
+        light = 0.60
+        c = (1 - abs(2 * light - 1)) * s
+        hp = h / 60.0
+        x = c * (1 - abs(hp % 2 - 1))
+        if 0 <= hp < 1:
+            r1, g1, b1 = c, x, 0
+        elif 1 <= hp < 2:
+            r1, g1, b1 = x, c, 0
+        elif 2 <= hp < 3:
+            r1, g1, b1 = 0, c, x
+        elif 3 <= hp < 4:
+            r1, g1, b1 = 0, x, c
+        elif 4 <= hp < 5:
+            r1, g1, b1 = x, 0, c
+        else:
+            r1, g1, b1 = c, 0, x
+        m = light - c / 2
+        r, g, b = (int(round(255 * (v + m))) for v in (r1, g1, b1))
+        return f"#{r:02x}{g:02x}{b:02x}"
+    except Exception:  # pragma: no cover
+        return "#cccccc"
 
 
 @main.route("/")
@@ -467,11 +540,20 @@ def sessions_page():
         lieux = []
     # Prépare les dates (jour local) où il y a eu ouverture de séance pour affichage calendrier
     session_days = []
+    day_colors = {}  # date iso -> set(colors)
+    location_colors = {}
     for s in sessions:
         if s.opened_at:
             d = s.opened_at.date().isoformat()
             if d not in session_days:
                 session_days.append(d)
+            if s.location and s.location.name:
+                col = location_colors.setdefault(s.location.name, _location_color(s.location))
+                day_colors.setdefault(d, set()).add(col)
+    # Sérialisation couleurs
+    day_colors_serializable = [
+        {"date": d, "colors": sorted(list(cols))} for d, cols in day_colors.items()
+    ]
     return render_template(
         "sessions.html",
         name=current_user.name,
@@ -479,6 +561,8 @@ def sessions_page():
         lieux=lieux,
         lieu_actif=lieu,
         session_days=session_days,
+        day_colors=day_colors_serializable,
+        location_colors=location_colors,
     )
 
 
@@ -552,6 +636,19 @@ def session_detail(session_id):
             show_now_button = opened_dt.astimezone(LOCAL_TIMEZONE).date() == today_paris
         except Exception:
             show_now_button = False
+    location_color = None
+    location_colors = {}
+    try:
+        from .models import Location  # import local pour éviter circular
+
+        all_locs = db.session.query(Location).order_by(Location.name.asc()).all()
+        for loc in all_locs:
+            if loc.name:
+                location_colors[loc.name] = _location_color(loc)
+        if s.location and s.location.name:
+            location_color = location_colors.get(s.location.name) or _location_color(s.location)
+    except Exception:  # pragma: no cover
+        location_color = None
     return render_template(
         "session_detail.html",
         name=current_user.name,
@@ -559,6 +656,8 @@ def session_detail(session_id):
         participants=s.participants,
         show_now_button=show_now_button,
         all_users=User.query.order_by(User.name.asc()).all(),
+        location_color=location_color,
+        location_colors=location_colors,
     )
 
 
