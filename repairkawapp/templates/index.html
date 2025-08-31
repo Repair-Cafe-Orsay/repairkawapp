@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <div class="d-flex align-items-center mb-3">
+  <div class="d-flex align-items-center mb-3 gap-2">
     <h1 class="mb-0 flex-grow-1">Fiches</h1>
-    <button id="btn-new-repair" class="btn btn-sm btn-primary ms-auto" type="button">Nouvelle fiche</button>
+    <a href="{{ url_for('main.repairs_download') }}" class="btn btn-sm btn-outline-primary" title="Exporter CSV">⇩ CSV</a>
+    <button id="btn-new-repair" class="btn btn-sm btn-primary" type="button">Nouvelle fiche</button>
   </div>
   <div class="row mb-3">
       <label class="col-sm-2 col-form-label">Réparateurs</label>

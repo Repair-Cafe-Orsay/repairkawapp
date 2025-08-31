@@ -14,6 +14,7 @@ from datetime import date, datetime
 import pytz
 from flask import (
     Blueprint,
+    Response,
     current_app,
     redirect,
     render_template,
@@ -26,6 +27,7 @@ from sqlalchemy import and_
 
 from . import db, thumb
 from .models import (
+    Brand,
     Category,
     CloseStatus,
     Log,
@@ -238,6 +240,83 @@ def repairs_home():
     )
 
 
+@main.route("/repairs/download")
+@login_required
+def repairs_download():
+    """Export CSV des réparations (respecte mêmes filtres query si présents)."""
+    repairs = Repair.query
+    status = request.args.get("status")
+    if status and status != "all":
+        if status == "opened":
+            repairs = repairs.filter_by(close_status_id=1)
+        else:
+            repairs = repairs.filter(Repair.close_status_id > 1)
+    user = request.args.get("user")
+    if user:
+        try:
+            if int(user):
+                repairs = repairs.join(User, Repair.users).filter_by(id=int(user))
+        except ValueError:
+            pass
+    session_id = request.args.get("session_id") or request.args.get("session")
+    if session_id:
+        try:
+            repairs = repairs.filter(Repair.session_id == int(session_id))
+        except ValueError:
+            pass
+    # Recherche texte simple (reprend champs principaux)
+    searchValue = request.args.get("q") or request.args.get("search")
+    if searchValue:
+        from .models import ObjectType as OT
+
+        repairs = repairs.join(Brand)
+        repairs = repairs.outerjoin(OT, Repair.object_type_id == OT.id)
+        like_any = f"%{searchValue}%"
+        prefix = f"{searchValue}%"
+        repairs = repairs.filter(
+            Repair.display_id.like(prefix)
+            | Repair.name.like(like_any)
+            | Repair.otype.like(like_any)
+            | Brand.name.like(prefix)
+            | OT.name.like(like_any)
+        )
+    rows = repairs.order_by(Repair.display_id.desc()).limit(2000).all()
+    import csv
+    import io
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "ID",
+            "Statut",
+            "Catégorie",
+            "Type",
+            "Marque",
+            "Visiteur",
+            "Session",
+        ]
+    )
+    for r in rows:
+        writer.writerow(
+            [
+                r.display_id,
+                r.close_status.label if r.close_status else "",
+                r.category.name if r.category else "",
+                r.otype or (r.object_type and r.object_type.name) or "",
+                r.brand.name if r.brand else "",
+                r.name or "",
+                r.session_id or "",
+            ]
+        )
+    from datetime import datetime as _dt
+
+    stamp = _dt.now().strftime("%Y%m%d-%H%M%S")
+    resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
+    resp.headers["Content-Disposition"] = f"attachment; filename=repairs-{stamp}.csv"
+    return resp
+
+
 @main.route("/attach_session/<string:repair_id>", methods=["POST"])
 @login_required
 def attach_session(repair_id):
@@ -401,6 +480,58 @@ def sessions_page():
         lieu_actif=lieu,
         session_days=session_days,
     )
+
+
+@main.route("/sessions/download")
+@login_required
+def sessions_download():
+    """Export CSV des séances (mêmes filtres de lieu)."""
+    q = db.session.query(Session)
+    lieu = request.args.get("lieu")
+    if lieu:
+        from .models import Location
+
+        q = q.join(Location).filter(Location.name == lieu)
+    from sqlalchemy import case
+
+    q = q.order_by(case((Session.closed_at.is_(None), 0), else_=1), Session.opened_at.desc())
+    sessions = q.limit(500).all()
+    import csv
+    import io
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "ID",
+            "Lieu",
+            "Ouverture (UTC)",
+            "Fermeture (UTC)",
+            "Responsable",
+            "Participants",
+            "Nb fiches",
+            "Commentaire",
+        ]
+    )
+    for s in sessions:
+        writer.writerow(
+            [
+                s.id,
+                s.location.name if s.location else "",
+                s.opened_at.isoformat(sep=" ") if s.opened_at else "",
+                s.closed_at.isoformat(sep=" ") if s.closed_at else "",
+                s.owner.name if s.owner else "",
+                len(s.participants),
+                len(s.repairs),
+                (s.comment or "").replace("\n", " ")[:500],
+            ]
+        )
+    from datetime import datetime as _dt
+
+    stamp = _dt.now().strftime("%Y%m%d-%H%M%S")
+    resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
+    resp.headers["Content-Disposition"] = f"attachment; filename=sessions-{stamp}.csv"
+    return resp
 
 
 @main.route("/sessions/<int:session_id>")

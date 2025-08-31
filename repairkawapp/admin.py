@@ -44,6 +44,55 @@ def user_list():
     )
 
 
+@admin.route("/admin/users/download")
+@login_required
+def users_download():
+    _admin_only()
+    users = User.query.order_by(User.name.asc()).all()
+    import csv
+    import io
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "ID",
+            "Nom",
+            "Email",
+            "Téléphone",
+            "Public",
+            "Admin",
+            "Rôle",
+            "Cotisation",
+            "Dernière connexion (UTC)",
+        ]
+    )
+    for u in users:
+        last_conn = u.last_connection.isoformat().replace("T", " ") if u.last_connection else ""
+        membership = (
+            f"{u.last_membership}-{u.last_membership+1}" if u.last_membership is not None else ""
+        )
+        writer.writerow(
+            [
+                u.id,
+                u.name or "",
+                u.email or "",
+                u.phone or "",
+                "Oui" if u.visibility_public_trombi else "Non",
+                "Oui" if u.admin else "Non",
+                u.board_title or "",
+                membership,
+                last_conn,
+            ]
+        )
+    from datetime import datetime as _dt
+
+    stamp = _dt.now().strftime("%Y%m%d-%H%M%S")
+    resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
+    resp.headers["Content-Disposition"] = f"attachment; filename=users-{stamp}.csv"
+    return resp
+
+
 # ------------------------------- Gestion Types / Variantes -------------------------------
 
 
@@ -207,8 +256,11 @@ def objecttypes_download():
     writer.writerow(["Nom", "Catégorie", "Variantes", "Nb réparations"])
     for row in data:
         writer.writerow([row["name"], row["category"], row["variants"], row["nb_repairs"]])
+    from datetime import datetime as _dt
+
+    stamp = _dt.now().strftime("%Y%m%d-%H%M%S")
     resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
-    resp.headers["Content-Disposition"] = "attachment; filename=objecttypes.csv"
+    resp.headers["Content-Disposition"] = f"attachment; filename=objecttypes-{stamp}.csv"
     return resp
 
 

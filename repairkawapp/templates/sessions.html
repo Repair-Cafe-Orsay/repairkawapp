@@ -31,9 +31,10 @@
     </div>
   </div>
 {% endif %}
-<h2>
-  Séances récentes
-</h2>
+<div class="d-flex align-items-center mb-2">
+  <h2 class="mb-0 flex-grow-1">Séances récentes</h2>
+  <a href="{{ url_for('main.sessions_download', lieu=lieu_actif) }}" class="btn btn-sm btn-outline-primary" title="Exporter CSV">⇩ CSV</a>
+</div>
 <!-- Données templating exposées de façon neutre pour le JS -->
 <span id="sessions-flags" data-is-admin="{{ 1 if current_user.admin else 0 }}" class="d-none"></span>
 <script id="session-days-data" type="application/json">{{ session_days|tojson|safe }}</script>

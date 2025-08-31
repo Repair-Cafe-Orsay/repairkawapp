@@ -2,7 +2,8 @@
 
 {% block content %}
 <h1 class="mb-3">Réparateurs</h1>
-<div class="d-flex mb-3">
+<div class="d-flex mb-3 gap-2">
+    <a href="{{ url_for('admin.users_download') }}" class="btn btn-sm btn-outline-primary" title="Exporter CSV">⇩ CSV</a>
     <a href="{{ url_for('admin.user_new') }}" class="btn btn-sm btn-primary ms-auto">Nouveau réparateur</a>
 </div>
 
