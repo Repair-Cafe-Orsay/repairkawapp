@@ -10,7 +10,7 @@ Nettoyage global : imports organisés, PEP8, docstrings, harmonisation du style.
 from datetime import date
 
 import pytz
-from flask import Blueprint, current_app, redirect, render_template, request, url_for
+from flask import Blueprint, Response, current_app, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from werkzeug.security import generate_password_hash
 
@@ -146,6 +146,70 @@ def objecttypes_admin_list():
         name=current_user.name,
         creation_error=creation_error,
     )
+
+
+@admin.route("/admin/objecttypes/download")
+@login_required
+def objecttypes_download():
+    _admin_only()
+    q = (request.args.get("q") or "").strip().lower()
+    sort = request.args.get("sort", "name")
+    direction = request.args.get("dir", "asc")
+    if sort not in {"name", "category"}:
+        sort = "name"
+    if direction not in {"asc", "desc"}:
+        direction = "asc"
+    types_query = (
+        ObjectType.query.join(Category)
+        .outerjoin(ObjectVariant)
+        .add_columns(Category.name.label("cat_name"))
+    )
+    if q:
+        like = f"%{q}%"
+        types_query = types_query.filter(
+            ObjectType.name.ilike(like) | Category.name.ilike(like) | ObjectVariant.name.ilike(like)
+        )
+    rows = types_query.order_by(ObjectType.name.asc()).all()
+    repair_counts = {
+        rid: cnt
+        for rid, cnt in (
+            db.session.query(ObjectType.id, db.func.count(Repair.id))
+            .outerjoin(Repair, Repair.object_type_id == ObjectType.id)
+            .group_by(ObjectType.id)
+            .all()
+        )
+    }
+    data = []
+    seen = set()
+    for ot, cat_name in rows:  # type: ignore[misc]
+        if ot.id in seen:
+            continue
+        seen.add(ot.id)
+        data.append(
+            {
+                "name": ot.name,
+                "category": cat_name,
+                "variants": ";".join(v.name for v in ot.variants) or "",
+                "nb_repairs": str(repair_counts.get(ot.id, 0)),
+            }
+        )
+    reverse = direction == "desc"
+    if sort == "category":
+        data.sort(key=lambda x: ((x["category"] or ""), x["name"]), reverse=reverse)
+    else:
+        data.sort(key=lambda x: x["name"], reverse=reverse)
+    # Génération CSV simple
+    import csv
+    import io
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Nom", "Catégorie", "Variantes", "Nb réparations"])
+    for row in data:
+        writer.writerow([row["name"], row["category"], row["variants"], row["nb_repairs"]])
+    resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
+    resp.headers["Content-Disposition"] = "attachment; filename=objecttypes.csv"
+    return resp
 
 
 @admin.route("/admin/objecttypes/<int:ot_id>", methods=["GET", "POST", "DELETE"])
