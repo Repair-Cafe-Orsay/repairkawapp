@@ -110,7 +110,8 @@ def create_app(config_override=None):
 
                 if cu.is_authenticated:
                     today = _date.today()
-                    ok = cu.last_membership == _current_academic_start(today)
+                    current_start = _current_academic_start(today)
+                    ok = cu.last_membership in {current_start, current_start + 1}
                     return {"membership_up_to_date": ok}
             except Exception:
                 pass

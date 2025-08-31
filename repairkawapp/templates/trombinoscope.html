@@ -6,10 +6,10 @@
 
   <div class="trombi-grid mb-5">
     {% for u in board %}
-      <div class="trombi-item trombi-click" data-name="{{ u.name|e }}" data-role="{{ u.board_title|e }}" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}">
+  <div class="trombi-item trombi-click" data-name="{{ u.name|e }}" data-role="{{ u.board_title|e }}" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}" data-email="{{ u.email|e }}" data-phone="{{ u.phone or '' }}">
         <div class="trombi-photo-wrapper mb-1">
           {% if u.photo_filename %}
-            <img src="/media/{{ u.photo_filename }}" alt="{{ u.name }}" class="trombi-photo">
+            <img src="/uploads/{{ u.photo_filename }}" alt="{{ u.name }}" class="trombi-photo">
           {% else %}
             <div class="trombi-photo placeholder">{{ (u.name or '?')[:1] }}</div>
           {% endif %}
@@ -23,10 +23,10 @@
 
   <div class="trombi-grid">
     {% for u in others %}
-      <div class="trombi-item trombi-click" data-name="{{ u.name|e }}" data-role="" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}">
+  <div class="trombi-item trombi-click" data-name="{{ u.name|e }}" data-role="" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}" data-email="{{ u.email|e }}" data-phone="{{ u.phone or '' }}">
         <div class="trombi-photo-wrapper mb-1">
           {% if u.photo_filename %}
-            <img src="/media/{{ u.photo_filename }}" alt="{{ u.name }}" class="trombi-photo">
+            <img src="/uploads/{{ u.photo_filename }}" alt="{{ u.name }}" class="trombi-photo">
           {% else %}
             <div class="trombi-photo placeholder">{{ (u.name or '?')[:1] }}</div>
           {% endif %}
@@ -49,7 +49,8 @@
       <div class="modal-body">
         <h6 class="mb-1" id="bioName"></h6>
         <div class="text-muted small mb-2" id="bioRole" style="display:none"></div>
-        <div id="bioText" class="mt-2"></div>
+  <div id="bioContact" class="small text-muted mb-2" style="display:none"></div>
+  <div id="bioText" class="mt-2"></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
@@ -64,6 +65,7 @@ document.addEventListener('DOMContentLoaded', function(){
   const nameEl = document.getElementById('bioName');
   const roleEl = document.getElementById('bioRole');
   const textEl = document.getElementById('bioText');
+  const contactEl = document.getElementById('bioContact');
   let bsModal = null;
   if (modalEl) modalEl.addEventListener('hidden.bs.modal', () => { textEl.innerHTML=''; });
 
@@ -82,7 +84,9 @@ document.addEventListener('DOMContentLoaded', function(){
     item.addEventListener('click', function(){
       const n = this.getAttribute('data-name') || '';
       const r = this.getAttribute('data-role') || '';
-      const b = (this.getAttribute('data-bio') || '').trim();
+  const b = (this.getAttribute('data-bio') || '').trim();
+  const em = this.getAttribute('data-email') || '';
+  const ph = this.getAttribute('data-phone') || '';
       if (isMobile()) {
         const already = this.classList.contains('open');
         closeAllInline();
@@ -98,6 +102,10 @@ document.addEventListener('DOMContentLoaded', function(){
         nameEl.textContent = n;
         if (r) { roleEl.textContent = r; roleEl.style.display='block'; } else { roleEl.style.display='none'; }
         textEl.innerHTML = b ? b.replace(/\n/g,'<br>') : '<em>Aucune biographie.</em>';
+        if (em || ph) {
+          contactEl.style.display='block';
+          contactEl.innerHTML = [em, ph].filter(Boolean).join(' · ');
+        } else { contactEl.style.display='none'; }
         if (!bsModal) { bsModal = new bootstrap.Modal(modalEl); }
         bsModal.show();
       }

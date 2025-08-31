@@ -16,6 +16,14 @@
     <form method="POST" enctype="multipart/form-data" class="card p-3 border-secondary h-100 w-100" id="profile-photo-form">
       <h5>Présentation</h5>
       <div class="mb-2">
+        <label class="form-label small mb-0">Adresse email</label>
+        <input type="email" name="email" class="form-control form-control-sm" value="{{ current_user.email }}" required>
+      </div>
+      <div class="mb-2">
+        <label class="form-label small mb-0">Téléphone (optionnel)</label>
+        <input type="text" name="phone" class="form-control form-control-sm" value="{{ current_user.phone or '' }}" placeholder="06...">
+      </div>
+      <div class="mb-2">
         <textarea name="biography" class="form-control" rows="5" placeholder="Décrivez-vous...">{{ biography or '' }}</textarea>
       </div>
       <div class="mb-2">
@@ -37,6 +45,10 @@
       {% if photo_error %}
         <div class="alert alert-danger py-1 small">{{ photo_error }}</div>
       {% endif %}
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" value="1" id="chk-public" name="visibility_public_trombi" {% if current_user.visibility_public_trombi %}checked{% endif %}>
+        <label class="form-check-label small" for="chk-public">Visible dans le trombinoscope public</label>
+      </div>
       <button class="btn btn-primary btn-sm" id="btn-save-profile" type="submit" disabled>Enregistrer</button>
     </form>
   </div>
@@ -99,15 +111,30 @@
   })();
   // --- Gestion formulaire profil (activation bouton si modification) ---
   (function(){
-    const bio = document.querySelector('textarea[name="biography"]');
-    const file = document.querySelector('input[name="photo"]');
-    const btn = document.getElementById('btn-save-profile');
-    const initialBio = (bio && bio.value) || '';
+    const form = document.getElementById('profile-photo-form');
+    const bio   = form.querySelector('textarea[name="biography"]');
+    const file  = form.querySelector('input[name="photo"]');
+    const email = form.querySelector('input[name="email"]');
+    const phone = form.querySelector('input[name="phone"]');
+    const pub   = form.querySelector('input[name="visibility_public_trombi"]');
+    const btn   = document.getElementById('btn-save-profile');
+    const initial = {
+      bio:   bio ? bio.value : '',
+      email: email ? email.value : '',
+      phone: phone ? phone.value : '',
+      pub:   pub ? pub.checked : false
+    };
     function refreshSave(){
-      const changed = (bio && bio.value !== initialBio) || (file && file.files && file.files.length>0);
+      const changed = (
+        (bio   && bio.value   !== initial.bio)   ||
+        (email && email.value !== initial.email) ||
+        (phone && phone.value !== initial.phone) ||
+        (pub   && pub.checked !== initial.pub)   ||
+        (file  && file.files && file.files.length>0)
+      );
       btn.disabled = !changed;
     }
-    if (bio) bio.addEventListener('input', refreshSave);
+    [bio,email,phone,pub].forEach(el=> { if(el){ el.addEventListener('input', refreshSave); el.addEventListener('change', refreshSave);} });
     if (file) file.addEventListener('change', refreshSave);
     refreshSave();
   })();

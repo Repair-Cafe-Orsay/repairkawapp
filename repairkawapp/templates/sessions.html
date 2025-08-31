@@ -1,68 +1,20 @@
 {% extends 'base.html' %}
 {% block content %}
-{% if current_user.admin %}
-  <div class="card mb-3">
-    <div class="card-header">Créer une séance passée (admin seulement)</div>
-    <div class="card-body">
-      <div id="past-session-alert" class="alert alert-warning d-none mb-2"></div>
-      <form id="form-create-past-session" class="row g-2 align-items-end">
-        <div class="col-sm-4 col-md-3">
-          <label class="form-label mb-1">Date (YYYY-MM-DD)</label>
-          <input type="date" name="date" class="form-control" required />
-        </div>
-        <div class="col-sm-3 col-md-2">
-          <label class="form-label mb-1">Heure (HH:MM)</label>
-          <input type="time" name="time" class="form-control" />
-        </div>
-        <div class="col-sm-5 col-md-4">
-          <label class="form-label mb-1">Lieu</label>
-          <select name="location_select" id="past-location-select" class="form-select" required>
-            <option value="" selected>(Choisir)</option>
-            <!-- options dynamiques insérées via JS avant l'option nouveau -->
-            <option value="__new__">(Nouveau lieu…)</option>
-          </select>
-          <input type="text" name="location_new" id="past-new-location" class="form-control mt-1 d-none" placeholder="Nouveau lieu" />
-        </div>
-        <div class="col-sm-12 col-md-3">
-          <button type="submit" class="btn btn-primary w-100" id="btn-create-past">Créer</button>
-        </div>
-      </form>
-      <div class="form-text">Permet d'ajouter une séance historique (pas le jour courant). Désactivé si une séance est ouverte.</div>
-    </div>
+<h2>Séances récentes</h2>
+<form class="row g-2 mb-3" method="get" action="/sessions">
+  <div class="col-auto">
+    <select name="lieu" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">(Tous les lieux)</option>
+      {% for l in lieux %}
+        <option value="{{ l }}" {% if l==lieu_actif %}selected{% endif %}>{{ l }}</option>
+      {% endfor %}
+    </select>
   </div>
-{% endif %}
-<h2>
-  Séances récentes
-</h2>
-<!-- Données templating exposées de façon neutre pour le JS -->
-<span id="sessions-flags" data-is-admin="{{ 1 if current_user.admin else 0 }}" class="d-none"></span>
-<script id="session-days-data" type="application/json">{{ session_days|tojson|safe }}</script>
-<form class="row gy-3 gx-4 align-items-start mb-3" method="get" action="/sessions" id="sessions-filters">
-  <div class="col-md-3 col-sm-6 d-flex flex-column">
-    <label for="lieu-select" class="fw-semibold mb-1">Lieu</label>
-    <div class="d-flex align-items-center">
-      <select id="lieu-select" name="lieu" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:160px;">
-        <option value="">(Tous)</option>
-        {% for l in lieux %}
-          <option value="{{ l }}" {% if l==lieu_actif %}selected{% endif %}>{{ l }}</option>
-        {% endfor %}
-      </select>
-      {% if lieu_actif %}
-        <a href="/sessions" class="btn btn-sm btn-outline-secondary ms-2" title="Réinitialiser le lieu">✕</a>
-      {% endif %}
-    </div>
+  {% if lieu_actif %}
+  <div class="col-auto">
+    <a href="/sessions" class="btn btn-sm btn-outline-secondary">Réinitialiser</a>
   </div>
-  <div class="col-md-5 col-sm-6">
-    <label class="fw-semibold mb-1">Date</label>
-    <div id="sessions-calendar"></div>
-  </div>
-  <div class="col-md-4 col-sm-12 d-flex flex-column">
-    <label for="sessions-text-filter" class="fw-semibold mb-1">Texte</label>
-    <div class="d-flex align-items-center">
-      <input type="text" id="sessions-text-filter" class="form-control form-control-sm" placeholder="Recherche globale (ID, commentaire...)" autocomplete="off" style="min-width:160px;">
-      <button type="button" id="sessions-text-clear" class="btn btn-sm btn-outline-secondary ms-2 d-none" title="Effacer la recherche">✕</button>
-    </div>
-  </div>
+  {% endif %}
 </form>
 <table id="sessions-table" class="table table-sm table-striped align-middle">
   <thead><tr><th></th><th>ID</th><th>Lieu</th><th>Ouverture</th><th>Fermeture</th><th>Participants</th><th>Fiches</th><th>Commentaire</th></tr></thead>
@@ -71,7 +23,7 @@
     <tr class="{% if not s.closed_at %}table-warning{% endif %}">
       <td class="text-nowrap"><a href="/sessions/{{ s.id }}" class="btn btn-sm btn-outline-primary">Voir</a></td>
       <td>{{ s.id }} {% if not s.closed_at %}<span class="badge bg-warning text-dark">Ouverte</span>{% else %}<span class="badge bg-secondary">Fermée</span>{% endif %}</td>
-  <td>{{ s.location.name if s.location else '' }}</td>
+  <td>{{ s.location and s.location.name or '' }}</td>
   <td>{{ s.opened_at|local_dt }}</td>
   <td>{{ s.closed_at|local_dt }}</td>
       <td>{{ s.participants|length }}</td>
@@ -89,202 +41,15 @@
 </table>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-  // Récupération des indicateurs injectés via attributs (évite Jinja dans le JS pour les linters)
-  const flagsEl = document.getElementById('sessions-flags');
-  const IS_ADMIN = flagsEl && flagsEl.dataset.isAdmin === '1';
-  // Vérifier séance ouverte pour activer/désactiver création séance passée
-  if(IS_ADMIN){
-  (function checkOpen(){
-    $.getJSON('/api/sessions?opened=1', function(data){
-      const hasOpen = data.length>0;
-      const form = $('#form-create-past-session');
-      if(hasOpen){
-        form.find('input,button').prop('disabled', true);
-        $('#past-session-alert').removeClass('d-none').text('Une séance est déjà ouverte (#'+data[0].id+'). Fermez-la avant de créer une séance passée.');
-      } else {
-        form.find('input,button').prop('disabled', false);
-        $('#past-session-alert').addClass('d-none').text('');
-      }
-    });
-  })();
-  $('#form-create-past-session').on('submit', function(e){
-    e.preventDefault();
-    const fd = new FormData(this);
-    let locSel = fd.get('location_select');
-    let loc = locSel === '__new__' ? (fd.get('location_new') || '').trim() : (locSel || '').trim();
-    if(!loc){
-      $('#past-session-alert').removeClass('d-none').removeClass('alert-warning').addClass('alert-danger').text('Lieu requis.');
-      return;
-    }
-    const payload = { date: fd.get('date'), time: fd.get('time'), location: loc };
-    $.ajax({
-      type:'POST',
-      url:'/api/session/past',
-      contentType:'application/json',
-      data: JSON.stringify(payload),
-      success:function(js){ window.location = '/sessions/'+js.id; },
-      error:function(xhr){
-        const data = xhr.responseJSON || {}; let msg='Erreur';
-        if(data.error==='open_session_exists') msg='Séance ouverte existante: fermez-la d\'abord (#'+data.session_id+').';
-        else if(data.error==='invalid_datetime') msg='Date/heure invalide.';
-        else if(data.error==='missing_fields') msg='Champs requis manquants.';
-        $('#past-session-alert').removeClass('d-none').removeClass('alert-warning').addClass('alert-danger').text(msg);
-      }
-    });
-  });
-  }
-  // Chargement des lieux (réutilisation logique entête)
-  (function loadPastLocations(){
-    $.getJSON('/api/locations', function(data){
-      const sel = $('#past-location-select');
-      const current = sel.val();
-      sel.find('option').not('[value=""],[value="__new__"]').remove();
-      data.forEach(function(name){
-        $('<option/>').attr('value', name).text(name).insertBefore(sel.find('option[value="__new__"]'));
-      });
-      if(current) sel.val(current);
-    });
-  })();
-  $(document).on('change', '#past-location-select', function(){
-    if($(this).val()==='__new__'){
-      $('#past-new-location').removeClass('d-none').val('').focus();
-    } else {
-      $('#past-new-location').addClass('d-none');
-    }
-  });
-  // --- Calendrier minimal (grille mois courant + marqueurs des jours avec séance) ---
-  (function(){
-        // Lecture JSON depuis un <script type="application/json"> pour éviter Jinja direct dans le JS
-        const daysWithScript = document.getElementById('session-days-data');
-        let daysWithArr = [];
-        if(daysWithScript){
-          try { daysWithArr = JSON.parse(daysWithScript.textContent || '[]'); } catch(e){ console.error('Session days JSON invalide', e); }
-        }
-    const daysWith = new Set(daysWithArr);
-    const cal = document.getElementById('sessions-calendar');
-    if (!cal) return;
-    const names = ['D','L','M','M','J','V','S'];
-    let current = new Date();
-    current.setDate(1); // début du mois
-
-    function render(){
-      const year = current.getFullYear();
-      const month = current.getMonth();
-      const first = new Date(year, month, 1);
-      const startDow = first.getDay(); // 0=dimanche
-      const lastDay = new Date(year, month + 1, 0).getDate();
-      let html = '<div class="border rounded p-2 small bg-light" style="max-width:360px">';
-      html += '<div class="d-flex justify-content-between align-items-center mb-1">'
-           + '<button type="button" class="btn btn-sm btn-outline-secondary" id="rk-cal-prev" title="Mois précédent">&lt;</button>'
-           + '<div class="fw-bold text-center flex-grow-1">'+ first.toLocaleString('fr-FR', {month:'long', year:'numeric'}) +'</div>'
-           + '<button type="button" class="btn btn-sm btn-outline-secondary" id="rk-cal-next" title="Mois suivant">&gt;</button>'
-           + '</div>';
-      html += '<div class="d-grid" style="grid-template-columns:repeat(7,1fr);gap:2px">';
-      names.forEach(n=> html+='<div class="text-center fw-lighter">'+n+'</div>');
-      for (let i=0;i<startDow;i++){ html+='<div></div>'; }
-      for (let d=1; d<=lastDay; d++){
-        // Construire la date en local sans décalage UTC (sinon toISOString() recule de 1 jour en été CET)
-        const dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-        const has = daysWith.has(dateStr);
-        html += '<button type="button" data-date="'+dateStr+'" class="btn btn-sm p-0 text-center border '+(has? 'btn-outline-primary':'btn-outline-light text-muted')+'" style="height:32px;line-height:30px;">'+d+(has?'•':'')+'</button>';
-      }
-      html += '</div></div>';
-      cal.innerHTML = html;
-    }
-
-    render();
-
-    let activeDate = null; // ISO yyyy-mm-dd
-    cal.addEventListener('click', function(e){
-      const navPrev = e.target.closest('#rk-cal-prev');
-      const navNext = e.target.closest('#rk-cal-next');
-      if(navPrev){ current.setMonth(current.getMonth()-1); render(); markActive(); return; }
-      if(navNext){ current.setMonth(current.getMonth()+1); render(); markActive(); return; }
-      const btn = e.target.closest('button[data-date]');
-      if(!btn) return;
-      const targetDate = btn.getAttribute('data-date');
-      // Toggle si on reclique la même date
-      if(activeDate === targetDate){
-        applyFilter(null);
-        activeDate = null;
-        markActive();
-        return;
-      }
-      activeDate = targetDate;
-      applyFilter(activeDate);
-      markActive();
-    });
-
-    function applyFilter(iso){
-      if(!window.__sessionsDT) return;
-      const dt = window.__sessionsDT;
-      if(!iso){
-        dt.column(3).search('').draw();
-        const clearBtn = document.getElementById('rk-cal-clear');
-        if(clearBtn) clearBtn.remove();
-        return;
-      }
-      const parts = iso.split('-');
-      const frDate = parts[2]+'/'+parts[1]+'/'+parts[0]; // dd/mm/YYYY
-      // échappement simple pour regex
-      const frRegex = '^' + frDate.split('/').join('\\/');
-      dt.column(3).search(frRegex , true, false).draw();
-      ensureClearButton();
-    }
-
-    function ensureClearButton(){
-      if(document.getElementById('rk-cal-clear')) return;
-      const btn = document.createElement('button');
-      btn.type='button';
-      btn.id='rk-cal-clear';
-      btn.className='btn btn-sm btn-outline-secondary mt-2';
-      btn.textContent='Réinitialiser filtre';
-      btn.addEventListener('click', ()=>{ activeDate=null; applyFilter(null); markActive(); });
-      cal.querySelector('.border')?.appendChild(btn);
-    }
-
-    function markActive(){
-      cal.querySelectorAll('button[data-date]').forEach(b=>{
-        const iso = b.getAttribute('data-date');
-        if(iso === activeDate){
-          b.classList.add('btn-primary');
-          b.classList.remove('btn-outline-primary');
-        } else {
-          const has = daysWith.has(iso);
-          b.classList.remove('btn-primary');
-            if(has){ b.classList.add('btn-outline-primary'); }
-        }
-      });
-    }
-  })();
-  if ($.fn.DataTable) {
-    window.__sessionsDT = $('#sessions-table').DataTable({
-      order:[[3,'desc']],
+  if ($('#sessions-table').DataTable) {
+    $('#sessions-table').DataTable({
+      order:[[2,'desc']],
       pageLength:25,
-      searching:true, // nécessaire pour search() API
+      searching:false,
       lengthChange:false,
       info:false,
-      // dom sans le 'f' (filter input natif) pour éviter le doublon
-      dom:'lrtip',
       language:{ url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json' }
     });
-    const $text = $('#sessions-text-filter');
-    const $clear = $('#sessions-text-clear');
-    function syncClearBtn(){
-      if($text.val()) $clear.removeClass('d-none');
-      else $clear.addClass('d-none');
-    }
-    $text.on('input', function(){
-      window.__sessionsDT.search(this.value).draw();
-      syncClearBtn();
-    });
-    $clear.on('click', function(){
-      $text.val('');
-      window.__sessionsDT.search('').draw();
-      syncClearBtn();
-      $text.trigger('focus');
-    });
-    syncClearBtn();
   }
 });
 </script>

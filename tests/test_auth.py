@@ -123,6 +123,54 @@ def test_login_with_next_external_blocked(client, user):
     assert loc.endswith("/") and "evil.example.com" not in loc
 
 
+def test_founder_flag_edit_restricted(client, app):
+    """Seul un utilisateur déjà fondateur peut attribuer (ou retirer) le flag founder.
+
+    Scénario ici : aucun fondateur initial => personne ne peut promouvoir qui que ce soit,
+    ce qui vérifie la restriction. (Bootstrap du premier fondateur hors scope de ce test.)
+    """
+    # Création de deux admins "other" et "candidate" (aucun fondateur initial)
+    with app.app_context():
+        other = User(email="other@example.org", name="Other Admin", admin=True)
+        other.password = generate_password_hash("secret123")
+        candidate = User(email="candidate@example.org", name="Candidate Admin", admin=True)
+        candidate.password = generate_password_hash("candipass")
+        db.session.add_all([other, candidate])
+        db.session.commit()
+        candidate_id = candidate.id
+    # Login en tant que other et tentative de promotion du candidat
+    resp = client.post("/login", data={"email": "other@example.org", "password": "secret123"})
+    assert resp.status_code == 302
+    resp = client.post(
+        f"/admin/edit/{candidate_id}",
+        data={
+            "name": "Candidate Admin",
+            "email": "candidate@example.org",
+            "founder": "1",  # tentative d'activation
+            "admin": "1",
+        },
+    )
+    assert resp.status_code in (200, 302)
+    with app.app_context():
+        assert db.session.get(User, candidate_id).founder is False
+    # Logout puis login en tant que candidate : elle ne peut pas non plus s'auto-promouvoir
+    client.get("/logout")
+    resp = client.post("/login", data={"email": "candidate@example.org", "password": "candipass"})
+    assert resp.status_code == 302
+    resp = client.post(
+        f"/admin/edit/{candidate_id}",
+        data={
+            "name": "Candidate Admin",
+            "email": "candidate@example.org",
+            "founder": "1",  # auto-promotion interdite (pas déjà founder)
+            "admin": "1",
+        },
+    )
+    assert resp.status_code in (200, 302)
+    with app.app_context():
+        assert db.session.get(User, candidate_id).founder is False
+
+
 def test_login_legacy_hash_upgrade(app, client):
     # Crée un user avec ancien format sha256$<salt>$<hash>
     with app.app_context():

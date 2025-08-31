@@ -1,4 +1,4 @@
-"""add new categories O/P/Q
+"""insert categories O P Q (placeholder if already present)
 
 Revision ID: 20250830_09
 Revises: 20250830_08
@@ -13,29 +13,29 @@ down_revision = "20250830_08"
 branch_labels = None
 depends_on = None
 
-NEW_CATEGORIES = [
-    {"name": "O - Éclairage", "rm_icon_id": 1685, "icon_name": "lightbulb"},
-    {"name": "P - Chauffage/Climatisation", "rm_icon_id": 1685, "icon_name": "thermometer-half"},
-    {"name": "Q - Sécurité/Domotique", "rm_icon_id": 1685, "icon_name": "shield-lock"},
-]
-
 
 def upgrade():
+    # Insertion sécurisée (ignore si existe) – dépend selon moteur, ici simple tentative.
     conn = op.get_bind()
-    for cat in NEW_CATEGORIES:
-        exists = conn.execute(
-            sa.text("SELECT 1 FROM category WHERE name=:n"), {"n": cat["name"]}
-        ).first()
-        if not exists:
+    existing = {r[0] for r in conn.execute(sa.text("SELECT name FROM category")).fetchall()}
+    to_add = [
+        (None, "O - Éclairage"),
+        (None, "P - Chauffage/Climatisation"),
+        (None, "Q - Sécurité/Domotique"),
+    ]
+    for rm_icon_id, name in to_add:
+        if name not in existing:
             conn.execute(
                 sa.text(
-                    "INSERT INTO category (name, rm_icon_id, icon_name) VALUES (:name, :rm, :icon)"
-                ),
-                {"name": cat["name"], "rm": cat["rm_icon_id"], "icon": cat["icon_name"]},
+                    "INSERT INTO category (rm_icon_id, icon_name, name) VALUES (:ri,:ic,:nm)"
+                ).bindparams(ri=rm_icon_id, ic=None, nm=name)
             )
 
 
 def downgrade():
     conn = op.get_bind()
-    for cat in NEW_CATEGORIES:
-        conn.execute(sa.text("DELETE FROM category WHERE name=:n"), {"n": cat["name"]})
+    conn.execute(
+        sa.text(
+            "DELETE FROM category WHERE name IN ('O - Éclairage','P - Chauffage/Climatisation','Q - Sécurité/Domotique')"
+        )
+    )

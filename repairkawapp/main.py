@@ -88,8 +88,22 @@ def profile():
     user_period = (last_start, last_start + 1) if last_start is not None else None
     photo_error = None
     if request.method == "POST":
-        # Mise à jour biographie (toujours sauvegardée même si erreur photo)
+        # Champs simples
         current_user.biography = request.form.get("biography") or None
+        new_email = request.form.get("email") or ""
+        if new_email and new_email != current_user.email:
+            # Vérifie unicité basique
+            exists = (
+                db.session.query(User)
+                .filter(User.email == new_email, User.id != current_user.id)
+                .first()
+            )
+            if exists:
+                photo_error = "Email déjà utilisé."
+            else:
+                current_user.email = new_email
+        current_user.phone = request.form.get("phone") or None
+        current_user.visibility_public_trombi = bool(request.form.get("visibility_public_trombi"))
         if "photo" in request.files and request.files["photo"].filename:
             raw = request.files["photo"].read()
             filename, err = process_user_photo(
@@ -425,8 +439,14 @@ def trombinoscope():
     Lignes suivantes : autres membres (utilisateurs sans rôle de bureau).
     Accessible sans authentification.
     """
-    # Récupère tous les utilisateurs
-    all_users = db.session.query(User).all()
+    # Politique d'affichage :
+    # - Public (non connecté) : uniquement utilisateurs ayant opté pour l'affichage public
+    # - Utilisateur connecté non admin : idem (respect du choix de visibilité)
+    # - Admin : tous les utilisateurs (vue complète interne)
+    if current_user.is_authenticated and current_user.admin:
+        all_users = db.session.query(User).all()
+    else:
+        all_users = db.session.query(User).filter(User.visibility_public_trombi.is_(True)).all()
     # Sépare bureau / autres
     board = [u for u in all_users if u.board_title]
     others = [u for u in all_users if not u.board_title]

@@ -1,114 +1,81 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1 class="mb-3">Réparateurs</h1>
-        <div class="d-flex mb-3">
-            <a href="{{url_for('admin.user_new')}}" class="btn btn-sm btn-primary ms-auto" tabindex="-1" role="button" aria-disabled="true">Nouveau réparateur</a>
-        </div>
-    <table id="user_table_id" class="display table table-sm table-striped align-middle user-table w-100">
-      <thead>
-          <tr>
-              <th></th>
-              <th>Nom</th>
-                            <th>Courriel</th>
-                            <th>Administrateur</th>
-              <th>Rôle</th>
-              <th>Cotisation</th>
-          </tr>
-      </thead>
-        <tbody>
-        {% for user in users %}
-            <tr user_id="{{ user.id }}">
-                <td><a class="btn btn-sm btn-outline-primary" href="/admin/edit/{{ user.id }}">Voir</a></td>
-                <td>{{ user.name }}</td>
-                <td>{{ user.email }}</td>
-                <td>{{ user.admin and 'Oui' or '' }}</td>
-                <td>{{ user.board_title or '' }}</td>
-                <td>{% if user.last_membership %}{{ user.last_membership }}-{{ user.last_membership + 1 }}{% endif %}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+<h1 class="mb-3">Utilisateurs</h1>
+<div class="d-flex mb-3">
+    <a href="{{ url_for('admin.user_new') }}" class="btn btn-sm btn-primary ms-auto">Nouvel utilisateur</a>
+</div>
 
-    <script>
-          $(document).ready( function () {
-              $('#user_table_id thead tr')
-                .clone(true)
-                .addClass('filters')
-                .appendTo('#user_table_id thead');
-              user_table = $('#user_table_id').DataTable({
-                  paging: false,
-                  orderCellsTop: true,
-                  ordering: false,
-                  fixedHeader: true,
-                  responsive: true,
-                  autoWidth: false,
-                  "search": {"search": "{{filter_email or ''}}"},
-                  // 't' pour le tableau, 'i' (info) après -> sous le tableau
-                  dom: 'rtip',
-                  language: { url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json' },
-                  columnDefs: [
-                      { targets: 0, width: '28px' },
-                      { targets: 1, width: '18%', className: 'text-nowrap' },
-                      { targets: 2, width: '25%', className: 'text-break' },
-                      { targets: 3, width: '10%', className: 'text-center' },
-                      { targets: 4, width: '15%', className: 'text-nowrap' },
-                      { targets: 5, width: '10%', className: 'text-center' }
-                  ],
-                  initComplete: function () {
-                      var api = this.api();
+<table id="user_table_id" class="display table table-sm align-middle user-table w-100">
+    <thead>
+        <tr>
+            <th></th>
+            <th>Nom</th>
+            <th>Email</th>
+            <th>Tél.</th>
+            <th>Public</th>
+            <th>Admin</th>
+            <th>Rôle</th>
+            <th>Cotisation</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for user in users %}
+        <tr user_id="{{ user.id }}">
+            <td><button class="btn btn-outline-secondary btn-sm p-0 px-1" title="Voir">›</button></td>
+            <td>{{ user.name }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.phone or '' }}</td>
+            <td>{% if user.visibility_public_trombi %}<span class="badge bg-success">Oui</span>{% else %}<span class="badge bg-secondary">Non</span>{% endif %}</td>
+            <td>{{ 'Oui' if user.admin else '' }}</td>
+            <td>{{ user.board_title or '' }}</td>
+            <td>{{ user.last_membership if user.last_membership is not none else '' }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
 
-                      // For each column
-                      api
-                          .columns()
-                          .eq(0)
-                          .each(function (colIdx) {
-                              // Set the header cell to contain the input element
-                              var cell = $('.filters th').eq(
-                                  $(api.column(colIdx).header()).index()
-                              );
-                              var title = $(cell).text();
-                              if (title != '') {
-                                  $(cell).html('<input class="form-control form-control-sm" type="text" placeholder="' + title + '" />');
-                              }
+<script>
+$(document).ready(function(){
+    // Ajout ligne filtres
+    $('#user_table_id thead tr')
+        .clone(true)
+        .addClass('filters')
+        .appendTo('#user_table_id thead');
 
-                              // On every keypress in this input
-                              $(
-                                  'input',
-                                  $('.filters th').eq($(api.column(colIdx).header()).index())
-                              )
-                                  .off('keyup change')
-                                  .on('change', function (e) {
-                                      // Get the search value
-                                      $(this).attr('title', $(this).val());
-                                      var regexr = '({search})'; //$(this).parents('th').find('select').val();
-                                      var cursorPosition = this.selectionStart;
-                                      // Search the column for that value
-                                      api
-                                          .column(colIdx)
-                                          .search(
-                                              this.value != ''
-                                                  ? regexr.replace('{search}', '(((' + this.value + ')))')
-                                                  : '',
-                                              this.value != '',
-                                              this.value == ''
-                                          )
-                                          .draw();
-                                  })
-                                  .on('keyup', function (e) {
-                                      e.stopPropagation();
-                                      $(this).trigger('change');
-                                      $(this)
-                                          .focus()[0]
-                                          .setSelectionRange(cursorPosition, cursorPosition);
-                                  });
-                          });
+    const table = $('#user_table_id').DataTable({
+        paging: false,
+        orderCellsTop: true,
+        ordering: true,
+        fixedHeader: true,
+        responsive: true,
+        autoWidth: false,
+        search: { search: "{{ filter_email or '' }}" },
+        dom: 'ir',
+        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json' },
+        columnDefs: [
+            { targets: 0, orderable: false, width: '28px' }
+        ],
+        initComplete: function(){
+            const api = this.api();
+            api.columns().eq(0).each(function(colIdx){
+                if (colIdx === 0) { $('.filters th').eq(colIdx).html(''); return; }
+                const cell = $('.filters th').eq($(api.column(colIdx).header()).index());
+                const title = $(cell).text();
+                if (title) {
+                    $(cell).html('<input class="form-control form-control-sm" type="text" placeholder="'+title+'" />');
+                    $('input', cell).on('keyup change', function(){
+                        api.column(colIdx).search(this.value).draw();
+                    });
+                }
+            });
+        }
+    });
 
-                  }
-              });
-              // Plus de bouton individuel : le lien Voir est direct.
-              $('#user_table_id_info').addClass('mt-2');
-
-          })
-    </script>
-
+    $('#user_table_id tbody').on('click','button', function(){
+        const user_id = $(this).closest('tr').attr('user_id');
+        if (user_id) window.location.href = '/admin/edit/' + user_id;
+    });
+});
+</script>
 {% endblock %}

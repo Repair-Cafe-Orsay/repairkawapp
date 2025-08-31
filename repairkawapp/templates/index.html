@@ -33,6 +33,7 @@
         </select>
       </div>
     </div>
+
   <table id="search_result_id" class="table table-sm table-striped align-middle">
       <thead>
           <tr>
@@ -96,6 +97,7 @@
                                               "serverSide": true,
                                               "searching": true,
                                               "ordering":  false,
+                                              "stateSave": true,
                                               columnDefs: [{
                                                 targets: 2,
                                                 className: "dt-center"
@@ -127,8 +129,6 @@
                                                          { data: 'otype'},
                                                          { data: 'brand'},
                                                          { data: 'name'}]});
-            // Reset explicite de toute recherche DataTables (au cas où navigateur restore)
-            search_table.search('').columns().search('').draw();
             $('#search_result_id tbody').on( 'click', 'button', function () {
                   var data = search_table.row( $(this).parents('tr') ).data();
                   window.location.href="/update/"+data.id;

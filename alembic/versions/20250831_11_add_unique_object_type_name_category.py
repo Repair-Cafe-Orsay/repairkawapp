@@ -6,7 +6,6 @@ Create Date: 2025-08-31
 """
 
 from alembic import op
-import sqlalchemy as sa
 
 revision = "20250831_11"
 down_revision = "20250830_10"
@@ -15,12 +14,18 @@ depends_on = None
 
 
 def upgrade():
-    # Ajout contrainte unique si elle n'existe pas déjà
-    # Alembic ne fournit pas de if not exists portable -> try/except runtime (DB spécifique) hors scope ici.
-    op.create_unique_constraint(
-        "uix_object_type_name_category", "object_type", ["name", "category_id"]
-    )
+    # Contrainte déjà créée dans 20250830_10 si base neuve. Ici on vérifie existence.
+    # Alembic ne fournit pas d'API portable pour if-not-exists; on tente et ignore si échec.
+    try:
+        op.create_unique_constraint(
+            "uix_object_type_name_category", "object_type", ["name", "category_id"]
+        )
+    except Exception:
+        pass
 
 
 def downgrade():
-    op.drop_constraint("uix_object_type_name_category", "object_type", type_="unique")
+    try:
+        op.drop_constraint("uix_object_type_name_category", "object_type", type_="unique")
+    except Exception:
+        pass

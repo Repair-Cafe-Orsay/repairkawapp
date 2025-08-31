@@ -34,6 +34,12 @@ class User(UserMixin, db.Model):
     biography = db.Column(db.Text)
     # photo de profil (nom de fichier stocké dans UPLOAD_FOLDER)
     photo_filename = db.Column(db.String(200))
+    # visibilité dans le trombinoscope public (colonne legacy public_trombi)
+    visibility_public_trombi = db.Column(
+        "public_trombi", db.Boolean, nullable=False, server_default="1"
+    )
+    # téléphone optionnel (interne / non public)
+    phone = db.Column(db.String(30))
 
 
 class Category(db.Model):

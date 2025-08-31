@@ -280,8 +280,11 @@ def user_edit(user_id):
                 )
             db.session.commit()
             return redirect(url_for("admin.user_edit", user_id=user_id), code=302)
+        # Mise à jour des champs standards
         u.name = request.form.get("name")
         u.email = request.form.get("email")
+        u.phone = request.form.get("phone") or None
+
         # Rôle de bureau (admin only) + log si changement
         new_role = request.form.get("board_title") or None
         if new_role != u.board_title:
@@ -295,8 +298,10 @@ def user_edit(user_id):
                     new_role=new_role,
                 )
             )
+
         # Biographie editable aussi côté admin
         u.biography = request.form.get("biography") or None
+
         # Changement mot de passe (admin)
         new_pwd = request.form.get("new_password") or ""
         new_pwd_conf = request.form.get("new_password_confirm") or ""
@@ -312,6 +317,7 @@ def user_edit(user_id):
                     u.seqid = (u.seqid or 0) + 1
                 except Exception:
                     pass
+
         # Upload photo (admin) même logique que profil utilisateur
         if "photo" in request.files and request.files["photo"].filename:
             raw = request.files["photo"].read()
@@ -322,42 +328,43 @@ def user_edit(user_id):
                 photo_error = err
             else:
                 u.photo_filename = filename
-        # On ne modifie plus last_membership via le formulaire standard (lecture seule)
+
         # Conversion explicite en booléen pour éviter les valeurs '' dans la colonne Boolean
         u.admin = True if request.form.get("admin") else False
-        # Commit seulement si pas d'erreur photo ou password
+        u.visibility_public_trombi = True if request.form.get("visibility_public_trombi") else False
+
+        # Commit seulement si pas d'erreur photo ou password -> redirection liste
         if not photo_error and not password_error:
             db.session.commit()
             return redirect(url_for("admin.user_list"), code=302)
-        else:
-            # Commit final : si seule la photo est en erreur on sauvegarde le reste.
-            db.session.commit()
-            # Recharger page avec erreurs (photo_error / password_error)
-            logs = (
-                db.session.query(MembershipLog)
-                .filter_by(user_id=u.id)
-                .order_by(MembershipLog.date.desc())
-                .limit(20)
-                .all()
-            )
-            role_logs = (
-                db.session.query(BoardRoleLog)
-                .filter_by(user_id=u.id)
-                .order_by(BoardRoleLog.date.desc())
-                .limit(20)
-                .all()
-            )
-            return render_template(
-                "user_edit.html",
-                name=current_user.name,
-                u=u,
-                current_academic_start=_current_academic_start(date.today()),
-                subscription_target=_subscription_target_start(date.today()),
-                membership_logs=logs,
-                role_logs=role_logs,
-                photo_error=photo_error,
-                password_error=password_error,
-            )
+        # Sinon on commit quand même (sauf photo/password)
+        # puis on ré-affiche le formulaire avec erreurs
+        db.session.commit()
+        logs = (
+            db.session.query(MembershipLog)
+            .filter_by(user_id=u.id)
+            .order_by(MembershipLog.date.desc())
+            .limit(20)
+            .all()
+        )
+        role_logs = (
+            db.session.query(BoardRoleLog)
+            .filter_by(user_id=u.id)
+            .order_by(BoardRoleLog.date.desc())
+            .limit(20)
+            .all()
+        )
+        return render_template(
+            "user_edit.html",
+            name=current_user.name,
+            u=u,
+            current_academic_start=_current_academic_start(date.today()),
+            subscription_target=_subscription_target_start(date.today()),
+            membership_logs=logs,
+            role_logs=role_logs,
+            photo_error=photo_error,
+            password_error=password_error,
+        )
     else:
         logs = (
             db.session.query(MembershipLog)
