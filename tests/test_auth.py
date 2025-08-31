@@ -57,7 +57,8 @@ def test_login_success(client, user):
         follow_redirects=False,
     )
     assert resp.status_code == 302
-    assert "/profile" in resp.headers["Location"]
+    # Redirection par défaut désormais vers /repairs
+    assert "/repairs" in resp.headers["Location"]
 
     # Accès après login (en suivant la redirection)
     resp2 = client.get("/profile", follow_redirects=True)
@@ -92,6 +93,36 @@ def test_login_fail_unknown_user(client):
     assert resp.status_code == 302 and "/login" in resp.headers["Location"]
 
 
+def test_login_with_next_internal(client, user):
+    # Accès protégé => redirection vers /login?next=%2Frepairs
+    resp = client.get("/repairs")
+    assert (
+        resp.status_code == 302
+        and "/login" in resp.headers["Location"]
+        and "next=%2Frepairs" in resp.headers["Location"]
+    )
+    # Connexion en conservant le paramètre next interne
+    resp2 = client.post(
+        "/login?next=/repairs",
+        data={"email": user.email, "password": "password"},
+        follow_redirects=False,
+    )
+    assert resp2.status_code == 302
+    assert resp2.headers["Location"].endswith("/repairs")
+
+
+def test_login_with_next_external_blocked(client, user):
+    # next externe doit être ignoré -> fallback /repairs
+    resp = client.post(
+        "/login?next=https://evil.example.com/phish",
+        data={"email": user.email, "password": "password"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 302
+    loc = resp.headers["Location"]
+    assert loc.endswith("/repairs") and "evil.example.com" not in loc
+
+
 def test_login_legacy_hash_upgrade(app, client):
     # Crée un user avec ancien format sha256$<salt>$<hash>
     with app.app_context():
@@ -109,8 +140,13 @@ def test_login_legacy_hash_upgrade(app, client):
         db.session.add(u)
         db.session.commit()
     # Première connexion utilise legacy puis upgrade
-    resp = client.post("/login", data={"email": "legacy@example.org", "password": "oldlegacy"})
-    assert resp.status_code == 302 and "/profile" in resp.headers["Location"]
+    resp = client.post(
+        "/login",
+        data={"email": "legacy@example.org", "password": "oldlegacy"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 302
+    assert "/repairs" in resp.headers["Location"]
     # Vérifie que le hash a été migré
     with app.app_context():
         u2 = User.query.filter_by(email="legacy@example.org").first()

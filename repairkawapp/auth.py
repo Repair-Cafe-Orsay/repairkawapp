@@ -80,7 +80,22 @@ def login_post():
             flash("Mot de passe incorrect")
             return redirect(url_for("auth.login"))
     login_user(user, remember=remember)
-    return redirect(url_for("main.profile"))
+    # Redirection prioritaire vers ?next= si présent et interne
+    next_url = request.args.get("next") or request.form.get("next")
+    if next_url:
+        # sécurité: only internal relative paths
+        try:
+            from urllib.parse import urlparse
+
+            parts = urlparse(next_url)
+            if parts.netloc or parts.scheme:
+                next_url = None
+            elif not parts.path.startswith("/"):
+                next_url = None
+        except Exception:
+            next_url = None
+    # Fallback vers la page des réparations (endpoint blueprint main.repairs_home)
+    return redirect(next_url or url_for("main.repairs_home"))
 
 
 @auth.route("/forgot_password")
