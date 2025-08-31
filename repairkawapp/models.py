@@ -13,7 +13,7 @@ from . import db
 
 
 class User(UserMixin, db.Model):
-    """Définition du modèle utilisateur (hérite de UserMixin pour l'authentification)."""
+    """Définition du modèle réparateur (hérite de UserMixin pour l'authentification)."""
 
     __tablename__ = "user"
     id = db.Column(db.Integer, primary_key=True)
@@ -30,7 +30,7 @@ class User(UserMixin, db.Model):
     seqid = db.Column(db.Integer, default=0)
     # rôle éventuel au sein du bureau (président, trésorier, secrétaire, vice-président)
     board_title = db.Column(db.String(30))
-    # biographie / description courte modifiable par l'utilisateur
+    # biographie / description courte modifiable par le réparateur
     biography = db.Column(db.Text)
     # photo de profil (nom de fichier stocké dans UPLOAD_FOLDER)
     photo_filename = db.Column(db.String(200))
@@ -40,6 +40,8 @@ class User(UserMixin, db.Model):
     )
     # téléphone optionnel (interne / non public)
     phone = db.Column(db.String(30))
+    # membre fondateur
+    founder = db.Column(db.Boolean, nullable=False, server_default="0")
 
 
 class Category(db.Model):
@@ -288,7 +290,7 @@ class Notification(db.Model):
 class MembershipLog(db.Model):
     """Historique des modifications de cotisation (compliance).
 
-    Logue chaque changement de champ last_membership d'un utilisateur par un administrateur.
+    Logue chaque changement de champ last_membership d'un réparateur par un administrateur.
     """
 
     __tablename__ = "membershiplog"

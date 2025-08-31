@@ -28,7 +28,7 @@ def open_session(db: SASession, location: str | None = None, tz=None, opened_at=
 
     Logique de réutilisation (compat tests):
     - S'il existe une session ouverte aujourd'hui (n'importe owner) au même lieu -> réutiliser.
-      - Sinon si utilisateur possède déjà une session ouverte aujourd'hui -> la réutiliser.
+    - Sinon si réparateur possède déjà une session ouverte aujourd'hui -> la réutiliser.
       - Sinon créer une nouvelle session (lieu obligatoire).
     """
     if tz is None:
@@ -171,7 +171,7 @@ def update_session_details(
     if comment is not None:
         s.comment = comment
     if participants is not None:
-        # Charger les utilisateurs existants correspondants
+        # Charger les réparateurs existants correspondants
         users = db.query(User).filter(User.id.in_(participants)).all() if participants else []
         # Le propriétaire doit toujours rester participant
         owner_obj = db.query(User).filter_by(id=s.owner_id).first()
@@ -187,7 +187,7 @@ def attach_repair(db: SASession, repair: Repair, session_obj: Session):
 
 
 def delete_session(db: SASession, session_id: int) -> bool:
-    """Supprime une séance si aucune réparation associée et utilisateur autorisé.
+    """Supprime une séance si aucune réparation associée et réparateur autorisé.
 
     Retourne True si supprimée, False sinon."""
     s = db.query(Session).filter_by(id=session_id).first()

@@ -6,13 +6,17 @@
 
   <div class="trombi-grid mb-5">
     {% for u in board %}
-  <div class="trombi-item trombi-click" data-name="{{ u.name|e }}" data-role="{{ u.board_title|e }}" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}" data-email="{{ u.email|e }}" data-phone="{{ u.phone or '' }}">
-        <div class="trombi-photo-wrapper mb-1">
+  {% set st = status_map.get(u.id) if status_map is defined else None %}
+  <div class="trombi-item trombi-click {% if st=='ancien' %}trombi-ancien{% endif %}" data-name="{{ u.name|e }}" data-role="{{ u.board_title|e }}" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}" data-email="{{ u.email|e }}" data-phone="{{ u.phone or '' }}">
+        <div class="trombi-photo-wrapper mb-1 position-relative">
           {% if u.photo_filename %}
             <img src="/uploads/{{ u.photo_filename }}" alt="{{ u.name }}" class="trombi-photo">
           {% else %}
             <div class="trombi-photo placeholder">{{ (u.name or '?')[:1] }}</div>
           {% endif %}
+          {% if u.founder %}<span class="trombi-founder">F</span>{% endif %}
+          {% if st=='nouveau' %}<span class="badge bg-success trombi-badge">Nouveau</span>{% endif %}
+          {% if st=='ancien' %}<span class="badge bg-secondary trombi-badge">Ancien</span>{% endif %}
         </div>
         <div class="trombi-role small text-uppercase fw-bold">{{ u.board_title }}</div>
         <div class="trombi-name">{{ u.name }}</div>
@@ -23,13 +27,17 @@
 
   <div class="trombi-grid">
     {% for u in others %}
-  <div class="trombi-item trombi-click" data-name="{{ u.name|e }}" data-role="" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}" data-email="{{ u.email|e }}" data-phone="{{ u.phone or '' }}">
-        <div class="trombi-photo-wrapper mb-1">
+  {% set st = status_map.get(u.id) if status_map is defined else None %}
+  <div class="trombi-item trombi-click {% if st=='ancien' %}trombi-ancien{% endif %}" data-name="{{ u.name|e }}" data-role="" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}" data-email="{{ u.email|e }}" data-phone="{{ u.phone or '' }}">
+        <div class="trombi-photo-wrapper mb-1 position-relative">
           {% if u.photo_filename %}
             <img src="/uploads/{{ u.photo_filename }}" alt="{{ u.name }}" class="trombi-photo">
           {% else %}
             <div class="trombi-photo placeholder">{{ (u.name or '?')[:1] }}</div>
           {% endif %}
+          {% if u.founder %}<span class="trombi-founder">F</span>{% endif %}
+          {% if st=='nouveau' %}<span class="badge bg-success trombi-badge">Nouveau</span>{% endif %}
+          {% if st=='ancien' %}<span class="badge bg-secondary trombi-badge">Ancien</span>{% endif %}
         </div>
         <div class="trombi-name">{{ u.name }}</div>
         <div class="trombi-bio d-none"></div>
@@ -113,5 +121,11 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 });
 </script>
+<style>
+.trombi-item.trombi-ancien { opacity:0.5; }
+.trombi-photo-wrapper { position: relative; }
+.trombi-badge { position:absolute; left:4px; bottom:4px; font-size:0.6rem; padding:2px 4px; }
+.trombi-founder { position:absolute; top:4px; left:4px; background:#000; color:#ffc107; font-weight:700; font-size:0.55rem; line-height:1; padding:4px 5px; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 1px #ffc107; }
+</style>
 </script>
 {% endblock %}

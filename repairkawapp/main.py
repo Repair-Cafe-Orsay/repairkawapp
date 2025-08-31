@@ -80,7 +80,7 @@ def _current_academic_start(today: date) -> int:
 @main.route("/profile", methods=["GET", "POST"])
 @login_required
 def profile():
-    """Page profil utilisateur (dashboard + cotisation + présentation)."""
+    """Page profil réparateur (dashboard + cotisation + présentation)."""
     today = date.today()
     current_start = _current_academic_start(today)
     last_start = current_user.last_membership
@@ -210,7 +210,7 @@ def post_object():
     else:
         r = db.session.query(Repair).filter_by(id=rid).first()
         r = update_repair(db.session, r, request.form, category, initial_state, brand)
-    # Attache à la session ouverte (si une session où l'utilisateur est participant et non close)
+    # Attache à la session ouverte (si une session où le réparateur est participant et non close)
     if not rid:
         open_session = (
             db.session.query(Session)
@@ -241,9 +241,9 @@ def repairs_home():
 @main.route("/attach_session/<string:repair_id>", methods=["POST"])
 @login_required
 def attach_session(repair_id):
-    """Rattache une réparation à la séance ouverte où l'utilisateur est participant.
+    """Rattache une réparation à la séance ouverte où le réparateur est participant.
 
-    Confirmation utilisateur gérée côté JS (pas ici).
+    Confirmation réparateur gérée côté JS (pas ici).
     Si aucune séance ouverte ou déjà rattachée à cette séance -> retour immédiat.
     """
     repair = db.session.query(Repair).filter_by(display_id=repair_id).first()
@@ -329,7 +329,7 @@ def get_update(id):
         session_obj = r.session  # relationship déjà chargée (lazy) si accès.
         allowed_ids = {u.id for u in session_obj.participants}
         allowed_ids.add(session_obj.owner_id)
-        # On récupère uniquement ces utilisateurs pour l'affichage (hors déjà sélectionnés).
+        # On récupère uniquement ces réparateurs pour l'affichage (hors déjà sélectionnés).
         # Les réparateurs déjà associés (r.users) restent listés même s'ils ne
         # sont plus participants : on peut les retirer mais pas les réajouter.
         candidate_users = (
@@ -436,17 +436,35 @@ def trombinoscope():
     """Page publique listant les réparateurs (trombinoscope).
 
     Première ligne : membres du bureau (ordre défini) avec titre et nom séparés.
-    Lignes suivantes : autres membres (utilisateurs sans rôle de bureau).
+    Lignes suivantes : autres membres (réparateurs sans rôle de bureau).
     Accessible sans authentification.
     """
     # Politique d'affichage :
-    # - Public (non connecté) : uniquement utilisateurs ayant opté pour l'affichage public
-    # - Utilisateur connecté non admin : idem (respect du choix de visibilité)
-    # - Admin : tous les utilisateurs (vue complète interne)
+    # - Public (non connecté) : uniquement réparateurs ayant opté pour l'affichage public
+    # - Réparateur connecté non admin : idem (respect du choix de visibilité)
+    # - Admin : tous les réparateurs (vue complète interne)
+    base_query = db.session.query(User)
     if current_user.is_authenticated and current_user.admin:
-        all_users = db.session.query(User).all()
+        # Vue complète interne (pas de filtrage cotisation)
+        all_users = base_query.all()
     else:
-        all_users = db.session.query(User).filter(User.visibility_public_trombi.is_(True)).all()
+        # Filtrer visibilité publique
+        visibility_query = base_query.filter(User.visibility_public_trombi.is_(True))
+        users_visibles = visibility_query.all()
+        if current_user.is_authenticated:
+            # Connecté non admin: respecte visibilité, pas de filtre cotisation supplémentaire
+            all_users = users_visibles
+        else:
+            # Public non connecté: exige cotisation année précédente,
+            # courante ou N+1
+            from datetime import date as _date
+
+            today = _date.today()
+            acad_start = today.year if today.month >= 9 else today.year - 1
+            previous_acad = acad_start - 1
+            next_acad = acad_start + 1
+            allowed = {previous_acad, acad_start, next_acad}
+            all_users = [u for u in users_visibles if u.last_membership in allowed]
     # Sépare bureau / autres
     board = [u for u in all_users if u.board_title]
     others = [u for u in all_users if not u.board_title]
@@ -476,10 +494,32 @@ def trombinoscope():
             return (len(order), bt)
 
     board.sort(key=board_key)
-    others.sort(key=lambda u: (u.name or "").lower())
+    # Statuts pour badges (nouveau: jamais cotisé, ancien: cotisation < année précédente)
+    from datetime import date as _date
+
+    today = _date.today()
+    acad_start = today.year if today.month >= 9 else today.year - 1
+    previous_acad = acad_start - 1
+
+    def classify(u):  # noqa: D401 simple helper
+        if u.last_membership is None:
+            return "nouveau"
+        if u.last_membership < previous_acad:
+            return "ancien"
+        return "normal"
+
+    annotated = [(u, classify(u)) for u in others]
+    # Seuls les "anciens" vont à la fin; "nouveau" et "normal" restent triés ensemble.
+    order_priority = {"normal": 0, "nouveau": 0, "ancien": 1}
+    annotated.sort(key=lambda t: (order_priority[t[1]], (t[0].name or "").lower()))
+    others = [u for u, _ in annotated]
+    # Inclure aussi board dans map statut pour affichage badge éventuel
+    status_map = {u.id: classify(u) for u in board}
+    status_map.update({u.id: s for u, s in annotated})
     return render_template(
         "trombinoscope.html",
         board=board,
         others=others,
+        status_map=status_map,
         name=current_user.name if current_user.is_authenticated else None,
     )

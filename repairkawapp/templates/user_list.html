@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="mb-3">Utilisateurs</h1>
+<h1 class="mb-3">Réparateurs</h1>
 <div class="d-flex mb-3">
-    <a href="{{ url_for('admin.user_new') }}" class="btn btn-sm btn-primary ms-auto">Nouvel utilisateur</a>
+    <a href="{{ url_for('admin.user_new') }}" class="btn btn-sm btn-primary ms-auto">Nouveau réparateur</a>
 </div>
 
 <table id="user_table_id" class="display table table-sm align-middle user-table w-100">
@@ -29,7 +29,11 @@
             <td>{% if user.visibility_public_trombi %}<span class="badge bg-success">Oui</span>{% else %}<span class="badge bg-secondary">Non</span>{% endif %}</td>
             <td>{{ 'Oui' if user.admin else '' }}</td>
             <td>{{ user.board_title or '' }}</td>
-            <td>{{ user.last_membership if user.last_membership is not none else '' }}</td>
+            <td>
+                {% if user.last_membership is not none %}
+                    {{ user.last_membership }}-{{ user.last_membership + 1 }}
+                {% endif %}
+            </td>
         </tr>
     {% endfor %}
     </tbody>

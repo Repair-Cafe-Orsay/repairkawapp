@@ -40,14 +40,14 @@ auth = Blueprint("auth", __name__)
 
 @auth.route("/login")
 def login():
-    """Affiche la page de login et déconnecte l'utilisateur courant."""
+    """Affiche la page de login et déconnecte le réparateur courant."""
     logout_user()
     return render_template("login.html")
 
 
 @auth.route("/login", methods=["POST"])
 def login_post():
-    """Traite le formulaire de login utilisateur."""
+    """Traite le formulaire de login réparateur."""
     email = request.form.get("email")
     password = request.form.get("password")
     remember = True if request.form.get("remember") else False
@@ -134,7 +134,7 @@ rendez-vous sur cette url: {}{}""".format(
 @auth.route("/logout")
 @login_required
 def logout():
-    """Déconnecte l'utilisateur et redirige vers login."""
+    """Déconnecte le réparateur et redirige vers login."""
     logout_user()
     return redirect(url_for("auth.login"))
 
@@ -186,7 +186,7 @@ def post_new_password():
 @auth.route("/change_password_logged", methods=["POST"])
 @login_required
 def change_password_logged():
-    """Change le mot de passe de l'utilisateur connecté (flux direct profil).
+    """Change le mot de passe du réparateur connecté (flux direct profil).
 
     Attend old_password, new_password (>=6 chars). Retour JSON.
     """

@@ -192,7 +192,7 @@ def del_notification():
 @api.route("/api/get_notifs")
 @login_required
 def get_notifs():
-    """Retourne le fragment HTML listant les notifications de l'utilisateur courant.
+    """Retourne le fragment HTML listant les notifications du réparateur courant.
 
     Nécessaire pour les appels AJAX dans base.html (bouton notifications).
     """
@@ -205,7 +205,7 @@ def get_notifs():
 @api.route("/api/get_notifcount")
 @login_required
 def get_notifcount():
-    """Compte simple des notifications de l'utilisateur courant.
+    """Compte simple des notifications du réparateur courant.
 
     Utilisé par le JS pour afficher/masquer le badge de notification.
     """

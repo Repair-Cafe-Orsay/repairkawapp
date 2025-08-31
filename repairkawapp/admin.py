@@ -34,7 +34,7 @@ LOCAL_TIMEZONE = pytz.timezone("Europe/Paris")
 @admin.route("/admin")
 @login_required
 def user_list():
-    """Page principale d'administration (liste des utilisateurs)."""
+    """Page principale d'administration (liste des réparateurs)."""
     email = request.args.get("email", None)
     return render_template(
         "user_list.html",
@@ -259,12 +259,28 @@ def _subscription_target_start(today: date) -> int:
 @admin.route("/admin/edit/<string:user_id>", methods=["POST", "GET"])
 @login_required
 def user_edit(user_id):
-    """Edition d'un utilisateur (admin)."""
+    """Edition d'un réparateur (admin)."""
     u = db.session.query(User).filter_by(id=user_id).first()
     photo_error = None
     password_error = None
     if request.method == "POST":
         # Bouton d'action rapide "set_current_membership"
+        if request.form.get("action") == "set_previous_membership":
+            old = u.last_membership
+            prev_val = _subscription_target_start(date.today()) - 1
+            # On n'applique que si pas déjà positionné ou plus ancien
+            if old != prev_val and (old is None or old < prev_val):
+                u.last_membership = prev_val
+                db.session.add(
+                    MembershipLog(
+                        admin_id=current_user.id,
+                        user_id=u.id,
+                        old_value=old,
+                        new_value=prev_val,
+                    )
+                )
+                db.session.commit()
+            return redirect(url_for("admin.user_edit", user_id=user_id), code=302)
         if request.form.get("action") == "set_current_membership":
             old = u.last_membership
             new_val = _subscription_target_start(date.today())
@@ -318,7 +334,7 @@ def user_edit(user_id):
                 except Exception:
                     pass
 
-        # Upload photo (admin) même logique que profil utilisateur
+        # Upload photo (admin) même logique que profil réparateur
         if "photo" in request.files and request.files["photo"].filename:
             raw = request.files["photo"].read()
             filename, err = process_user_photo(
@@ -332,6 +348,9 @@ def user_edit(user_id):
         # Conversion explicite en booléen pour éviter les valeurs '' dans la colonne Boolean
         u.admin = True if request.form.get("admin") else False
         u.visibility_public_trombi = True if request.form.get("visibility_public_trombi") else False
+        # Founder: seul un fondateur peut modifier ce flag
+        if current_user.founder:
+            u.founder = True if request.form.get("founder") else False
 
         # Commit seulement si pas d'erreur photo ou password -> redirection liste
         if not photo_error and not password_error:
@@ -396,7 +415,7 @@ def user_edit(user_id):
 @admin.route("/admin/new", methods=["POST", "GET"])
 @login_required
 def user_new():
-    """Création d'un nouvel utilisateur (admin)."""
+    """Création d'un nouveau réparateur (admin)."""
     user_exists = (
         request.method == "POST"
         and db.session.query(User).filter_by(email=request.form.get("email")).count() != 0

@@ -354,7 +354,7 @@
   e.preventDefault(); var id=$(this).data('cat-id');
   setCategory(id);
   // Réinitialise le type standard si sélection manuelle
-  otHidden.val(''); search.val(''); subtypeSel.val(''); if(otypeFree.val().trim().length){ /* garder libre si l'utilisateur re-catégorise sans type */ } resetSubtypes(); updateHelp();
+  otHidden.val(''); search.val(''); subtypeSel.val(''); if(otypeFree.val().trim().length){ /* garder libre si le réparateur re-catégorise sans type */ } resetSubtypes(); updateHelp();
       });
       // Validation avant soumission
   $("form[action='{{ url_for('main.post_object') }}']").on('submit.objecttypecheck', function(e){

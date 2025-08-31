@@ -64,7 +64,7 @@ def create_app(config_override=None):
 
     @login_manager.user_loader
     def load_user(user_id):
-        """Charge l'utilisateur par son identifiant primaire."""
+        """Charge le réparateur par son identifiant primaire."""
         return User.query.get(int(user_id))
 
     # blueprints

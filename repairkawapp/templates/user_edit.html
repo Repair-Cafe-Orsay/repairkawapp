@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-start">
   <a href="{{ url_for('admin.user_list') }}" id="btn-back" class="btn btn-sm btn-outline-secondary mb-3">← Retour</a>
 </div>
-<h1 class="fw-light mt-0 mb-3">Utilisateur {{ u['name'] }}</h1>
+<h1 class="fw-light mt-0 mb-3">Réparateur {{ u['name'] }}</h1>
 <form class="row gy-1 needs-validation" novalidate  method="POST" enctype="multipart/form-data" action="{{url_for('admin.user_edit', user_id=u['id'])}}" id="admin-user-form">
   <div class="input-group">
     <span class="input-group-text bg-secondary col-3">Nom</span>
@@ -25,20 +25,34 @@
     {% else %}
       <input type="text" class="form-control" value="(aucune)" readonly>
     {% endif %}
+    {# Bouton régularisation année précédente #}
+    {% set previous_target = subscription_target - 1 %}
+    {% if (u['last_membership'] is none) or (u['last_membership'] < previous_target) %}
+  <button type="button" name="action" value="set_previous_membership" class="btn btn-sm btn-outline-primary ms-2" id="btn-subscribe-prev" title="Régulariser sur {{ previous_target }}-{{ previous_target + 1 }}">Régulariser {{ previous_target }}-{{ previous_target + 1 }}</button>
+    {% endif %}
+    {# Bouton souscription cible #}
     {% if u['last_membership'] == subscription_target %}
-      <button type="button" class="btn btn-sm btn-secondary ms-2" disabled title="Déjà souscrit">Souscription période {{ subscription_target }}-{{ subscription_target + 1 }}</button>
+      <button type="button" class="btn btn-sm btn-secondary ms-2" disabled title="Déjà souscrit">Souscription {{ subscription_target }}-{{ subscription_target + 1 }}</button>
     {% else %}
-  <button type="submit" name="action" value="set_current_membership" class="btn btn-sm btn-primary ms-2" id="btn-subscribe" title="Souscrire à la période cible">Souscription période {{ subscription_target }}-{{ subscription_target + 1 }}</button>
+  <button type="button" name="action" value="set_current_membership" class="btn btn-sm btn-primary ms-2" id="btn-subscribe" title="Souscrire à la période cible">Souscription {{ subscription_target }}-{{ subscription_target + 1 }}</button>
     {% endif %}
   </div>
   <div class="input-group">
     <div class="form-check">
       <input class="form-check-input" type="checkbox" name="admin" value="1" id="adminUser" {{u['admin'] and 'checked' or ''}}>
       <label class="form-check-label" for="adminUser">
-        Utilisateur Administrateur
+  Réparateur Administrateur
       </label>
     </div>
   </div>
+  {% if current_user.founder %}
+  <div class="input-group">
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="founder" value="1" id="founderUser" {{ u['founder'] and 'checked' or '' }}>
+      <label class="form-check-label" for="founderUser">Fondateur</label>
+    </div>
+  </div>
+  {% endif %}
   <div class="input-group">
     <div class="form-check">
       <input class="form-check-input" type="checkbox" name="visibility_public_trombi" value="1" id="publicUser" {{ u['visibility_public_trombi'] and 'checked' or '' }}>
@@ -112,7 +126,32 @@
       message: 'Confirmer la souscription pour la période 1er sept {{ subscription_target }} – 31 août {{ subscription_target + 1 }} ?',
       confirmText: 'Confirmer',
       confirmBtnClass: 'btn-primary'
-    }).then(function(ok){ if(ok) form.submit(); });
+    }).then(function(ok){
+      if(ok){
+        // Assurer que le paramètre action est bien envoyé même avec form.submit()
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden'; hidden.name = 'action'; hidden.value = 'set_current_membership';
+        form.appendChild(hidden);
+        form.submit();
+      }
+    });
+  });
+  $(document).on('click', '#btn-subscribe-prev', function(e){
+    e.preventDefault();
+    const form = this.form;
+    rkConfirm({
+      title: 'Régularisation',
+      message: 'Confirmer la régularisation pour la période 1er sept {{ subscription_target - 1 }} – 31 août {{ subscription_target }} ? (l\'année précédente)',
+      confirmText: 'Régulariser',
+      confirmBtnClass: 'btn-outline-primary'
+    }).then(function(ok){
+      if(ok){
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden'; hidden.name = 'action'; hidden.value = 'set_previous_membership';
+        form.appendChild(hidden);
+        form.submit();
+      }
+    });
   });
 </script>
 

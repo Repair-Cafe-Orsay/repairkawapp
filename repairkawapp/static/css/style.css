@@ -461,7 +461,7 @@ footer { position: relative; z-index: 5; }
   font-weight: 500;
 }
 
-/* Table utilisateurs compacte */
+/* Table réparateurs compacte */
 .user-table thead th { font-size: .8rem; }
 .user-table tbody td { font-size: .82rem; padding: .35rem .5rem; }
 .user-table input { font-size: .7rem; }
