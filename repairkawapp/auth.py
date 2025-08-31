@@ -94,8 +94,8 @@ def login_post():
                 next_url = None
         except Exception:
             next_url = None
-    # Fallback vers la page des réparations (endpoint blueprint main.repairs_home)
-    return redirect(next_url or url_for("main.repairs_home"))
+    # Fallback vers le dashboard racine (/)
+    return redirect(next_url or url_for("main.dashboard"))
 
 
 @auth.route("/forgot_password")

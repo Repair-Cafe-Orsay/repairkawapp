@@ -57,8 +57,8 @@ def test_login_success(client, user):
         follow_redirects=False,
     )
     assert resp.status_code == 302
-    # Redirection par défaut désormais vers /repairs
-    assert "/repairs" in resp.headers["Location"]
+    # Redirection par défaut désormais vers /
+    assert resp.headers["Location"].endswith("/")
 
     # Accès après login (en suivant la redirection)
     resp2 = client.get("/profile", follow_redirects=True)
@@ -112,7 +112,7 @@ def test_login_with_next_internal(client, user):
 
 
 def test_login_with_next_external_blocked(client, user):
-    # next externe doit être ignoré -> fallback /repairs
+    # next externe doit être ignoré -> fallback /
     resp = client.post(
         "/login?next=https://evil.example.com/phish",
         data={"email": user.email, "password": "password"},
@@ -120,7 +120,7 @@ def test_login_with_next_external_blocked(client, user):
     )
     assert resp.status_code == 302
     loc = resp.headers["Location"]
-    assert loc.endswith("/repairs") and "evil.example.com" not in loc
+    assert loc.endswith("/") and "evil.example.com" not in loc
 
 
 def test_login_legacy_hash_upgrade(app, client):
@@ -145,8 +145,7 @@ def test_login_legacy_hash_upgrade(app, client):
         data={"email": "legacy@example.org", "password": "oldlegacy"},
         follow_redirects=False,
     )
-    assert resp.status_code == 302
-    assert "/repairs" in resp.headers["Location"]
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/")
     # Vérifie que le hash a été migré
     with app.app_context():
         u2 = User.query.filter_by(email="legacy@example.org").first()
