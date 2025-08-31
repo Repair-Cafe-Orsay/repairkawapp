@@ -42,6 +42,8 @@ class User(UserMixin, db.Model):
     phone = db.Column(db.String(30))
     # membre fondateur
     founder = db.Column(db.Boolean, nullable=False, server_default="0")
+    # dernière connexion réussie (mise à jour à chaque login)
+    last_connection = db.Column(db.DateTime(timezone=True))
 
 
 class Category(db.Model):

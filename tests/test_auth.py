@@ -51,6 +51,8 @@ def test_protected_redirect(client):
 
 
 def test_login_success(client, user):
+    import datetime as _dt
+
     resp = client.post(
         "/login",
         data={"email": user.email, "password": "password"},
@@ -64,6 +66,15 @@ def test_login_success(client, user):
     resp2 = client.get("/profile", follow_redirects=True)
     assert resp2.status_code == 200
     assert b"profile" in resp2.data.lower() or b"profil" in resp2.data.lower()
+    # Vérifie mise à jour last_connection (UTC ~ maintenant)
+    from repairkawapp.models import User as _User
+
+    with client.application.app_context():
+        updated = _User.query.filter_by(id=user.id).first()
+        assert updated.last_connection is not None
+        # tolérance 5 minutes
+        delta = _dt.datetime.utcnow() - updated.last_connection.replace(tzinfo=None)
+        assert delta.total_seconds() < 300
 
 
 def test_login_fail(client, user):

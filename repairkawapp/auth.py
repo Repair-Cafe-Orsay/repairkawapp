@@ -80,6 +80,13 @@ def login_post():
             flash("Mot de passe incorrect")
             return redirect(url_for("auth.login"))
     login_user(user, remember=remember)
+    # Mise à jour de la dernière connexion (commit groupé avec éventuelle upgrade hash)
+    try:
+        from datetime import datetime, timezone
+
+        user.last_connection = datetime.now(timezone.utc)
+    except Exception:
+        pass
     # Redirection prioritaire vers ?next= si présent et interne
     next_url = request.args.get("next") or request.form.get("next")
     if next_url:
@@ -95,6 +102,11 @@ def login_post():
         except Exception:
             next_url = None
     # Fallback vers le dashboard racine (/)
+    # Persist changes (hash upgrade + last_connection)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
     return redirect(next_url or url_for("main.dashboard"))
 
 
