@@ -21,6 +21,21 @@
     <script src="https://d3js.org/d3.v4.min.js"></script>
     <script src="https://d3js.org/d3-scale-chromatic.v0.3.min.js"></script>
     <script src="/static/js/misc.js" ></script>
+    <style>
+      /* Ajustements UI barre de navigation */
+      nav .nav-items-wrapper{display:flex;align-items:center;gap:0.75rem;}
+      .nav-icons{display:flex;align-items:center;gap:0.5rem;}
+      #notif_button,#msg_button{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0;border-radius:8px;}
+      #notif_button i,#msg_button i{font-size:1.15rem;}
+      #notif_button .badge,#msg_button .badge{font-size:0.65rem;padding:0.30em 0.40em;}
+      .dropdown-menu.notifications, .dropdown-menu.dropdown-messages{font-size:0.85rem;}
+      /* Réduire largeur des boutons nom/admin pour limiter effet "blocs" */
+      .btn-user-name{padding:0.45rem 0.75rem;}
+      .btn-admin-menu{padding:0.45rem 0.75rem;}
+      @media (max-width: 768px){
+        #notif_button,#msg_button{width:36px;height:36px;}
+      }
+    </style>
 </head>
 
 <body>
@@ -46,7 +61,7 @@
               <span class="fs-4">Repair Café Orsay</span>
             </a>
             {% if not to_print %}
-            <nav class="md-inline-flex mt-2 mt-md-0 ms-md-auto">
+            <nav class="md-inline-flex mt-2 mt-md-0 ms-md-auto d-flex align-items-center gap-3 flex-wrap" style="row-gap:0.5rem">
               {% if not current_user.is_authenticated and request.path == '/trombinoscope' %}
                 <a class="py-2 link-primary text-decoration-underline fw-semibold" href="{{ url_for('auth.login') }}">Connexion (réparateurs seulement)</a>
               {% else %}
@@ -55,12 +70,13 @@
                     <path d="M8 .5l6.5 6.188V15a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1v-3H7v3a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1V6.688L8 .5z" stroke="#0d6efd" stroke-width="0.5" />
                   </svg>
                 </a>
-                <a class="me-3 py-2 link-primary" href="/repairs">Fiches</a>
-                <a class="me-3 py-2 link-primary" href="/sessions">Séances</a>
+                <a class="py-2 link-primary" href="/repairs">Fiches</a>
+                <a class="py-2 link-primary" href="/sessions">Séances</a>
                 {% if not current_user.is_authenticated %}
                   <a class="py-2 text-dark text-decoration-none" href="{{ url_for('auth.login') }}">Login</a>
                 {% else %}
-                <div class="d-flex gap-2 me-3">
+                <div class="d-flex align-items-center gap-2 flex-nowrap">
+                  <div class="d-flex align-items-center gap-2 nav-icons">
                   <!-- Notifications (cloche) -->
                   <div class="dropdown dropdown-notif">
                     <button id="notif_button" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" class="btn btn-outline-secondary position-relative" onclick="get_notifs()" title="Notifications / Rappels">
@@ -119,22 +135,22 @@
                         </form>
                       </div>
                     </div>
-                  </div>
-                </div>
-                <button type="button" class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown">{{ name }}</button>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                    <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">Profil</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Déconnexion</a></li>
-                </ul>
-                {% endif %}
-                {% if current_user.admin %}
-                  <button type="button" class="btn btn-warning dropdown-toggle" data-bs-toggle="dropdown">Admin</button>
-                  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                      <li><a class="dropdown-item" href="{{ url_for('admin.user_list') }}">Gestion Réparateurs</a></li>
-                      <li><a class="dropdown-item" href="{{ url_for('admin.objecttypes_admin_list') }}">Types & Variantes</a></li>
-                      <li><a class="dropdown-item" href="{{ url_for('admin.settings_page') }}">Paramètres site</a></li>
-                  </ul>
-                {% endif %}
+                  </div><!-- nav-icons -->
+                  <button type="button" class="btn btn-info dropdown-toggle btn-user-name" data-bs-toggle="dropdown" style="white-space:nowrap">{{ name }}</button>
+          <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+            <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">Profil</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Déconnexion</a></li>
+          </ul>
+          {% if current_user.admin %}
+                  <button type="button" class="btn btn-warning dropdown-toggle btn-admin-menu" data-bs-toggle="dropdown" style="white-space:nowrap">Admin</button>
+          <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+            <li><a class="dropdown-item" href="{{ url_for('admin.user_list') }}">Gestion Réparateurs</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin.objecttypes_admin_list') }}">Types & Variantes</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin.settings_page') }}">Paramètres site</a></li>
+          </ul>
+          {% endif %}
+                </div><!-- group end -->
+        {% endif %}
               {% endif %}
             </nav>
             {% else %}
@@ -369,7 +385,8 @@
       if($("#categoryDropdown button .cat-btn-content").length===0){
         $("#categorySelect a.cselected").click();
       }
-      update_notifs();
+  update_notifs();
+  refresh_unread_messages_count();
   })
 
   function get_notif_count() {
