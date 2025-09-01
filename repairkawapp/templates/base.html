@@ -61,7 +61,7 @@
                   <a class="py-2 text-dark text-decoration-none" href="{{ url_for('auth.login') }}">Login</a>
                 {% else %}
                 <div class="dropdown dropdown-notif md-inline-flex">
-                  <button id="notif_button" role="button" data-bs-toggle="dropdown" class="btn btn-outline-secondary position-relative" onclick="get_notifs()" title="Notifications">
+                  <button id="notif_button" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" class="btn btn-outline-secondary position-relative" onclick="get_notifs()" title="Notifications">
                     <i class="bi bi-envelope"></i>
                     <span class="badge bg-danger position-absolute top-0 start-100 translate-middle collapse">0</span>
                   </button>
@@ -343,7 +343,7 @@
 
   function refresh_notifs(){
     const wrap = $('#notifications-wrapper');
-    wrap.html('<div class="small text-muted">Chargement…</div>');
+    wrap.empty().append('<div class="small text-muted">Chargement…</div>');
     $.get('{{url_for("api.get_notifs")}}', function(data){ wrap.html(data); });
   }
 
