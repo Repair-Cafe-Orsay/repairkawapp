@@ -60,20 +60,66 @@
                 {% if not current_user.is_authenticated %}
                   <a class="py-2 text-dark text-decoration-none" href="{{ url_for('auth.login') }}">Login</a>
                 {% else %}
-                <div class="dropdown dropdown-notif md-inline-flex">
-                  <button id="notif_button" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" class="btn btn-outline-secondary position-relative" onclick="get_notifs()" title="Notifications">
-                    <i class="bi bi-envelope"></i>
-                    <span class="badge bg-danger position-absolute top-0 start-100 translate-middle collapse">0</span>
-                  </button>
-                  <ul class="dropdown-menu notifications p-2" role="menu" aria-labelledby="notif_button">
-                    <div class="notification-heading d-flex justify-content-between align-items-center px-1 mb-1">
-                      <span class="menu-title small m-0">Notifications</span>
-                      <button class="btn btn-sm btn-link p-0 small" onclick="refresh_notifs();return false;" title="Rafraîchir"><i class="bi bi-arrow-clockwise"></i></button>
+                <div class="d-flex gap-2 me-3">
+                  <!-- Notifications (cloche) -->
+                  <div class="dropdown dropdown-notif">
+                    <button id="notif_button" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" class="btn btn-outline-secondary position-relative" onclick="get_notifs()" title="Notifications / Rappels">
+                      <i class="bi bi-bell"></i>
+                      <span class="badge bg-danger position-absolute top-0 start-100 translate-middle collapse">0</span>
+                    </button>
+                    <ul class="dropdown-menu notifications p-2" role="menu" aria-labelledby="notif_button" style="min-width:320px">
+                      <div class="notification-heading d-flex justify-content-between align-items-center px-1 mb-1">
+                        <span class="menu-title small m-0">Notifications</span>
+                        <button class="btn btn-sm btn-link p-0 small" onclick="refresh_notifs();return false;" title="Rafraîchir"><i class="bi bi-arrow-clockwise"></i></button>
+                      </div>
+                      <div id="notifications-wrapper" class="small text-muted px-1 py-1">
+                        <em>Aucune notification</em>
+                      </div>
+                    </ul>
+                  </div>
+                  <!-- Messages (enveloppe) -->
+                  <div class="dropdown dropdown-messages">
+                    <button id="msg_button" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" class="btn btn-outline-secondary position-relative" title="Messages directs" onclick="open_messages_dropdown()">
+                      <i class="bi bi-envelope"></i>
+                      <span class="badge bg-primary position-absolute top-0 start-100 translate-middle collapse">0</span>
+                    </button>
+                    <div class="dropdown-menu p-2" aria-labelledby="msg_button" style="min-width:370px;max-width:400px">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small fw-semibold">Messages</span>
+                        <div class="d-flex gap-2 align-items-center">
+                          <button class="btn btn-sm btn-link p-0 small" onclick="refresh_messages();return false;" title="Rafraîchir"><i class="bi bi-arrow-clockwise"></i></button>
+                          <button class="btn btn-sm btn-outline-primary py-0" onclick="toggle_compose(true);return false;" title="Nouveau message"><i class="bi bi-pencil"></i></button>
+                        </div>
+                      </div>
+                      <div id="messages-wrapper" class="small" style="max-height:260px;overflow:auto">
+                        <em class="text-muted">Aucun message</em>
+                      </div>
+                      <div id="message-compose" class="border-top pt-2 mt-2" style="display:none">
+                        <form onsubmit="return send_message(event)">
+                          <div class="mb-1">
+                            <label class="form-label small mb-0">Destinataire</label>
+                            <input list="msg_recipients" name="recipient" id="msg_recipient" class="form-control form-control-sm" required placeholder="Nom..." autocomplete="off" />
+                            <datalist id="msg_recipients"></datalist>
+                          </div>
+                          <div class="mb-1">
+                            <label class="form-label small mb-0">Sujet <span class="text-muted small">(optionnel)</span></label>
+                            <input name="subject" id="msg_subject" maxlength="120" class="form-control form-control-sm" />
+                          </div>
+                          <div class="mb-1">
+                            <label class="form-label small mb-0">Message <span id="msg_body_counter" class="text-muted">0/250</span></label>
+                            <textarea name="body" id="msg_body" rows="3" maxlength="250" class="form-control form-control-sm" required></textarea>
+                          </div>
+                          <div class="d-flex justify-content-between align-items-center">
+                            <div class="small text-danger" id="msg_error" style="display:none"></div>
+                            <div class="ms-auto d-flex gap-1">
+                              <button type="button" class="btn btn-sm btn-link" onclick="toggle_compose(false)">Annuler</button>
+                              <button type="submit" class="btn btn-sm btn-primary">Envoyer</button>
+                            </div>
+                          </div>
+                        </form>
+                      </div>
                     </div>
-                    <div id="notifications-wrapper" class="small text-muted px-1 py-1">
-                      <em>Aucune notification</em>
-                    </div>
-                  </ul>
+                  </div>
                 </div>
                 <button type="button" class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown">{{ name }}</button>
                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
@@ -356,6 +402,98 @@
         }
       })
   }
+
+  // ---- Messages ----
+  function set_msg_badge(count){
+    const b = $('#msg_button span.badge');
+    b.text(count);
+    if(count>0){ b.removeClass('collapse'); } else { b.addClass('collapse'); }
+  }
+  function refresh_unread_messages_count(){
+    $.getJSON('/api/messages/unread_count', function(c){ set_msg_badge(c); });
+  }
+  function open_messages_dropdown(){
+    refresh_messages();
+    refresh_unread_messages_count();
+  }
+  function refresh_messages(){
+    const wrap = $('#messages-wrapper');
+    wrap.html('<div class="small text-muted">Chargement…</div>');
+    $.getJSON('/api/messages?box=in&limit=50', function(list){
+      if(!Array.isArray(list) || list.length===0){ wrap.html('<em class="text-muted">Aucun message</em>'); return; }
+      const ul = $('<ul class="list-unstyled mb-0"></ul>');
+      list.forEach(function(m){
+        const li = $('<li class="mb-1"></li>');
+        const unreadClass = m.read_at ? '' : 'fw-bold';
+        const subj = m.subject ? $('<span/>').text(m.subject) : $('<span class="text-muted fst-italic">(Sans sujet)</span>');
+        li.append('<div class="d-flex justify-content-between '+unreadClass+'"><span>'+subj.prop('outerHTML')+'</span><small class="text-muted ms-2">'+(m.created_at ? m.created_at.substring(11,16) : '')+'</small></div>');
+        li.append('<div class="small text-muted">De #'+m.sender_id+'</div>');
+        li.attr('data-id', m.id).css('cursor','pointer').on('click', function(){ view_message(m.id); });
+        ul.append(li);
+      });
+      wrap.html('').append(ul);
+    });
+  }
+  function toggle_compose(show){
+    $('#message-compose').toggle(show);
+    if(show){ load_users_for_messages(); $('#msg_recipient').focus(); }
+  }
+  function load_users_for_messages(){
+    $.getJSON('/api/users/simple', function(list){
+      const dl = $('#msg_recipients'); dl.empty();
+      list.forEach(u=> dl.append('<option value="'+(u.name||u.id)+'" data-id="'+u.id+'">'));
+    });
+  }
+  $('#msg_body').on('input', function(){ $('#msg_body_counter').text(this.value.length+'/250'); });
+  function resolve_recipient_id(){
+    const val = $('#msg_recipient').val();
+    // essayer de matcher datalist exact
+    const opt = $('#msg_recipients option').filter(function(){ return this.value === val; }).first();
+    if(opt.length){ return parseInt(opt.data('id')); }
+    // fallback: si val est un nombre
+    const asInt = parseInt(val,10); if(!isNaN(asInt)){ return asInt; }
+    return null;
+  }
+  function send_message(ev){
+    ev.preventDefault();
+    const rid = resolve_recipient_id();
+    if(!rid){ $('#msg_error').text('Destinataire invalide').show(); return false; }
+    $('#msg_error').hide();
+    const payload = {
+      recipient_id: rid,
+      subject: $('#msg_subject').val(),
+      body: $('#msg_body').val()
+    };
+    $.ajax({
+      type:'POST', url:'/api/messages', contentType:'application/json', data: JSON.stringify(payload),
+      success:function(m){
+        toggle_compose(false);
+        $('#msg_subject').val(''); $('#msg_body').val(''); $('#msg_body_counter').text('0/250');
+        refresh_messages(); refresh_unread_messages_count();
+      },
+      error:function(xhr){
+        const js = xhr.responseJSON || {}; $('#msg_error').text(js.error || 'Erreur').show();
+      }
+    });
+    return false;
+  }
+  function view_message(id){
+    $.getJSON('/api/messages/'+id, function(m){
+      const subj = m.subject || '(Sans sujet)';
+      const bodyEsc = $('<div/>').text(m.body).html();
+      rkConfirm({
+        title: 'Message',
+        message: '<div class="text-start"><div class="fw-semibold mb-1">'+subj+'</div><div class="small mb-2 text-muted">De #'+m.sender_id+'</div><div style="white-space:pre-wrap">'+bodyEsc+'</div></div>',
+        confirmText: 'Fermer',
+        cancelText: '',
+        confirmBtnClass: 'btn-primary'
+      }).then(()=>{});
+      refresh_unread_messages_count();
+      refresh_messages();
+    });
+  }
+  // polling léger pour compteur messages (toutes les 60s)
+  setInterval(refresh_unread_messages_count, 60000);
 
   // ---- Session UI ----
   function refresh_session_ui() {
