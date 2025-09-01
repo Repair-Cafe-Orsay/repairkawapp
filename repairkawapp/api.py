@@ -25,6 +25,7 @@ from .models import (
     Brand,
     Category,
     Location,
+    Message,
     Notification,
     NotificationType,
     Repair,
@@ -227,6 +228,162 @@ def notifs_debug():
             }
         )
     return jsonify({"count": len(rows), "entries": out})
+
+
+# -------------------- Messages (messagerie interne) --------------------
+
+
+def _serialize_message(m, current_id: int):  # type: ignore[override]
+    """Sérialisation JSON minimale d'un message.
+
+    current_id: id de l'utilisateur courant pour orienter les labels.
+    """
+    return {
+        "id": m.id,
+        "sender_id": m.sender_id,
+        "recipient_id": m.recipient_id,
+        "subject": m.subject,
+        "body": m.body,
+        "repair_id": m.repair_id,
+        "note_id": m.note_id,
+        "created_at": m.created_at.isoformat() + "Z" if m.created_at else None,
+        "read_at": m.read_at.isoformat() + "Z" if m.read_at else None,
+        "direction": "out" if m.sender_id == current_id else "in",
+    }
+
+
+@api.route("/api/messages", methods=["GET"])
+@login_required
+def api_messages_list():
+    """Liste des messages (boîte de réception + envoyés) récents de l'utilisateur.
+
+    Paramètres optionnels:
+      - box=in|out (filtre)
+      - limit (défaut 100)
+    """
+    box = request.args.get("box")
+    limit = min(int(request.args.get("limit", 100)), 500)
+    q = db.session.query(Message)
+    if box == "out":
+        q = q.filter(Message.sender_id == current_user.id, Message.deleted_sender.is_(False))
+    elif box == "in":
+        q = q.filter(Message.recipient_id == current_user.id, Message.deleted_recipient.is_(False))
+    else:  # combinaison (in + out)
+        q = q.filter(
+            (Message.recipient_id == current_user.id & (Message.deleted_recipient.is_(False)))
+            | (Message.sender_id == current_user.id & (Message.deleted_sender.is_(False)))
+        )
+    msgs = q.order_by(Message.created_at.desc()).limit(limit).all()  # ordre anti-chronologique
+    return jsonify([_serialize_message(m, current_user.id) for m in msgs])
+
+
+@api.route("/api/messages/unread", methods=["GET"])
+@login_required
+def api_messages_unread():
+    """Liste des messages non lus (inbox) limités à 100."""
+    q = (
+        db.session.query(Message)
+        .filter(Message.recipient_id == current_user.id)
+        .filter(Message.deleted_recipient.is_(False))
+        .filter(Message.read_at.is_(None))
+        .order_by(Message.created_at.desc())
+        .limit(100)
+    )
+    return jsonify([_serialize_message(m, current_user.id) for m in q.all()])
+
+
+@api.route("/api/messages/unread_count", methods=["GET"])
+@login_required
+def api_messages_unread_count():
+    count = (
+        db.session.query(Message)
+        .filter(Message.recipient_id == current_user.id)
+        .filter(Message.deleted_recipient.is_(False))
+        .filter(Message.read_at.is_(None))
+        .count()
+    )
+    return jsonify(count)
+
+
+@api.route("/api/messages", methods=["POST"])
+@login_required
+def api_messages_create():
+    """Création d'un message direct.
+
+    JSON ou form:
+      recipient_id (int, obligatoire)
+      subject (<=120, optionnel)
+      body (<=250, obligatoire non vide)
+      repair_id / note_id (optionnels contexte)
+    """
+    payload = request.get_json(silent=True) or request.form
+    try:
+        recipient_id = int(payload.get("recipient_id"))
+    except Exception:
+        return jsonify({"error": "invalid_recipient"}), 400
+    if recipient_id == current_user.id:
+        return jsonify({"error": "self_recipient_forbidden"}), 400
+    recipient = db.session.query(User).filter_by(id=recipient_id).first()
+    if not recipient:
+        return jsonify({"error": "recipient_not_found"}), 404
+    subject = (payload.get("subject") or "").strip() or None
+    if subject and len(subject) > 120:
+        return jsonify({"error": "subject_too_long"}), 400
+    body = (payload.get("body") or "").strip()
+    if not body:
+        return jsonify({"error": "empty_body"}), 400
+    if len(body) > 250:
+        return jsonify({"error": "body_too_long"}), 400
+    repair_id = payload.get("repair_id")
+    note_id = payload.get("note_id")
+    try:
+        repair_id = int(repair_id) if repair_id is not None else None
+    except Exception:
+        repair_id = None
+    try:
+        note_id = int(note_id) if note_id is not None else None
+    except Exception:
+        note_id = None
+    m = Message(
+        sender_id=current_user.id,
+        recipient_id=recipient_id,
+        subject=subject,
+        body=body,
+        repair_id=repair_id,
+        note_id=note_id,
+    )
+    db.session.add(m)
+    db.session.commit()
+    return jsonify(_serialize_message(m, current_user.id)), 201
+
+
+@api.route("/api/messages/<int:msg_id>", methods=["GET"])
+@login_required
+def api_messages_detail(msg_id: int):
+    m = db.session.query(Message).filter_by(id=msg_id).first()
+    if not m:
+        return jsonify({"error": "not_found"}), 404
+    if m.sender_id != current_user.id and m.recipient_id != current_user.id:
+        return jsonify({"error": "forbidden"}), 403
+    # marquer comme lu si destinataire
+    if m.recipient_id == current_user.id and not m.read_at:
+        m.mark_read()
+        db.session.commit()
+    return jsonify(_serialize_message(m, current_user.id))
+
+
+@api.route("/api/messages/<int:msg_id>/read", methods=["POST"])
+@login_required
+def api_messages_mark_read(msg_id: int):
+    m = db.session.query(Message).filter_by(id=msg_id).first()
+    if not m:
+        return jsonify({"error": "not_found"}), 404
+    if m.recipient_id != current_user.id:
+        return jsonify({"error": "forbidden"}), 403
+    if not m.read_at:
+        m.mark_read()
+        db.session.commit()
+    return jsonify({"status": "ok", "read_at": m.read_at.isoformat() + "Z"})
 
 
 @api.route("/api/get_notifcount")
