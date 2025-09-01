@@ -113,17 +113,18 @@
                       <div id="message-compose" class="border-top pt-2 mt-2" style="display:none">
                         <form onsubmit="return send_message(event)">
                           <div class="mb-1">
-                            <label class="form-label small mb-0">Destinataire</label>
-                            <input list="msg_recipients" name="recipient" id="msg_recipient" class="form-control form-control-sm" required placeholder="Nom..." autocomplete="off" />
-                            <datalist id="msg_recipients"></datalist>
+                            <label class="form-label small mb-0">Destinataire <span class="text-danger">*</span></label>
+                            <select id="msg_recipient" class="form-select form-select-sm" required>
+                              <option value="" disabled selected>Choisir...</option>
+                            </select>
                           </div>
                           <div class="mb-1">
-                            <label class="form-label small mb-0">Sujet <span class="text-muted small">(optionnel)</span></label>
-                            <input name="subject" id="msg_subject" maxlength="120" class="form-control form-control-sm" />
+                            <label class="form-label small mb-0">Sujet <span class="text-danger">*</span></label>
+                            <input name="subject" id="msg_subject" maxlength="120" class="form-control form-control-sm" required />
                           </div>
                           <div class="mb-1">
                             <label class="form-label small mb-0">Message <span id="msg_body_counter" class="text-muted">0/250</span></label>
-                            <textarea name="body" id="msg_body" rows="3" maxlength="250" class="form-control form-control-sm" required></textarea>
+                            <textarea name="body" id="msg_body" rows="3" maxlength="250" class="form-control form-control-sm"></textarea>
                           </div>
                           <div class="d-flex justify-content-between align-items-center">
                             <div class="small text-danger" id="msg_error" style="display:none"></div>
@@ -436,16 +437,33 @@
   function refresh_messages(){
     const wrap = $('#messages-wrapper');
     wrap.html('<div class="small text-muted">Chargement…</div>');
-    $.getJSON('/api/messages?box=in&limit=50', function(list){
+  $.getJSON('/api/messages?limit=50', function(list){
       if(!Array.isArray(list) || list.length===0){ wrap.html('<em class="text-muted">Aucun message</em>'); return; }
       const ul = $('<ul class="list-unstyled mb-0"></ul>');
-      list.forEach(function(m){
-        const li = $('<li class="mb-1"></li>');
-        const unreadClass = m.read_at ? '' : 'fw-bold';
+      list.forEach(function(m,idx){
+        const li = $('<li class="pb-2 mb-2 border-bottom"></li>');
+    const unread = !m.read_at;
+    const unreadClass = unread ? 'fw-bold' : '';
         const subj = m.subject ? $('<span/>').text(m.subject) : $('<span class="text-muted fst-italic">(Sans sujet)</span>');
-        li.append('<div class="d-flex justify-content-between '+unreadClass+'"><span>'+subj.prop('outerHTML')+'</span><small class="text-muted ms-2">'+(m.created_at ? m.created_at.substring(11,16) : '')+'</small></div>');
-        li.append('<div class="small text-muted">De #'+m.sender_id+'</div>');
-        li.attr('data-id', m.id).css('cursor','pointer').on('click', function(){ view_message(m.id); });
+    const sender = m.sender_name ? m.sender_name : ('#'+m.sender_id);
+    const recipient = m.recipient_name ? m.recipient_name : ('#'+m.recipient_id);
+    const unreadDot = unread ? '<span class="badge rounded-pill bg-primary me-1 align-middle" style="width:8px;height:8px;padding:0"></span>' : '';
+        const actions = $('<div class="mt-1 d-flex gap-1"></div>');
+        const btnView = $('<button class="btn btn-sm btn-outline-secondary py-0">Lire</button>').on('click', function(e){ e.stopPropagation(); view_message(m.id); });
+        const btnToggle = $('<button class="btn btn-sm py-0"></button>');
+        function syncToggle(){
+          if(!m.read_at){ btnToggle.removeClass('btn-outline-primary').addClass('btn-primary').text('Actif'); }
+          else { btnToggle.removeClass('btn-primary').addClass('btn-outline-primary').text('Garder'); }
+        }
+        syncToggle();
+        btnToggle.on('click', function(e){ e.stopPropagation(); const makeUnread = !!m.read_at; $.ajax({type:'POST', url:'/api/messages/'+m.id+'/unread', contentType:'application/json', data: JSON.stringify({unread: makeUnread}), success:function(r){ m.read_at = r.read_at; syncToggle(); refresh_unread_messages_count(); }}); });
+        const btnDel = $('<button class="btn btn-sm btn-outline-danger py-0">Effacer</button>').on('click', function(e){ e.stopPropagation(); $.ajax({type:'DELETE', url:'/api/messages/'+m.id, success:function(){ li.remove(); refresh_unread_messages_count(); }}); });
+        actions.append(btnView, btnToggle, btnDel);
+  const ficheIcon = (m.repair_display_id || m.repair_id) ? '<span class="ms-1 text-primary" title="Fiche associée">🗂️</span>' : '';
+  li.append('<div class="d-flex justify-content-between '+unreadClass+'"><span>'+unreadDot+subj.prop('outerHTML')+ficheIcon+'</span><small class="text-muted ms-2">'+(m.created_at ? m.created_at.substring(11,16) : '')+'</small></div>');
+  li.append('<div class="small text-muted">'+sender+' → '+recipient+'</div>');
+        li.append(actions);
+        li.attr('data-id', m.id).css('cursor','default');
         ul.append(li);
       });
       wrap.html('').append(ul);
@@ -453,23 +471,22 @@
   }
   function toggle_compose(show){
     $('#message-compose').toggle(show);
-    if(show){ load_users_for_messages(); $('#msg_recipient').focus(); }
+    if(show){ load_message_users(); $('#msg_recipient').focus(); }
   }
-  function load_users_for_messages(){
+  let _msg_users_loaded = false;
+  function load_message_users(){
+    if(_msg_users_loaded) return;
     $.getJSON('/api/users/simple', function(list){
-      const dl = $('#msg_recipients'); dl.empty();
-      list.forEach(u=> dl.append('<option value="'+(u.name||u.id)+'" data-id="'+u.id+'">'));
+      const sel = $('#msg_recipient');
+      list.forEach(function(u){ sel.append('<option value="'+u.id+'">'+(u.name||u.id)+'</option>'); });
+      _msg_users_loaded = true;
     });
   }
   $('#msg_body').on('input', function(){ $('#msg_body_counter').text(this.value.length+'/250'); });
   function resolve_recipient_id(){
     const val = $('#msg_recipient').val();
-    // essayer de matcher datalist exact
-    const opt = $('#msg_recipients option').filter(function(){ return this.value === val; }).first();
-    if(opt.length){ return parseInt(opt.data('id')); }
-    // fallback: si val est un nombre
-    const asInt = parseInt(val,10); if(!isNaN(asInt)){ return asInt; }
-    return null;
+    if(!val) return null;
+    const id = parseInt(val,10); return isNaN(id)? null : id;
   }
   function send_message(ev){
     ev.preventDefault();
@@ -481,6 +498,8 @@
       subject: $('#msg_subject').val(),
       body: $('#msg_body').val()
     };
+    const ctxRepair = $('#message-compose input[name="repair_id"]').val();
+    if(ctxRepair){ payload.repair_id = parseInt(ctxRepair,10); }
     $.ajax({
       type:'POST', url:'/api/messages', contentType:'application/json', data: JSON.stringify(payload),
       success:function(m){
@@ -497,20 +516,115 @@
   function view_message(id){
     $.getJSON('/api/messages/'+id, function(m){
       const subj = m.subject || '(Sans sujet)';
+      const sender = m.sender_name ? m.sender_name : ('#'+m.sender_id);
       const bodyEsc = $('<div/>').text(m.body).html();
-      rkConfirm({
-        title: 'Message',
-        message: '<div class="text-start"><div class="fw-semibold mb-1">'+subj+'</div><div class="small mb-2 text-muted">De #'+m.sender_id+'</div><div style="white-space:pre-wrap">'+bodyEsc+'</div></div>',
-        confirmText: 'Fermer',
-        cancelText: '',
-        confirmBtnClass: 'btn-primary'
-      }).then(()=>{});
-      refresh_unread_messages_count();
+      let modal = $('#msgModal');
+      if(!modal.length){
+        $('body').append(`
+<div class="modal fade" id="msgModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Message</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body"></div>
+      <div class="modal-footer d-flex justify-content-between">
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-primary btn-keep"></button>
+          <button type="button" class="btn btn-outline-danger btn-remove">Remove</button>
+        </div>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>`);
+        modal = $('#msgModal');
+      }
+      let sentLabel = '';
+      if(m.created_at){
+        try {
+          // m.created_at format ISO: YYYY-MM-DDTHH:MM:SSZ
+          let d = m.created_at;
+          // Localisation simple: utiliser moment si dispo, sinon substring
+            if(window.moment){
+              sentLabel = moment.utc(d).local().format('DD/MM/YYYY HH:mm');
+            } else {
+              sentLabel = d.substring(0,10)+' '+d.substring(11,16);
+            }
+        } catch(e) {}
+      }
+      let repairLink = '';
+      if(m.repair_display_id){
+        repairLink = ' · <a href="/update/'+m.repair_display_id+'" class="text-decoration-none">🗂️ Fiche '+m.repair_display_id+'</a>';
+      } else if(m.repair_id){
+        // Fallback si display_id non sérialisé (affiche l'id interne)
+        repairLink = ' · <a href="/update/'+m.repair_id+'" class="text-decoration-none">🗂️ Fiche '+m.repair_id+'</a>';
+      }
+      const metaLine = '<div class="small mb-2 text-muted">De '+sender+(sentLabel? ' · '+sentLabel:'')+repairLink+'</div>';
+      const bodyHtml = '<div class="text-start">'
+        +'<div class="fw-semibold mb-1">'+subj+'</div>'
+        + metaLine
+        + (m.body ? '<div style="white-space:pre-wrap">'+bodyEsc+'</div>' : '<div class="fst-italic text-muted">(Sans contenu)</div>')
+        +'</div>';
+      modal.find('.modal-body').html(bodyHtml);
+      function syncKeepButton(){
+        const btn = modal.find('.btn-keep');
+        if(!m.read_at){ btn.removeClass('btn-outline-primary').addClass('btn-primary').text('Actif'); }
+        else { btn.removeClass('btn-primary').addClass('btn-outline-primary').text('Garder'); }
+      }
+      syncKeepButton();
+      modal.find('.btn-keep').off('click').on('click', function(){
+        const makeUnread = !!m.read_at; // si lu -> remettre unread
+        $.ajax({type:'POST', url:'/api/messages/'+m.id+'/unread', contentType:'application/json', data: JSON.stringify({unread: makeUnread}), success:function(r){ m.read_at = r.read_at; syncKeepButton(); refresh_unread_messages_count(); refresh_messages(); }});
+      });
+      modal.find('.btn-remove').off('click').on('click', function(){
+        $.ajax({type:'DELETE', url:'/api/messages/'+m.id, success:function(){
+          const inst = bootstrap.Modal.getInstance(modal[0]); if(inst) inst.hide(); refresh_messages(); refresh_unread_messages_count();
+        }});
+      });
+      // Bouton répondre (ajout dynamique si compose disponible et destinataire != courant)
+      if(!modal.find('.btn-reply').length){
+        $('<button type="button" class="btn btn-outline-success btn-reply">Répondre</button>').insertBefore(modal.find('.btn-remove'));
+      }
+      modal.find('.btn-reply').off('click').on('click', function(){
+        // ouvrir compose global
+        if(typeof toggle_compose === 'function') toggle_compose(true);
+        // Pré-remplir destinataire = expéditeur (si différent)
+        if(m.sender_id){ $('#msg_recipient').val(m.sender_id); }
+        // Préfixer sujet si pas déjà Re:
+        if(m.subject && !/^Re:/i.test(m.subject)){ $('#msg_subject').val('Re: '+m.subject); } else { $('#msg_subject').val(m.subject||''); }
+        // Conserver lien fiche pour la réponse si le message initial était lié
+        if(m.repair_id){
+          // Ajouter un champ caché contextuel si pas présent
+          let hidden = $('#message-compose input[name="repair_id"]');
+          if(!hidden.length){
+            $('#message-compose form').append('<input type="hidden" name="repair_id" id="msg_repair_ctx" />');
+            hidden = $('#msg_repair_ctx');
+          }
+          hidden.val(m.repair_id);
+        }
+        // Focus body
+        $('#msg_body').focus();
+      });
+      const bs = new bootstrap.Modal(modal[0]);
+      bs.show();
+      refresh_unread_messages_count(); // déjà marqué lu par backend, compteur diminue
       refresh_messages();
     });
   }
   // polling léger pour compteur messages (toutes les 60s)
   setInterval(refresh_unread_messages_count, 60000);
+
+  // Exposer fonctions globalement pour les attributs onclick inline / autres scripts
+  window.toggle_compose = toggle_compose;
+  window.open_messages_dropdown = open_messages_dropdown;
+  window.refresh_messages = refresh_messages;
+  window.refresh_unread_messages_count = refresh_unread_messages_count;
+  window.send_message = send_message;
+  window.view_message = view_message;
+  window.get_notifs = get_notifs;
+  window.refresh_notifs = refresh_notifs;
 
   // ---- Session UI ----
   function refresh_session_ui() {

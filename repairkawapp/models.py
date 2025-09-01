@@ -377,9 +377,12 @@ class Message(db.Model):
     sender = db.relationship("User", foreign_keys=[sender_id])
     recipient_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     recipient = db.relationship("User", foreign_keys=[recipient_id])
-    subject = db.Column(db.String(120))
-    body = db.Column(db.String(250), nullable=False)
+    subject = db.Column(db.String(120), nullable=False)
+    # Corps désormais optionnel (peut être vide / NULL)
+    body = db.Column(db.String(250), nullable=True)
     repair_id = db.Column(db.Integer, db.ForeignKey("repair.id"), nullable=True, index=True)
+    # relation pour accéder à display_id dans la sérialisation (lien fiche)
+    repair = db.relationship("Repair", foreign_keys=[repair_id])
     note_id = db.Column(db.Integer, db.ForeignKey("note.id"), nullable=True, index=True)
     created_at = db.Column(
         db.DateTime(timezone=True), nullable=False, server_default=func.now(), index=True
@@ -401,13 +404,14 @@ class Message(db.Model):
         sender_id: int,
         recipient_id: int,
         subject: str | None,
-        body: str,
+        body: str | None = None,
         repair_id: int | None = None,
         note_id: int | None = None,
     ):
         self.sender_id = sender_id
         self.recipient_id = recipient_id
         self.subject = subject
-        self.body = body
+        # Normaliser body vide -> None pour cohérence DB si chaîne vide
+        self.body = body if body else None
         self.repair_id = repair_id
         self.note_id = note_id

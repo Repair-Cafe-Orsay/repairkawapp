@@ -197,6 +197,12 @@
       {% endif %}
     </a>
   </li>
+  <li class="nav-item">
+  <a class="nav-link position-relative" id="nav-messages-tab" data-bs-toggle="tab" data-bs-target="#nav-messages" type="button" role="tab" aria-controls="nav-messages" aria-selected="false" href="#nav-messages">
+      Messages
+      <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary d-none" id="repair-msg-count"></span>
+    </a>
+  </li>
 </ul>
 </nav>
 
@@ -235,6 +241,8 @@
     <form id="upload-file" method="post" enctype="multipart/form-data">
       <div class="input-group input-group-sm">
           <input class="form-control" name="file" type="file" accept="image/*;capture=camera">
+          <!-- Data élément pour scripts messages -->
+          <span id="repair-data" data-repair-internal-id="{{ r.id }}" data-repair-display-id="{{ r.display_id }}" data-current-user-id="{{ current_user_id }}" style="display:none"></span>
           <button class="button btn-primary" id="upload-file-btn" type="button">Ajouter une photo</button>
       </div>
     </form>
@@ -301,9 +309,34 @@
   <div class="tab-pane" id="nav-logs" role="tabpanel" aria-labelledby="nav-logs-tab">
       {{ log_list(logs) }}
   </div>
-</div>
+  <div class="tab-pane" id="nav-messages" role="tabpanel" aria-labelledby="nav-messages-tab">
+     <div class="d-flex justify-content-between align-items-center mb-2">
+       <h6 class="m-0">Messages liés à la fiche</h6>
+  <button class="btn btn-sm btn-outline-primary" id="btn-new-repair-message" type="button">Nouveau</button>
+     </div>
+     <div id="repair-messages-list" class="list-group small mb-3"></div>
+     <form id="repair-message-form" class="border rounded p-2 d-none">
+       <div class="mb-2">
+         <label class="form-label mb-1">Destinataire</label>
+         <select class="form-select form-select-sm" id="repair_msg_recipient" required></select>
+       </div>
+       <div class="mb-2">
+         <label class="form-label mb-1">Sujet</label>
+         <input type="text" maxlength="120" class="form-control form-control-sm" id="repair_msg_subject" required>
+       </div>
+       <div class="mb-2">
+         <label class="form-label mb-1">Message <span class="text-muted" id="repair_msg_body_counter">0/250</span></label>
+         <textarea maxlength="250" rows="3" class="form-control form-control-sm" id="repair_msg_body"></textarea>
+       </div>
+       <div class="d-flex gap-2">
+         <button class="btn btn-sm btn-primary" type="submit">Envoyer</button>
+         <button class="btn btn-sm btn-secondary" type="button" id="repair_msg_cancel">Annuler</button>
+         <div class="text-danger small" id="repair_msg_error" style="display:none"></div>
+       </div>
+     </form>
+  </div>
+  </div>
 
-{% endblock %}
 <script>
  (function(){
    const back = document.getElementById('btn-back');
@@ -313,4 +346,116 @@
      });
    }
  })();
+
+// --- Onglet Messages Fiche ---
+// Attente que jQuery (et Bootstrap) soient chargés avant d'initialiser.
+(function initRepairMessagesModule(){
+  if(!window.jQuery){ return setTimeout(initRepairMessagesModule, 40); }
+  console.debug('Init module messages fiche');
+  let dataEl = document.getElementById('repair-data');
+  if(!dataEl){
+    console.warn('repair-data manquant, création fallback');
+    dataEl = document.createElement('span');
+    dataEl.id='repair-data';
+    dataEl.setAttribute('data-repair-internal-id','{{ r.id }}');
+    dataEl.setAttribute('data-repair-display-id','{{ r.display_id }}');
+    document.body.appendChild(dataEl);
+  }
+  const repairDisplayId = dataEl.getAttribute('data-repair-display-id');
+  const repairInternalId = parseInt(dataEl.getAttribute('data-repair-internal-id'),10);
+  let usersCache = [];
+  function loadRepairUsers(){
+    if(usersCache.length) return Promise.resolve(usersCache);
+    return $.getJSON('/api/users/simple').then(function(data){ usersCache = data; return data; });
+  }
+  function fmtDate(iso){
+    if(!iso) return '';
+    try { if(window.moment) return moment.utc(iso).local().format('DD/MM HH:mm'); } catch(e){}
+    return iso.substring(5,10)+' '+iso.substring(11,16);
+  }
+  function refreshRepairMessages(){
+    if(!repairInternalId || isNaN(repairInternalId)){ console.error('repairInternalId invalide', repairInternalId); return; }
+    $.getJSON('/api/repairs/'+repairInternalId+'/messages', function(rows){
+      const list = $('#repair-messages-list').empty();
+  if(!rows.length){ list.append('<div class="text-muted">Aucun message.</div>'); $('#repair-msg-count').addClass('d-none').text(''); return; }
+  const total = rows.length;
+  if(total>0){ $('#repair-msg-count').removeClass('d-none').text(total); } else { $('#repair-msg-count').addClass('d-none').text(''); }
+  var jsUserId = parseInt($('#repair-data').attr('data-current-user-id'),10);
+  rows.forEach(function(m){
+        const unread = !m.read_at;
+        const dot = unread ? '<span class="badge rounded-pill bg-primary me-1 align-middle" style="width:8px;height:8px;padding:0"></span>' : '';
+        const subj = $('<div/>').text(m.subject || '(Sans sujet)').html();
+        const sender = $('<div/>').text(m.sender_name || ('#'+m.sender_id)).html();
+        const recipient = $('<div/>').text(m.recipient_name || ('#'+m.recipient_id)).html();
+        const body = $('<div/>').text(m.body).html();
+        const item = $('<div class="list-group-item py-2"></div>');
+        item.append('<div class="d-flex justify-content-between '+(unread?'fw-bold':'')+'">'+dot+'<span>'+subj+'</span><small class="text-muted ms-2">'+fmtDate(m.created_at)+'</small></div>');
+        item.append('<div class="small text-muted">'+sender+' → '+recipient+'</div>');
+        item.append('<div class="mt-1" style="white-space:pre-wrap">'+body+'</div>');
+        const actions = $('<div class="mt-2 d-flex gap-2"></div>');
+  const isRecipient = (m.recipient_id === jsUserId);
+  const isSender = (m.sender_id === jsUserId);
+        if(isRecipient){
+          if(unread){
+            const btnLu = $('<button type="button" class="btn btn-sm btn-outline-primary">Lu</button>').on('click', function(){
+              $.post('/api/messages/'+m.id+'/read', function(){ refreshRepairMessages(); refresh_unread_messages_count && refresh_unread_messages_count(); });
+            });
+            actions.append(btnLu);
+          } else {
+            const btnActif = $('<button type="button" class="btn btn-sm btn-outline-secondary">Actif</button>').on('click', function(){
+              $.ajax({type:'POST', url:'/api/messages/'+m.id+'/unread', contentType:'application/json', data: JSON.stringify({unread:true}), success:function(){ refreshRepairMessages(); refresh_unread_messages_count && refresh_unread_messages_count(); }});
+            });
+            actions.append(btnActif);
+          }
+        }
+        if(isRecipient || isSender){
+          const btnDel = $('<button type="button" class="btn btn-sm btn-outline-danger">Remove</button>').on('click', function(){
+            $.ajax({type:'DELETE', url:'/api/messages/'+m.id, success:function(){ refreshRepairMessages(); refresh_unread_messages_count && refresh_unread_messages_count(); }});
+          });
+          actions.append(btnDel);
+        }
+        if(actions.children().length){ item.append(actions); }
+        list.append(item);
+      });
+    });
+  }
+  $('#nav-messages-tab').on('shown.bs.tab', function(){ console.debug('Onglet messages affiché'); refreshRepairMessages(); });
+  function openRepairMsgForm(){
+     const form = $('#repair-message-form').removeClass('d-none');
+     loadRepairUsers().then(function(users){
+       const sel = $('#repair_msg_recipient').empty();
+  sel.append('<option value="" selected disabled>— Choisir destinataire —</option>');
+  users.forEach(function(u){ sel.append('<option value="'+u.id+'">'+$('<div/>').text(u.name).html()+'</option>'); });
+       // focus premier champ après population
+       setTimeout(function(){ $('#repair_msg_subject').trigger('focus'); }, 20);
+     });
+     // scroll dans la vue si nécessaire
+     form[0].scrollIntoView({behavior:'smooth', block:'center'});
+  }
+  const newBtn = $('#btn-new-repair-message');
+  if(newBtn.length){
+    console.debug('Init bouton Nouveau message (onglet fiche)');
+    newBtn.off('click.repairmsg').on('click.repairmsg', function(e){ e.preventDefault(); console.debug('Click Nouveau message'); openRepairMsgForm(); });
+  } else { console.warn('Bouton Nouveau message introuvable'); }
+  $('#repair_msg_cancel').on('click', function(){ $('#repair-message-form').addClass('d-none'); $('#repair_msg_error').hide(); });
+  $('#repair_msg_body').on('input', function(){ $('#repair_msg_body_counter').text(this.value.length+'/250'); });
+  $('#repair-message-form').on('submit', function(e){
+     e.preventDefault();
+  if(!$('#repair_msg_recipient').val()) { $('#repair_msg_error').text('Choisir un destinataire').show(); return; }
+     const payload = {
+       recipient_id: parseInt($('#repair_msg_recipient').val(),10),
+       subject: $('#repair_msg_subject').val(),
+       body: $('#repair_msg_body').val(),
+       repair_id: repairInternalId
+     };
+     $('#repair_msg_error').hide();
+     $.ajax({type:'POST', url:'/api/messages', contentType:'application/json', data: JSON.stringify(payload), success:function(){
+        $('#repair_msg_subject').val(''); $('#repair_msg_body').val(''); $('#repair_msg_body_counter').text('0/250'); $('#repair-message-form').addClass('d-none'); refreshRepairMessages();
+     }, error:function(xhr){ const js = xhr.responseJSON||{}; $('#repair_msg_error').text(js.error||'Erreur').show(); }});
+  });
+  $(document).on('click','[data-view-id]', function(e){ e.preventDefault(); const id=$(this).data('view-id'); if(window.view_message){ console.debug('Lecture message', id); window.view_message(id);} });
+  // Auto-refresh si l'onglet est directement actif (cas navigation ancre)
+  if($('#nav-messages').hasClass('active')){ refreshRepairMessages(); }
+})();
 </script>
+{% endblock %}
