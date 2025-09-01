@@ -61,18 +61,18 @@
                   <a class="py-2 text-dark text-decoration-none" href="{{ url_for('auth.login') }}">Login</a>
                 {% else %}
                 <div class="dropdown dropdown-notif md-inline-flex">
-                  <button id="notif_button" role="button" data-bs-toggle="dropdown" class="btn border-info" onclick="get_notifs()">
-                    Notifications <span class="badge bg-danger collapse">0</span>
+                  <button id="notif_button" role="button" data-bs-toggle="dropdown" class="btn btn-outline-secondary position-relative" onclick="get_notifs()" title="Notifications">
+                    <i class="bi bi-envelope"></i>
+                    <span class="badge bg-danger position-absolute top-0 start-100 translate-middle collapse">0</span>
                   </button>
-
-                  <ul class="dropdown-menu notifications" role="menu" aria-labelledby="notif_button">
-
-                    <div class="notification-heading"><h4 class="menu-title">Notifications</h4>
+                  <ul class="dropdown-menu notifications p-2" role="menu" aria-labelledby="notif_button">
+                    <div class="notification-heading d-flex justify-content-between align-items-center px-1 mb-1">
+                      <span class="menu-title small m-0">Notifications</span>
+                      <button class="btn btn-sm btn-link p-0 small" onclick="refresh_notifs();return false;" title="Rafraîchir"><i class="bi bi-arrow-clockwise"></i></button>
                     </div>
-                    <li class="divider"></li>
-                   <div id="notifications-wrapper">
-
-                   </div>
+                    <div id="notifications-wrapper" class="small text-muted px-1 py-1">
+                      <em>Aucune notification</em>
+                    </div>
                   </ul>
                 </div>
                 <button type="button" class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown">{{ name }}</button>
@@ -331,26 +331,20 @@
   }
 
   function set_notif(count) {
-    $("#notif_button span").html(count);
-    if (count > 0) {
-      $("#notif_button span").show();
-      $("#notif_button").prop("disabled", false);
-    } else {
-      $("#notif_button span").hide();
-      $("#notif_button").prop("disabled", true);
-    }
+  const badge = $("#notif_button span.badge");
+  badge.text(count);
+  if (count > 0) { badge.removeClass('collapse'); } else { badge.addClass('collapse'); }
   }
 
   function get_notifs() {
-    $.ajax({
-      type: 'GET',
-      url: '{{url_for("api.get_notifs")}}',
-      success: function(data) {
-        $("#notifications-wrapper").html(data)
-      }
-    });
-    $("#notifications-wrapper").html("")
+    refresh_notifs();
     return true;
+  }
+
+  function refresh_notifs(){
+    const wrap = $('#notifications-wrapper');
+    wrap.html('<div class="small text-muted">Chargement…</div>');
+    $.get('{{url_for("api.get_notifs")}}', function(data){ wrap.html(data); });
   }
 
   function update_notifs() {
