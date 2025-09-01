@@ -1,6 +1,6 @@
 """Decrement existing last_membership values by 1 (semantic shift)
 
-Revision ID: 20250901_24_decrement_last_membership_values
+Revision ID: 20250901_24
 Revises: 20250901_23
 Create Date: 2025-09-01
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = "20250901_24_decrement_last_membership_values"
+revision = "20250901_24"
 down_revision = "20250901_23"
 branch_labels = None
 depends_on = None
