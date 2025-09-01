@@ -78,10 +78,25 @@
   {% endif %}
 </div>
 <hr>
-<h5>Participants ({{ participants|length }})</h5>
-<ul>
-  {% for u in participants %}<li>{{ u.name }} ({{ u.email }})</li>{% endfor %}
-</ul>
+<h5>Autres réparateurs (<span id="other-participants-count">{{ participants | selectattr('id','ne', session.owner_id) | list | length }}</span>)</h5>
+<div class="mb-2" id="participants-manager">
+  <div class="d-flex flex-wrap align-items-end gap-2">
+    <div>
+      <label class="form-label small mb-1">Ajouter / Retirer</label>
+      <select multiple size="6" class="form-select" id="all-users-select" style="min-width:240px"></select>
+      <div class="form-text small">Ctrl/Cmd+clic pour sélectionner plusieurs réparateurs.</div>
+    </div>
+    <div class="d-flex flex-column gap-2">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="btn-participants-apply">Sauvegarder participants</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-participants-reset">Réinitialiser</button>
+    </div>
+    <div class="ms-auto small text-muted" id="participants-status"></div>
+  </div>
+  <div class="small mt-2">
+  <strong>Actuels:</strong> <span id="participants-current-list">{% for u in participants if u.id != session.owner_id %}{{ u.name }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
+  </div>
+</div>
+<noscript><ul>{% for u in participants if u.id != session.owner_id %}<li>{{ u.name }} ({{ u.email }})</li>{% endfor %}</ul></noscript>
 <h5>Réparations ({{ session.repairs|length }})</h5>
 <ul>
   {% for r in session.repairs %}
@@ -180,6 +195,71 @@ function updateLocationDot(){
   dotEls.forEach(el=>{ if(color) el.style.backgroundColor = color; });
 }
 updateLocationDot();
+</script>
+<script>
+// --- Participants management ---
+const participantsManager = (function(){
+  const selectEl = document.getElementById('all-users-select');
+  if(!selectEl) return;
+  const currentIds = new Set(JSON.parse('{{ participants | selectattr("id","ne", session.owner_id) | map(attribute="id") | list | tojson | safe }}'));
+  const ownerId = {{ session.owner_id | tojson }};
+  function loadAllUsers(){
+    fetch('/api/users/simple').then(r=>r.json()).then(list=>{
+      selectEl.innerHTML='';
+      list.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+      list.forEach(u=>{
+  if(u.id === ownerId) return; // exclure responsable
+        const opt=document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = u.name || ('#'+u.id);
+        if(currentIds.has(u.id)) opt.selected = true;
+        selectEl.appendChild(opt);
+      });
+    });
+  }
+  loadAllUsers();
+  document.getElementById('btn-participants-reset').addEventListener('click', function(){
+    Array.from(selectEl.options).forEach(o=>{ o.selected = currentIds.has(parseInt(o.value)); });
+  });
+  function refreshOwnerDropdown(participantIds){
+    const ownerSelect = document.getElementById('new-owner');
+    if(!ownerSelect) return;
+  const ownerIdCurrent = parseInt(ownerSelect.value || ownerId,10);
+  const keep = new Set([ownerIdCurrent, ...participantIds]);
+    // Supprimer options (sauf owner) qui ne sont plus participants
+    Array.from(ownerSelect.options).forEach(opt=>{
+      const vid = parseInt(opt.value,10);
+  if(vid !== ownerIdCurrent && !keep.has(vid)) opt.remove();
+    });
+    // Ajouter nouvelles
+  const existing = new Set(Array.from(ownerSelect.options).map(o=> parseInt(o.value,10)));
+    participantIds.forEach(pid=>{
+      if(!existing.has(pid)){
+        // récupérer le nom depuis la liste multi
+        const srcOpt = Array.from(selectEl.options).find(o=> parseInt(o.value,10)===pid);
+        const name = srcOpt ? srcOpt.textContent : ('#'+pid);
+        const opt = document.createElement('option');
+        opt.value = pid;
+        opt.textContent = name;
+        ownerSelect.appendChild(opt);
+      }
+    });
+  }
+  document.getElementById('btn-participants-apply').addEventListener('click', function(){
+    const sel = Array.from(selectEl.selectedOptions).map(o=> parseInt(o.value));
+    fetch('/api/session/update/{{ session.id }}', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({participants: sel})})
+      .then(r=>{ if(!r.ok) throw new Error('Erreur maj participants'); return r.json(); })
+      .then(js=>{
+        document.getElementById('participants-status').textContent='Sauvegardé';
+        setTimeout(()=>{ document.getElementById('participants-status').textContent=''; }, 2500);
+        const selectedNames = Array.from(selectEl.selectedOptions).map(o=> o.textContent);
+        document.getElementById('participants-current-list').textContent = selectedNames.join(', ');
+        document.getElementById('other-participants-count').textContent = sel.length;
+        refreshOwnerDropdown(sel);
+      })
+      .catch(err=>{ document.getElementById('participants-status').textContent=err.message; });
+  });
+})();
 </script>
 <script>
  (function(){
