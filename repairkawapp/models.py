@@ -363,3 +363,35 @@ class AppSetting(db.Model):
     updated_at = db.Column(
         db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class Message(db.Model):
+    """Message direct (un destinataire) limité à 250 caractères.
+
+    Optionnellement lié à une réparation ou une note pour contexte.
+    """
+
+    __tablename__ = "message"
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    sender = db.relationship("User", foreign_keys=[sender_id])
+    recipient_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    recipient = db.relationship("User", foreign_keys=[recipient_id])
+    subject = db.Column(db.String(120))
+    body = db.Column(db.String(250), nullable=False)
+    repair_id = db.Column(db.Integer, db.ForeignKey("repair.id"), nullable=True, index=True)
+    note_id = db.Column(db.Integer, db.ForeignKey("note.id"), nullable=True, index=True)
+    created_at = db.Column(
+        db.DateTime(timezone=True), nullable=False, server_default=func.now(), index=True
+    )
+    read_at = db.Column(db.DateTime(timezone=True))
+    deleted_sender = db.Column(db.Boolean, nullable=False, server_default="0")
+    deleted_recipient = db.Column(db.Boolean, nullable=False, server_default="0")
+
+    __table_args__ = (db.Index("idx_message_recipient_unread", "recipient_id", "read_at"),)
+
+    def mark_read(self):
+        from datetime import datetime, timezone
+
+        if not self.read_at:
+            self.read_at = datetime.now(timezone.utc)
