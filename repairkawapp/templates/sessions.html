@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function(){
         $('#past-session-alert').removeClass('d-none').removeClass('alert-warning').addClass('alert-danger').text('Lieu requis.');
         return;
       }
-      const payload = { date: fd.get('date'), time: fd.get('time'), location: loc };
+  const payload = { date: fd.get('date'), time: fd.get('time'), location: loc };
       $.ajax({
         type:'POST',
         url:'/api/session/past',
@@ -192,29 +192,30 @@ document.addEventListener('DOMContentLoaded', function(){
     current.setDate(1); // début du mois
 
   function render(){
-      const year = current.getFullYear();
-      const month = current.getMonth();
-      const first = new Date(year, month, 1);
-      const startDow = first.getDay(); // 0=dimanche
-      const lastDay = new Date(year, month + 1, 0).getDate();
-      let html = '<div class="border rounded p-2 small bg-light" style="max-width:360px">';
-      html += '<div class="d-flex justify-content-between align-items-center mb-1">'
-           + '<button type="button" class="btn btn-sm btn-outline-secondary" id="rk-cal-prev" title="Mois précédent">&lt;</button>'
-           + '<div class="fw-bold text-center flex-grow-1">'+ first.toLocaleString('fr-FR', {month:'long', year:'numeric'}) +'</div>'
-           + '<button type="button" class="btn btn-sm btn-outline-secondary" id="rk-cal-next" title="Mois suivant">&gt;</button>'
-           + '</div>';
-      html += '<div class="d-grid" style="grid-template-columns:repeat(7,1fr);gap:2px">';
-      names.forEach(n=> html+='<div class="text-center fw-lighter">'+n+'</div>');
-      for (let i=0;i<startDow;i++){ html+='<div></div>'; }
-      for (let d=1; d<=lastDay; d++){
-        const dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-        const has = daysWith.has(dateStr);
-        html += '<button type="button" data-date="'+dateStr+'" class="btn btn-sm p-0 text-center position-relative border '+(has? 'btn-outline-primary':'btn-outline-light text-muted')+'" style="height:32px;line-height:30px;">'+d+'</button>';
-      }
-      html += '</div></div>';
-  cal.innerHTML = html;
-  ensureLegend();
+    const year = current.getFullYear();
+    const month = current.getMonth();
+    const first = new Date(year, month, 1);
+    const startDow = first.getDay(); // 0=dimanche
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    let html = '<div class="border rounded p-2 small bg-light" style="max-width:360px">';
+    html += '<div class="d-flex justify-content-between align-items-center mb-1">'
+         + '<button type="button" class="btn btn-sm btn-outline-secondary" id="rk-cal-prev" title="Mois précédent">&lt;</button>'
+         + '<div class="fw-bold text-center flex-grow-1">'+ first.toLocaleString('fr-FR', {month:'long', year:'numeric'}) +'</div>'
+         + '<button type="button" class="btn btn-sm btn-outline-secondary" id="rk-cal-next" title="Mois suivant">&gt;</button>'
+         + '</div>';
+    html += '<div class="d-grid" style="grid-template-columns:repeat(7,1fr);gap:2px">';
+    names.forEach(n=> html+='<div class="text-center fw-lighter">'+n+'</div>');
+    for (let i=0;i<startDow;i++){ html+='<div></div>'; }
+    for (let d=1; d<=lastDay; d++){
+      const dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      const has = daysWith.has(dateStr);
+      html += '<button type="button" data-date="'+dateStr+'" class="btn btn-sm p-0 text-center position-relative border '+(has? 'btn-outline-primary':'btn-outline-light text-muted')+'" style="height:32px;line-height:30px;">'+d+'</button>';
     }
+    html += '</div></div>';
+    cal.innerHTML = html;
+    ensureLegend();
+  injectDayDots();
+  }
 
     // Lecture des couleurs (date -> [hex,...])
     let dayColorsMap = new Map();
@@ -255,31 +256,49 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     function injectDayDots(){
+      let injectedCount = 0;
       dayColorsMap.forEach((colors, date)=>{
         const btn = cal.querySelector('button[data-date="'+date+'"]');
         if(!btn) return;
-        // éviter doublons
-        if(btn.querySelector('.day-color-dots')) return;
+        if(btn.querySelector('.day-color-dots')) return; // éviter doublons
         const wrap = document.createElement('span');
         wrap.className='day-color-dots';
-        colors.slice(0,4).forEach(c=>{ // limite 4 pour lisibilité
+        colors.slice(0,4).forEach(c=>{
           const dot=document.createElement('span');
           dot.style.backgroundColor=c;
           wrap.appendChild(dot);
         });
         btn.appendChild(wrap);
+        injectedCount++;
       });
+  /* noop */
     }
 
   render();
-  injectDayDots();
+  /* debug logs retirés */
 
     let activeDate = null; // ISO yyyy-mm-dd
     cal.addEventListener('click', function(e){
+  const tgt = e.target;
+  /* debug click retiré */
       const navPrev = e.target.closest('#rk-cal-prev');
       const navNext = e.target.closest('#rk-cal-next');
-      if(navPrev){ current.setMonth(current.getMonth()-1); render(); markActive(); return; }
-      if(navNext){ current.setMonth(current.getMonth()+1); render(); markActive(); return; }
+      if(navPrev){
+  /* nav prev */
+        current.setMonth(current.getMonth()-1);
+        render();
+  /* nav prev done */
+        markActive();
+        return;
+      }
+      if(navNext){
+  /* nav next */
+        current.setMonth(current.getMonth()+1);
+        render();
+  /* nav next done */
+        markActive();
+        return;
+      }
       const btn = e.target.closest('button[data-date]');
       if(!btn) return;
       const targetDate = btn.getAttribute('data-date');
