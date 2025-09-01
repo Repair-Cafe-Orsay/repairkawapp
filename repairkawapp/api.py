@@ -627,6 +627,10 @@ def stats():
             "visitors": stats_raw["visitors"],
             "total": stats_raw["total"],
             "total_sessions": stats_raw.get("total_sessions", 0),
+            "top_object_types": [
+                {"name": name, "count": count}
+                for (name, count) in stats_raw.get("object_types_top", [])
+            ],
         }
     )
 

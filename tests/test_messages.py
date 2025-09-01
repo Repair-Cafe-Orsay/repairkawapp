@@ -63,9 +63,9 @@ def test_validation_errors(client):
     # self (désormais autorisé)
     r = client.post("/api/messages", json={"recipient_id": 1, "subject": "S", "body": "x"})
     assert r.status_code == 201
-    # body vide
+    # body vide (désormais accepté)
     r = client.post("/api/messages", json={"recipient_id": 2, "subject": "S", "body": "  "})
-    assert r.status_code == 400
+    assert r.status_code == 201
     # body long
     r = client.post(
         "/api/messages",

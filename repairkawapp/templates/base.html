@@ -49,6 +49,8 @@
       #notif_button i,#msg_button i{font-size:1.15rem;}
       #notif_button .badge,#msg_button .badge{font-size:0.65rem;padding:0.30em 0.40em;}
       .dropdown-menu.notifications, .dropdown-menu.dropdown-messages{font-size:0.85rem;}
+  /* Pastille bleue messages non lus */
+  .msg-unread-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#0d6efd;margin-right:4px;vertical-align:middle;flex:0 0 8px;}
       /* Réduire largeur des boutons nom/admin pour limiter effet "blocs" */
   .btn-user-name,.btn-admin-menu{padding:0.50rem 0.85rem;}
       @media (max-width: 768px){
@@ -199,7 +201,7 @@
           </div>
           {% if current_user.is_authenticated and not membership_up_to_date %}
             <div class="membership-warning small mt-2" role="alert">
-              Cotisation non à jour (voir admin)
+              Cotisation non à jour (voir membre du bureau)
             </div>
           {% endif %}
         </div>
@@ -207,7 +209,7 @@
 
     <main>
   {# Bannière séance masquée aussi sur la documentation #}
-  {% if current_user.is_authenticated and not request.path.startswith('/admin') and not request.path.startswith('/docs') and request.path not in ['/profile','/trombinoscope'] %}
+  {% if current_user.is_authenticated and not request.path.startswith('/admin') and not request.path.startswith('/docs') and request.path not in ['/', '/profile','/trombinoscope'] %}
       <div id="session-banner" class="mb-3">
         <div class="card" id="session-active" style="display:none">
           <div class="card-body py-2 d-flex justify-content-between align-items-center" id="session-active-body">
@@ -484,7 +486,7 @@
         const subj = m.subject ? $('<span/>').text(m.subject) : $('<span class="text-muted fst-italic">(Sans sujet)</span>');
     const sender = m.sender_name ? m.sender_name : ('#'+m.sender_id);
     const recipient = m.recipient_name ? m.recipient_name : ('#'+m.recipient_id);
-    const unreadDot = unread ? '<span class="badge rounded-pill bg-primary me-1 align-middle" style="width:8px;height:8px;padding:0"></span>' : '';
+  const unreadDot = unread ? '<span class="msg-unread-dot"></span>' : '';
         const actions = $('<div class="mt-1 d-flex gap-1"></div>');
         const btnView = $('<button class="btn btn-sm btn-outline-secondary py-0">Lire</button>').on('click', function(e){ e.stopPropagation(); view_message(m.id); });
         const btnToggle = $('<button class="btn btn-sm py-0"></button>');
@@ -625,24 +627,50 @@
         $('<button type="button" class="btn btn-outline-success btn-reply">Répondre</button>').insertBefore(modal.find('.btn-remove'));
       }
       modal.find('.btn-reply').off('click').on('click', function(){
-        // ouvrir compose global
+        // Ouvre compose et charge utilisateurs si nécessaire avant de sélectionner
         if(typeof toggle_compose === 'function') toggle_compose(true);
-        // Pré-remplir destinataire = expéditeur (si différent)
-        if(m.sender_id){ $('#msg_recipient').val(m.sender_id); }
-        // Préfixer sujet si pas déjà Re:
-        if(m.subject && !/^Re:/i.test(m.subject)){ $('#msg_subject').val('Re: '+m.subject); } else { $('#msg_subject').val(m.subject||''); }
-        // Conserver lien fiche pour la réponse si le message initial était lié
-        if(m.repair_id){
-          // Ajouter un champ caché contextuel si pas présent
-          let hidden = $('#message-compose input[name="repair_id"]');
-          if(!hidden.length){
-            $('#message-compose form').append('<input type="hidden" name="repair_id" id="msg_repair_ctx" />');
-            hidden = $('#msg_repair_ctx');
+        function afterUsers(){
+          if(m.sender_id){
+            const sel = $('#msg_recipient');
+            // Vérifie que l'option existe, sinon recharge (sécurité)
+            if(!sel.find('option[value="'+m.sender_id+'"]').length){ _msg_users_loaded=false; load_message_users(); }
+            sel.val(String(m.sender_id));
           }
-          hidden.val(m.repair_id);
+          // Sujet
+            if(m.subject && !/^Re:/i.test(m.subject)){ $('#msg_subject').val('Re: '+m.subject); } else { $('#msg_subject').val(m.subject||''); }
+          // Contexte fiche
+          if(m.repair_id){
+            let hidden = $('#message-compose input[name="repair_id"]');
+            if(!hidden.length){
+              $('#message-compose form').append('<input type="hidden" name="repair_id" id="msg_repair_ctx" />');
+              hidden = $('#msg_repair_ctx');
+            }
+            hidden.val(m.repair_id);
+          }
+          // Ferme le modal du message
+          const inst = bootstrap.Modal.getInstance(modal[0]); if(inst) inst.hide();
+          // Ouvre le dropdown messages
+          const btnMsg = $('#msg_button');
+          if(btnMsg.length){
+            const dd = bootstrap.Dropdown.getOrCreateInstance(btnMsg[0]);
+            dd.show();
+          }
+          // S'assure que le compose est visible
+          toggle_compose(true);
+          // Focus corps
+          $('#msg_body').focus();
         }
-        // Focus body
-        $('#msg_body').focus();
+        if(!_msg_users_loaded){
+          $.when($.Deferred(function(def){
+            $.getJSON('/api/users/simple', function(list){
+              const sel = $('#msg_recipient').empty().append('<option value="" disabled selected>Choisir...</option>');
+              list.forEach(function(u){ sel.append('<option value="'+u.id+'">'+(u.name||u.id)+'</option>'); });
+              _msg_users_loaded=true; def.resolve();
+            });
+          })).done(afterUsers);
+        } else {
+          afterUsers();
+        }
       });
       const bs = new bootstrap.Modal(modal[0]);
       bs.show();

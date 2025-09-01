@@ -7,7 +7,13 @@ from datetime import date, datetime
 from sqlalchemy import distinct, func
 from sqlalchemy.orm import Session
 
-from ..models import Category, CloseStatus, Repair, Session as RepairSession
+from ..models import (
+    Category,
+    CloseStatus,
+    ObjectType,
+    Repair,
+    Session as RepairSession,
+)
 
 
 def parse_period(arg_from: str | None, arg_to: str | None):
@@ -64,10 +70,22 @@ def compute_stats(session: Session, date_from: date, date_to: date):
         .filter(RepairSession.opened_at <= date_to)
         .scalar()
     )
+    # Top 20 des types d'objet structurés (ignore legacy otype texte)
+    object_types_top = (
+        session.query(ObjectType.name, func.count(Repair.id))
+        .join(Repair, Repair.object_type_id == ObjectType.id)
+        .filter(Repair.created >= date_from)
+        .filter(Repair.created <= date_to)
+        .group_by(ObjectType.id)
+        .order_by(func.count(Repair.id).desc())
+        .limit(20)
+        .all()
+    )
     return {
         "categories_raw": all_repairs_category,
         "status_raw": all_repairs_close_status,
         "visitors": visitors,
         "total": total,
         "total_sessions": total_sessions,
+        "object_types_top": object_types_top,
     }

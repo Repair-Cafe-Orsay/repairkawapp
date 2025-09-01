@@ -13,8 +13,7 @@
                     {{ p }}
                 {%- endif -%}
                 {%- if not loop.last %} {% endif -%}
-            {%- endfor -%}
-            ({{l.date.strftime('%Y-%m-%d')}} à {{l.date.strftime('%H:%M')}} par {{l.user.name}})
+            {%- endfor %} <span style="color:#777;">({{ l.date.strftime('%Y-%m-%d') }} à {{ l.date.strftime('%H:%M') }} par {{ l.user.name|trim }})</span>
         </li>
 {% endmacro %}
 
