@@ -21,6 +21,17 @@ serializer = None
 def create_app(config_override=None):
     app = Flask(__name__)
 
+    # Version applicative (fichier VERSION à la racine ou valeur par défaut)
+    try:
+        version_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "VERSION"))
+        if os.path.exists(version_path):
+            with open(version_path) as vf:
+                app.config["APP_VERSION"] = vf.read().strip()
+        else:
+            app.config["APP_VERSION"] = "0.1.0-dev"
+    except Exception:  # pragma: no cover
+        app.config["APP_VERSION"] = "0.1.0-dev"
+
     # Chargement config: si config.json absent, créer depuis le template en remplaçant PATHTO
     cfg_path = "config.json"
     if not os.path.exists(cfg_path):
@@ -77,6 +88,7 @@ def create_app(config_override=None):
     from .admin import admin as admin_blueprint
     from .api import api as api_blueprint
     from .auth import auth as auth_blueprint
+    from .docs_blueprint import docs as docs_blueprint
     from .main import main as main_blueprint
 
     # Filtres Jinja
@@ -101,6 +113,7 @@ def create_app(config_override=None):
     app.register_blueprint(main_blueprint)
     app.register_blueprint(api_blueprint)
     app.register_blueprint(admin_blueprint)
+    app.register_blueprint(docs_blueprint)
 
     # Contexte global: statut cotisation (pour bannière dans layout)
     @app.context_processor
@@ -158,8 +171,16 @@ def create_app(config_override=None):
         try:
             from .icon_utils import render_category_icon
 
-            return {"render_category_icon": render_category_icon}
+            return {
+                "render_category_icon": render_category_icon,
+                "APP_VERSION": app.config.get("APP_VERSION"),
+            }
         except Exception:
-            return {}
+            return {"APP_VERSION": app.config.get("APP_VERSION")}
+
+    # Version accessible partout (fallback si autre context processors sautent)
+    @app.context_processor
+    def inject_version():  # pragma: no cover - simple mapping
+        return {"APP_VERSION": app.config.get("APP_VERSION")}
 
     return app

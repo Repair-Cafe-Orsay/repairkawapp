@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" style="max-width:860px">
+  <h1 class="h4 mb-3">Notes de version</h1>
+  <p class="text-muted small">Version actuelle: {{ APP_VERSION }}</p>
+
+  <div class="mb-4">
+    <h2 class="h5">0.2.0 (en cours)</h2>
+    <ul>
+      <li>Messagerie interne: corps désormais optionnel, indicateurs non lus, réponse conservant lien fiche.</li>
+      <li>Page d'aide initiale / documentation intégrée.</li>
+      <li>Affichage version app dans le footer.</li>
+    </ul>
+  </div>
+
+  <div class="mb-4">
+    <h2 class="h5">0.1.0</h2>
+    <ul>
+      <li>Structure initiale: gestion fiches, séances, notes, notifications basiques.</li>
+    </ul>
+  </div>
+
+  <div class="alert alert-info small">Format prévu: hôte, numéro version semver, date, changements fonctionnels, migrations. Contribuer via PR pour ajouter vos changements.</div>
+</div>
+{% endblock %}

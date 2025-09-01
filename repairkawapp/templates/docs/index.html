@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" style="max-width:1000px">
+  <h1 class="h4 mb-4">Documentation</h1>
+  <div class="list-group mb-4">
+    <a href="{{ url_for('docs.releases') }}" class="list-group-item list-group-item-action">Notes de version</a>
+  <a href="{{ url_for('docs.guide') }}" class="list-group-item list-group-item-action">Guide d'utilisation (vue synthèse)</a>
+  </div>
+  <p class="text-muted small">Version applicative: {{ APP_VERSION }}</p>
+</div>
+{% endblock %}

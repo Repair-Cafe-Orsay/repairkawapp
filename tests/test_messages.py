@@ -60,16 +60,16 @@ def test_create_message_and_list(client):
 
 def test_validation_errors(client):
     login(client, "alice@example.org")
-    # self
-    r = client.post("/api/messages", json={"recipient_id": 1, "body": "x"})
-    assert r.status_code == 400
+    # self (désormais autorisé)
+    r = client.post("/api/messages", json={"recipient_id": 1, "subject": "S", "body": "x"})
+    assert r.status_code == 201
     # body vide
-    r = client.post("/api/messages", json={"recipient_id": 2, "body": "  "})
+    r = client.post("/api/messages", json={"recipient_id": 2, "subject": "S", "body": "  "})
     assert r.status_code == 400
     # body long
     r = client.post(
         "/api/messages",
-        json={"recipient_id": 2, "body": "x" * 251},
+        json={"recipient_id": 2, "subject": "S", "body": "x" * 251},
     )
     assert r.status_code == 400
     # subject long
@@ -78,13 +78,22 @@ def test_validation_errors(client):
         json={"recipient_id": 2, "subject": "s" * 121, "body": "ok"},
     )
     assert r.status_code == 400
+    # missing subject
+    r = client.post(
+        "/api/messages",
+        json={"recipient_id": 2, "body": "ok"},
+    )
+    assert r.status_code == 400
 
 
 def test_unread_count_and_mark_read(client):
     login(client, "alice@example.org")
     # 2 messages envoyés à Bob
     for i in range(2):
-        client.post("/api/messages", json={"recipient_id": 2, "body": f"msg {i}"})
+        client.post(
+            "/api/messages",
+            json={"recipient_id": 2, "subject": f"S{i}", "body": f"msg {i}"},
+        )
     client.get("/logout")
     login(client, "bob@example.org")
     c = client.get("/api/messages/unread_count")

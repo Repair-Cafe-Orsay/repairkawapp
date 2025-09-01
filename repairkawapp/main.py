@@ -495,6 +495,7 @@ def get_update(id):
     return render_template(
         "update.html",
         name=current_user.name,
+        current_user_id=current_user.id,
         categories=Category.query.order_by(Category.name).all(),
         states=State.query.order_by(State.id).all(),
         users=candidate_users,
@@ -753,3 +754,11 @@ def trombinoscope():
         status_map=status_map,
         name=current_user.name if current_user.is_authenticated else None,
     )
+
+
+@main.route("/help")
+@login_required
+def user_help():  # rétrocompatibilité -> redirection vers le guide d'utilisation
+    from flask import redirect, url_for
+
+    return redirect(url_for("docs.guide"), code=302)

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" style="max-width:960px">
+  <h1 class="h3 mb-4">Guide d'utilisation</h1>
+  <p class="text-muted">Version initiale – cette page évoluera. Suggestions bienvenues.</p>
+
+  <h2 class="h5 mt-4">1. Connexion & Profil</h2>
+  <ul>
+    <li>Mettre à jour votre email et téléphone dans <strong>Profil</strong>.</li>
+    <li>Photo: formats jpg/png, redimensionnée automatiquement.</li>
+    <li>Visibilité trombinoscope: active/désactive votre fiche publique.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">2. Fiches de réparation</h2>
+  <ul>
+    <li>Bouton <em>Nouvelle fiche</em> pour enregistrer un objet amené.</li>
+    <li>Champs obligatoires: catégorie, marque, états initial & courant, type (libellé court), modèle.</li>
+    <li>Après création: accès à l'onglet <strong>Notes</strong>, <strong>Journal</strong>, <strong>Messages</strong>.</li>
+    <li>Recherche rapide: sur page <em>Fiches</em> utilisez la zone de filtrage ou export CSV.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">3. Séances</h2>
+  <ul>
+    <li>Ouvrir une séance avec lieu choisi; elle reste active jusqu'à fermeture.</li>
+    <li>Les fiches créées pendant une séance peuvent être automatiquement rattachées.</li>
+    <li>Vue détail séance: participants, fiches associées, export CSV.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">4. Notes & Journal</h2>
+  <ul>
+    <li><strong>Notes</strong>: observations techniques, diagnostics, actions.</li>
+    <li><strong>Notifications</strong>: rappels créés à partir d'une note (cloche dans la barre).</li>
+    <li><strong>Journal</strong>: historique automatique (changements statut, séance, etc.).</li>
+  </ul>
+
+  <h2 class="h5 mt-4">5. Messagerie interne</h2>
+  <ul>
+    <li>Icône enveloppe: messages directs. Sujet obligatoire, corps optionnel (≤250 caractères).</li>
+    <li>Associer un message à une fiche: envoyer depuis l'onglet <em>Messages</em> d'une fiche.</li>
+    <li>Indicateur bleu = non lu. Cliquer pour marquer lu / action "Actif" pour revenir en non lu.</li>
+    <li>Répondre conserve automatiquement le lien vers la fiche si présent.</li>
+    <li>Suppression: retire le message seulement pour vous (soft delete).</li>
+  </ul>
+
+  <h2 class="h5 mt-4">6. Gestion des états & clôture</h2>
+  <ul>
+    <li>Mettre à jour l'état courant selon l'avancement (Réparé, Irréparable, etc.).</li>
+    <li>Clôturer une fiche change son statut de suivi; toujours consigner une note si décision importante.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">7. Médias & pièces détachées</h2>
+  <ul>
+    <li>Uploader des photos depuis la fiche (<em>Images</em>). Les vignettes sont générées automatiquement.</li>
+    <li>Section pièces détachées: suivre sourcing et statut (ex: commandée, reçue).</li>
+  </ul>
+
+  <h2 class="h5 mt-4">8. Notifications</h2>
+  <ul>
+    <li>Créées à partir d'une note avec une date d'échéance.</li>
+    <li>Menu cloche: vue synthèse, rafraîchissement manuel.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">9. Export & Données</h2>
+  <ul>
+    <li>Exports CSV disponibles pour fiches et séances (limités à un volume raisonnable).</li>
+    <li>Utiliser le filtre de statut ou utilisateur pour réduire l'extraction.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">10. Rôles & Permissions</h2>
+  <ul>
+    <li>Administrateurs: gestion réparateurs, types d'objets, paramètres site.</li>
+    <li>Réparateur standard: création/édition fiches, notes, messages.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">FAQ rapide</h2>
+  <ul>
+    <li><strong>Je ne vois pas un message supprimé</strong>: suppression locale seulement; l'autre utilisateur peut encore le voir.</li>
+    <li><strong>Champ corps vide accepté ?</strong> Oui, depuis la version où le corps est optionnel.</li>
+    <li><strong>Photo trop lourde ?</strong> Elle est redimensionnée; si erreur, réduire en local & réessayer.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">À venir</h2>
+  <ul>
+    <li>Pagination des messages.</li>
+    <li>Statistiques étendues.</li>
+    <li>Marquer tous les messages comme lus.</li>
+  </ul>
+
+  <div class="alert alert-info mt-4 small">Besoin d'une section supplémentaire ? Contacter un admin.</div>
+</div>
+{% endblock %}

@@ -242,9 +242,13 @@ def _serialize_message(m, current_id: int):  # type: ignore[override]
         "id": m.id,
         "sender_id": m.sender_id,
         "recipient_id": m.recipient_id,
+        "sender_name": getattr(m.sender, "name", None) or getattr(m.sender, "email", None),
+        "recipient_name": getattr(m.recipient, "name", None) or getattr(m.recipient, "email", None),
         "subject": m.subject,
         "body": m.body,
         "repair_id": m.repair_id,
+        # expose display_id pour lien direct si fiche associée
+        "repair_display_id": getattr(getattr(m, "repair", None), "display_id", None),
         "note_id": m.note_id,
         "created_at": m.created_at.isoformat() + "Z" if m.created_at else None,
         "read_at": m.read_at.isoformat() + "Z" if m.read_at else None,
@@ -292,6 +296,46 @@ def api_messages_list():
     return jsonify([_serialize_message(m, current_user.id) for m in msgs])
 
 
+@api.route("/api/repairs/<int:repair_id>/messages", methods=["GET"])
+@login_required
+def api_repair_messages(repair_id: int):
+    """Messages liés à une fiche (repair_id) quel que soit l'expéditeur/destinataire.
+
+    Usage: onglet "Messages" sur la page /update/<display_id>.
+    Paramètres optionnels:
+      - limit (défaut 200)
+    Sécurité minimale: accès seulement si l'utilisateur peut voir la fiche (actuellement: connecté).
+    TODO (éventuel): restreindre aux réparateurs impliqués / staff.
+    """
+    repair = db.session.query(Repair).filter_by(id=repair_id).first()
+    if not repair:
+        return jsonify({"error": "repair_not_found"}), 404
+    limit = min(int(request.args.get("limit", 200)), 500)
+    q = db.session.query(MessageModel).filter(MessageModel.repair_id == repair_id)
+    # Exclure les messages que l'utilisateur a « supprimés » de sa vue (soft delete)
+    from sqlalchemy import and_, or_
+
+    q = q.filter(
+        or_(
+            # l'utilisateur n'est pas le sender -> peu importe deleted_sender
+            MessageModel.sender_id != current_user.id,
+            # ou il est sender mais pas marqué supprimé côté sender
+            and_(MessageModel.sender_id == current_user.id, MessageModel.deleted_sender.is_(False)),
+        )
+    ).filter(
+        or_(
+            MessageModel.recipient_id != current_user.id,
+            and_(
+                MessageModel.recipient_id == current_user.id,
+                MessageModel.deleted_recipient.is_(False),
+            ),
+        )
+    )
+    q = q.order_by(MessageModel.created_at.desc()).limit(limit)
+    rows = q.all()
+    return jsonify([_serialize_message(m, current_user.id) for m in rows])
+
+
 @api.route("/api/messages/unread", methods=["GET"])
 @login_required
 def api_messages_unread():
@@ -330,23 +374,23 @@ def api_messages_create():
       subject (<=120, optionnel)
       body (<=250, obligatoire non vide)
       repair_id / note_id (optionnels contexte)
+    Note: l'expéditeur peut être le destinataire (auto-message) – utile pour tests / brouillons.
     """
     payload = request.get_json(silent=True) or request.form
     try:
         recipient_id = int(payload.get("recipient_id"))
     except Exception:
         return jsonify({"error": "invalid_recipient"}), 400
-    if recipient_id == current_user.id:
-        return jsonify({"error": "self_recipient_forbidden"}), 400
     recipient = db.session.query(User).filter_by(id=recipient_id).first()
     if not recipient:
         return jsonify({"error": "recipient_not_found"}), 404
-    subject = (payload.get("subject") or "").strip() or None
-    if subject and len(subject) > 120:
+    subject = (payload.get("subject") or "").strip()
+    if not subject:
+        return jsonify({"error": "missing_subject"}), 400
+    if len(subject) > 120:
         return jsonify({"error": "subject_too_long"}), 400
     body = (payload.get("body") or "").strip()
-    if not body:
-        return jsonify({"error": "empty_body"}), 400
+    # body devient optionnel (peut être vide)
     if len(body) > 250:
         return jsonify({"error": "body_too_long"}), 400
     repair_id = payload.get("repair_id")
@@ -399,6 +443,49 @@ def api_messages_mark_read(msg_id: int):
         m.mark_read()
         db.session.commit()
     return jsonify({"status": "ok", "read_at": m.read_at.isoformat() + "Z"})
+
+
+@api.route("/api/messages/<int:msg_id>", methods=["DELETE"])
+@login_required
+def api_messages_delete(msg_id: int):
+    m = db.session.query(MessageModel).filter_by(id=msg_id).first()
+    if not m:
+        return jsonify({"error": "not_found"}), 404
+    if m.sender_id != current_user.id and m.recipient_id != current_user.id:
+        return jsonify({"error": "forbidden"}), 403
+    if m.sender_id == current_user.id:
+        m.deleted_sender = True
+    if m.recipient_id == current_user.id:
+        m.deleted_recipient = True
+    db.session.commit()
+    return jsonify({"status": "ok"})
+
+
+@api.route("/api/messages/<int:msg_id>/unread", methods=["POST"])
+@login_required
+def api_messages_toggle_unread(msg_id: int):
+    """Bascule état lu/non-lu pour le destinataire.
+
+    Payload JSON: {"unread": true|false}
+    unread=true force read_at=NULL (revient dans le compteur).
+    unread=false marque comme lu (si pas déjà lu).
+    """
+    m = db.session.query(MessageModel).filter_by(id=msg_id).first()
+    if not m:
+        return jsonify({"error": "not_found"}), 404
+    if m.recipient_id != current_user.id:
+        return jsonify({"error": "forbidden"}), 403
+    payload = request.get_json(silent=True) or {}
+    unread = bool(payload.get("unread"))
+    from datetime import datetime, timezone
+
+    if unread:
+        m.read_at = None
+    else:
+        if not m.read_at:
+            m.read_at = datetime.now(timezone.utc)
+    db.session.commit()
+    return jsonify({"status": "ok", "read_at": m.read_at.isoformat() + "Z" if m.read_at else None})
 
 
 @api.route("/api/users/simple", methods=["GET"])
