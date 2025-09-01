@@ -34,6 +34,9 @@
       .btn-admin-menu{padding:0.45rem 0.75rem;}
       @media (max-width: 768px){
         #notif_button,#msg_button{width:36px;height:36px;}
+        }
+        @media (min-width: 768px){
+          .no-wrap-md{flex-wrap:nowrap !important;}
       }
     </style>
 </head>
@@ -61,7 +64,7 @@
               <span class="fs-4">Repair Café Orsay</span>
             </a>
             {% if not to_print %}
-            <nav class="md-inline-flex mt-2 mt-md-0 ms-md-auto d-flex align-items-center gap-3 flex-wrap" style="row-gap:0.5rem">
+            <nav class="md-inline-flex mt-2 mt-md-0 ms-md-auto d-flex align-items-center gap-3 flex-wrap no-wrap-md" style="row-gap:0.5rem">
               {% if not current_user.is_authenticated and request.path == '/trombinoscope' %}
                 <a class="py-2 link-primary text-decoration-underline fw-semibold" href="{{ url_for('auth.login') }}">Connexion (réparateurs seulement)</a>
               {% else %}
@@ -72,9 +75,8 @@
                 </a>
                 <a class="py-2 link-primary" href="/repairs">Fiches</a>
                 <a class="py-2 link-primary" href="/sessions">Séances</a>
-                {% if not current_user.is_authenticated %}
-                  <a class="py-2 text-dark text-decoration-none" href="{{ url_for('auth.login') }}">Login</a>
-                {% else %}
+                <a class="py-2 link-primary" href="/help">Aide</a>
+                {% if current_user.is_authenticated %}
                 <div class="d-flex align-items-center gap-2 flex-nowrap">
                   <div class="d-flex align-items-center gap-2 nav-icons">
                   <!-- Notifications (cloche) -->
@@ -150,9 +152,9 @@
             <li><a class="dropdown-item" href="{{ url_for('admin.settings_page') }}">Paramètres site</a></li>
           </ul>
           {% endif %}
-                </div><!-- group end -->
-        {% endif %}
-              {% endif %}
+        </div><!-- group end -->
+    {% endif %}
+      {% endif %}
             </nav>
             {% else %}
                 {% if to_print %}
@@ -219,11 +221,18 @@
 </div>
 
 {% if not to_print %}
-    <footer class="mt-auto bg-light py-2">
-      <div class="container small d-flex flex-column flex-md-row align-items-center justify-content-md-between">
-        <span class="text-muted mb-1 mb-md-0">© 2025 Repair Café Orsay</span>
-        <a href="https://repaircafe-orsay.org" target="_blank" rel="noopener" class="text-decoration-none mb-1 mb-md-0 mx-md-auto">Site web</a>
-        <a href="/trombinoscope" class="link-secondary mt-1 mt-md-0">Trombinoscope</a>
+    <footer class="mt-auto bg-light py-2 border-top">
+      <div class="container small d-flex flex-column flex-md-row align-items-center gap-2 justify-content-md-between">
+        <div class="d-flex flex-column flex-sm-row align-items-center gap-2">
+          <span class="text-muted">© 2025 Repair Café Orsay</span>
+          <span class="text-muted">v{{ APP_VERSION }}</span>
+        </div>
+        <div class="d-flex flex-column flex-sm-row align-items-center gap-3">
+          <a href="/docs/" class="link-secondary">Documentation</a>
+          <a href="/docs/releases" class="link-secondary">Release notes</a>
+          <a href="/trombinoscope" class="link-secondary">Trombinoscope</a>
+          <a href="https://repaircafe-orsay.org" target="_blank" rel="noopener" class="text-decoration-none">Site web</a>
+        </div>
       </div>
     </footer>
       {% endif %}
