@@ -18,10 +18,13 @@ depends_on = None
 def upgrade():
     # Decrement last_membership by 1 where not null
     conn = op.get_bind()
+    dialect = conn.dialect.name
+    # "user" est un mot réservé MySQL -> utiliser backticks
+    tbl = "`user`" if dialect == "mysql" else '"user"'
     conn.execute(
         sa.text(
-            """
-        UPDATE "user"
+            f"""
+        UPDATE {tbl}
         SET last_membership = last_membership - 1
         WHERE last_membership IS NOT NULL
     """
@@ -32,10 +35,12 @@ def upgrade():
 def downgrade():
     # Revert: increment back by 1
     conn = op.get_bind()
+    dialect = conn.dialect.name
+    tbl = "`user`" if dialect == "mysql" else '"user"'
     conn.execute(
         sa.text(
-            """
-        UPDATE "user"
+            f"""
+        UPDATE {tbl}
         SET last_membership = last_membership + 1
         WHERE last_membership IS NOT NULL
     """
