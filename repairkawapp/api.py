@@ -25,7 +25,7 @@ from .models import (
     Brand,
     Category,
     Location,
-    Message,
+    Message as MessageModel,
     Notification,
     NotificationType,
     Repair,
@@ -47,9 +47,9 @@ from .services.spare_service import add_spare, delete_spare
 from .services.stats_service import compute_stats, get_cached_lists, parse_period
 
 try:  # mail peut ne pas être configuré en tests
-    from flask_mail import Message
+    from flask_mail import Message as MailMessage
 except Exception:  # pragma: no cover
-    Message = None  # type: ignore
+    MailMessage = None  # type: ignore
 
 api = Blueprint("api", __name__)
 
@@ -263,17 +263,32 @@ def api_messages_list():
     """
     box = request.args.get("box")
     limit = min(int(request.args.get("limit", 100)), 500)
-    q = db.session.query(Message)
+    q = db.session.query(MessageModel)
     if box == "out":
-        q = q.filter(Message.sender_id == current_user.id, Message.deleted_sender.is_(False))
-    elif box == "in":
-        q = q.filter(Message.recipient_id == current_user.id, Message.deleted_recipient.is_(False))
-    else:  # combinaison (in + out)
         q = q.filter(
-            (Message.recipient_id == current_user.id & (Message.deleted_recipient.is_(False)))
-            | (Message.sender_id == current_user.id & (Message.deleted_sender.is_(False)))
+            MessageModel.sender_id == current_user.id, MessageModel.deleted_sender.is_(False)
         )
-    msgs = q.order_by(Message.created_at.desc()).limit(limit).all()  # ordre anti-chronologique
+    elif box == "in":
+        q = q.filter(
+            MessageModel.recipient_id == current_user.id,
+            MessageModel.deleted_recipient.is_(False),
+        )
+    else:  # combinaison (in + out)
+        from sqlalchemy import and_, or_
+
+        q = q.filter(
+            or_(
+                and_(
+                    MessageModel.recipient_id == current_user.id,
+                    MessageModel.deleted_recipient.is_(False),
+                ),
+                and_(
+                    MessageModel.sender_id == current_user.id,
+                    MessageModel.deleted_sender.is_(False),
+                ),
+            )
+        )
+    msgs = q.order_by(MessageModel.created_at.desc()).limit(limit).all()  # ordre anti-chronologique
     return jsonify([_serialize_message(m, current_user.id) for m in msgs])
 
 
@@ -282,11 +297,11 @@ def api_messages_list():
 def api_messages_unread():
     """Liste des messages non lus (inbox) limités à 100."""
     q = (
-        db.session.query(Message)
-        .filter(Message.recipient_id == current_user.id)
-        .filter(Message.deleted_recipient.is_(False))
-        .filter(Message.read_at.is_(None))
-        .order_by(Message.created_at.desc())
+        db.session.query(MessageModel)
+        .filter(MessageModel.recipient_id == current_user.id)
+        .filter(MessageModel.deleted_recipient.is_(False))
+        .filter(MessageModel.read_at.is_(None))
+        .order_by(MessageModel.created_at.desc())
         .limit(100)
     )
     return jsonify([_serialize_message(m, current_user.id) for m in q.all()])
@@ -296,10 +311,10 @@ def api_messages_unread():
 @login_required
 def api_messages_unread_count():
     count = (
-        db.session.query(Message)
-        .filter(Message.recipient_id == current_user.id)
-        .filter(Message.deleted_recipient.is_(False))
-        .filter(Message.read_at.is_(None))
+        db.session.query(MessageModel)
+        .filter(MessageModel.recipient_id == current_user.id)
+        .filter(MessageModel.deleted_recipient.is_(False))
+        .filter(MessageModel.read_at.is_(None))
         .count()
     )
     return jsonify(count)
@@ -344,7 +359,7 @@ def api_messages_create():
         note_id = int(note_id) if note_id is not None else None
     except Exception:
         note_id = None
-    m = Message(
+    m = MessageModel(
         sender_id=current_user.id,
         recipient_id=recipient_id,
         subject=subject,
@@ -360,7 +375,7 @@ def api_messages_create():
 @api.route("/api/messages/<int:msg_id>", methods=["GET"])
 @login_required
 def api_messages_detail(msg_id: int):
-    m = db.session.query(Message).filter_by(id=msg_id).first()
+    m = db.session.query(MessageModel).filter_by(id=msg_id).first()
     if not m:
         return jsonify({"error": "not_found"}), 404
     if m.sender_id != current_user.id and m.recipient_id != current_user.id:
@@ -375,7 +390,7 @@ def api_messages_detail(msg_id: int):
 @api.route("/api/messages/<int:msg_id>/read", methods=["POST"])
 @login_required
 def api_messages_mark_read(msg_id: int):
-    m = db.session.query(Message).filter_by(id=msg_id).first()
+    m = db.session.query(MessageModel).filter_by(id=msg_id).first()
     if not m:
         return jsonify({"error": "not_found"}), 404
     if m.recipient_id != current_user.id:
@@ -384,6 +399,22 @@ def api_messages_mark_read(msg_id: int):
         m.mark_read()
         db.session.commit()
     return jsonify({"status": "ok", "read_at": m.read_at.isoformat() + "Z"})
+
+
+@api.route("/api/users/simple", methods=["GET"])
+@login_required
+def api_users_simple():
+    """Liste simple des utilisateurs (id, name) pour autocomplétion / sélection destinataire.
+
+    Paramètre optionnel q (préfixe insensible) limite 50.
+    """
+    q = (request.args.get("q") or "").strip()
+    query = db.session.query(User)
+    if q:
+        like = f"{q}%"
+        query = query.filter(User.name.like(like))
+    users = query.order_by(User.name.asc()).limit(50).all()
+    return jsonify([{"id": u.id, "name": u.name or u.email} for u in users])
 
 
 @api.route("/api/get_notifcount")
@@ -515,7 +546,9 @@ def stats():
 
 @api.route("/sendmail")
 def sendmail():
-    msg = Message(
+    if not MailMessage:
+        return jsonify({"error": "mail_not_configured"}), 503
+    msg = MailMessage(
         "Hello",
         sender="app@repaircafe-orsay.org",
         recipients=["jean@repaircafe-orsay.org"],

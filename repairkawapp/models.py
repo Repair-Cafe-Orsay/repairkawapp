@@ -395,3 +395,19 @@ class Message(db.Model):
 
         if not self.read_at:
             self.read_at = datetime.now(timezone.utc)
+
+    def __init__(
+        self,
+        sender_id: int,
+        recipient_id: int,
+        subject: str | None,
+        body: str,
+        repair_id: int | None = None,
+        note_id: int | None = None,
+    ):
+        self.sender_id = sender_id
+        self.recipient_id = recipient_id
+        self.subject = subject
+        self.body = body
+        self.repair_id = repair_id
+        self.note_id = note_id
