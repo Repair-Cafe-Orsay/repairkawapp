@@ -29,6 +29,21 @@
   .nav-icons{gap:0.65rem;}
   /* Suppression padding sur le conteneur notifications */
   .dropdown-notif{padding:0 !important;}
+      @media (max-width: 767.98px){
+  .header-burger{position:absolute;top:0.75rem;right:0.75rem;z-index:1030;}
+  header > .pb-2{position:relative;}
+        #mainNav{width:100%;}
+        #mainNav > a, #mainNav .nav-group{width:100%;}
+  #mainNav .nav-group{justify-content:center;}
+        #mainNav a.py-2{display:block;}
+      }
+  .nav-primary-mobile{flex-wrap:nowrap;white-space:nowrap;}
+  .nav-primary-mobile a{display:inline-flex;align-items:center;}
+  @media (max-width: 767.98px){
+    #mainNav.collapse.show{display:block!important;}
+    .nav-primary-mobile{display:flex!important;justify-content:center;overflow:hidden;padding-right:0;margin-bottom:0.25rem;width:100%;}
+    .nav-primary-mobile a{white-space:nowrap;}
+  }
   #notif_button,#msg_button{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0;border-radius:8px;position:relative;}
       #notif_button i,#msg_button i{font-size:1.15rem;}
       #notif_button .badge,#msg_button .badge{font-size:0.65rem;padding:0.30em 0.40em;}
@@ -67,19 +82,25 @@
               <span class="fs-4">Repair Café Orsay</span>
             </a>
             {% if not to_print %}
-            <nav class="md-inline-flex mt-2 mt-md-0 ms-md-auto d-flex align-items-center gap-3 flex-wrap no-wrap-md" style="row-gap:0.5rem">
+            <!-- Bouton burger mobile -->
+            <button class="btn btn-outline-secondary d-md-none header-burger" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Menu">
+              <span class="bi bi-list"></span>
+            </button>
+            <nav id="mainNav" class="collapse d-md-flex md-inline-flex mt-2 mt-md-0 ms-md-auto align-items-center gap-3 flex-wrap no-wrap-md" style="row-gap:0.5rem">
               {% if not current_user.is_authenticated and request.path == '/trombinoscope' %}
                 <a class="py-2 link-primary text-decoration-underline fw-semibold" href="{{ url_for('auth.login') }}">Connexion (réparateurs seulement)</a>
               {% else %}
-                <a class="me-3 py-2" href="/" aria-label="Accueil" title="Accueil" style="display:inline-flex;align-items:center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="#0d6efd" viewBox="0 0 16 16" role="img" aria-label="Accueil">
-                    <path d="M8 .5l6.5 6.188V15a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1v-3H7v3a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1V6.688L8 .5z" stroke="#0d6efd" stroke-width="0.5" />
-                  </svg>
-                </a>
-                <a class="py-2 link-primary" href="/repairs">Fiches</a>
-                <a class="py-2 link-primary" href="/sessions">Séances</a>
+                <div class="nav-primary-mobile d-flex align-items-center gap-3 mb-1 mb-md-0">
+                  <a class="me-1 py-2" href="/" aria-label="Accueil" title="Accueil" style="display:inline-flex;align-items:center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="#0d6efd" viewBox="0 0 16 16" role="img" aria-label="Accueil">
+                      <path d="M8 .5l6.5 6.188V15a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1v-3H7v3a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1V6.688L8 .5z" stroke="#0d6efd" stroke-width="0.5" />
+                    </svg>
+                  </a>
+                  <a class="py-2 link-primary" href="/repairs">Fiches</a>
+                  <a class="py-2 link-primary" href="/sessions">Séances</a>
+                </div>
                 {% if current_user.is_authenticated %}
-                <div class="d-flex align-items-center flex-nowrap nav-group">
+                <div class="d-flex align-items-center flex-nowrap nav-group mx-md-0 mx-auto" style="max-width:100%;">
                   <div class="d-flex align-items-center flex-nowrap nav-icons" style="gap:0.65rem">
                   <!-- Notifications (cloche) -->
                   <div class="dropdown dropdown-notif">
