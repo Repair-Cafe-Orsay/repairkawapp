@@ -1,4 +1,6 @@
 dump-*.sql
+*.sql
+dbupdates/*.sql
 .coverage
 .pytest_cache/
 .ruff_cache/
