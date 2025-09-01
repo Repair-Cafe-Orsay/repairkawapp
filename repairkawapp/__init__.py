@@ -62,6 +62,12 @@ def create_app(config_override=None):
 
     from .models import User
 
+    # Import léger pour éviter boucle (AppSetting peut ne pas exister avant migration)
+    try:
+        from .models import AppSetting  # type: ignore
+    except Exception:  # table ou modèle absent
+        AppSetting = None  # type: ignore
+
     @login_manager.user_loader
     def load_user(user_id):
         """Charge le réparateur par son identifiant primaire."""
@@ -116,6 +122,35 @@ def create_app(config_override=None):
             except Exception:
                 pass
         return {"membership_up_to_date": True}
+
+    # Contexte maintenance (affiché sur page login uniquement)
+    @app.context_processor
+    def inject_maintenance_flag():
+        maintenance = False
+        maintenance_until = None
+        if AppSetting is None:
+            return {"MAINTENANCE_MODE": False}
+        try:
+            from sqlalchemy import text as _text
+
+            # Requête directe pour éviter cache de session si migration pas encore appliquée
+            with app.app_context():
+                conn = db.session.connection()
+                # Vérifie présence table rapidement
+                res = conn.execute(_text("SHOW TABLES LIKE 'app_setting'"))
+                if res.fetchone():
+                    row = conn.execute(
+                        _text(
+                            "SELECT maintenance_mode, maintenance_until FROM app_setting WHERE id=1"
+                        )
+                    )
+                    r = row.fetchone()
+                    if r:
+                        maintenance = bool(r[0])
+                        maintenance_until = r[1]
+        except Exception:
+            maintenance = False
+        return {"MAINTENANCE_MODE": maintenance, "MAINTENANCE_UNTIL": maintenance_until}
 
     # Contexte global icône catégorie
     @app.context_processor

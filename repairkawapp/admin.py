@@ -16,6 +16,7 @@ from werkzeug.security import generate_password_hash
 
 from . import db
 from .models import (
+    AppSetting,
     BoardRoleLog,
     Category,
     MembershipLog,
@@ -101,6 +102,34 @@ def _admin_only():
         from flask import abort
 
         abort(403)
+
+
+@admin.route("/admin/settings", methods=["GET", "POST"])
+@login_required
+def settings_page():
+    _admin_only()
+    setting = db.session.get(AppSetting, 1)
+    if not setting:
+        setting = AppSetting(id=1, maintenance_mode=False)
+        db.session.add(setting)
+        db.session.commit()
+    if request.method == "POST":
+        setting.maintenance_mode = bool(request.form.get("maintenance_mode"))
+        # Parse datetime-local
+        dt_raw = request.form.get("maintenance_until") or ""
+        from datetime import datetime
+
+        if dt_raw:
+            try:
+                # Parse browser local datetime (naive) et stocke tel quel.
+                setting.maintenance_until = datetime.strptime(dt_raw, "%Y-%m-%dT%H:%M")
+            except ValueError:
+                pass
+        else:
+            setting.maintenance_until = None
+        db.session.commit()
+        return redirect(url_for("admin.settings_page"))
+    return render_template("admin_settings.html", setting=setting, name=current_user.name)
 
 
 @admin.route("/admin/objecttypes", methods=["GET", "POST"])
@@ -239,6 +268,7 @@ def objecttypes_download():
                 "name": ot.name,
                 "category": cat_name,
                 "variants": ";".join(v.name for v in ot.variants) or "",
+                "subtypes": ";".join(st.name for st in ot.subtypes) or "",
                 "nb_repairs": str(repair_counts.get(ot.id, 0)),
             }
         )
@@ -253,9 +283,17 @@ def objecttypes_download():
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Nom", "Catégorie", "Variantes", "Nb réparations"])
+    writer.writerow(["Nom", "Catégorie", "Variantes", "Sous-types", "Nb réparations"])
     for row in data:
-        writer.writerow([row["name"], row["category"], row["variants"], row["nb_repairs"]])
+        writer.writerow(
+            [
+                row["name"],
+                row["category"],
+                row["variants"],
+                row["subtypes"],
+                row["nb_repairs"],
+            ]
+        )
     from datetime import datetime as _dt
 
     stamp = _dt.now().strftime("%Y%m%d-%H%M%S")

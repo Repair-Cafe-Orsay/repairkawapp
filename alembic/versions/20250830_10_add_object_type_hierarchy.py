@@ -16,10 +16,6 @@ depends_on = None
 
 
 def upgrade():
-    # Ajout colonne icon_name dans category (nullable)
-    with op.batch_alter_table("category") as batch_op:
-        batch_op.add_column(sa.Column("icon_name", sa.String(length=50), nullable=True))
-
     # Table object_type
     op.create_table(
         "object_type",
@@ -59,6 +55,3 @@ def downgrade():
     op.drop_constraint("uix_object_type_name_category", "object_type", type_="unique")
     op.drop_index("idx_object_type_category", table_name="object_type")
     op.drop_table("object_type")
-
-    with op.batch_alter_table("category") as batch_op:
-        batch_op.drop_column("icon_name")

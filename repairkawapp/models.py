@@ -351,3 +351,15 @@ class CloseStatus(db.Model):
     __tablename__ = "closestatus"
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(50), nullable=False, unique=True)
+
+
+class AppSetting(db.Model):
+    """Paramètres globaux applicatifs (singleton id=1)."""
+
+    __tablename__ = "app_setting"
+    id = db.Column(db.Integer, primary_key=True)
+    maintenance_mode = db.Column(db.Boolean, nullable=False, server_default="0")
+    maintenance_until = db.Column(db.DateTime(timezone=True), nullable=True)
+    updated_at = db.Column(
+        db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

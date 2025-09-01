@@ -25,7 +25,7 @@ from flask_mail import Message
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from . import db, mail
-from .models import User
+from .models import AppSetting, User
 
 
 def _s():
@@ -40,9 +40,20 @@ auth = Blueprint("auth", __name__)
 
 @auth.route("/login")
 def login():
-    """Affiche la page de login et déconnecte le réparateur courant."""
+    """Affiche la page de login (bannière maintenance si active) et déconnecte."""
     logout_user()
-    return render_template("login.html")
+    maintenance = False
+    maintenance_until = None
+    try:
+        setting = db.session.get(AppSetting, 1)
+        if setting:
+            maintenance = bool(setting.maintenance_mode)
+            maintenance_until = setting.maintenance_until
+    except Exception:
+        pass
+    return render_template(
+        "login.html", maintenance=maintenance, maintenance_until=maintenance_until
+    )
 
 
 @auth.route("/login", methods=["POST"])
@@ -52,9 +63,24 @@ def login_post():
     password = request.form.get("password")
     remember = True if request.form.get("remember") else False
     user = User.query.filter_by(email=email).first()
+    # Maintenance check (non-admin bloqué)
+    maintenance = False
+    maintenance_until = None
+    try:
+        setting = db.session.get(AppSetting, 1)
+        if setting:
+            maintenance = bool(setting.maintenance_mode)
+            maintenance_until = setting.maintenance_until
+    except Exception:
+        pass
     if not user or not user.password:
         flash("Mot de passe incorrect")
         return redirect(url_for("auth.login"))
+    if maintenance and (not user.admin):
+        flash("Site en maintenance : seuls les administrateurs peuvent se connecter.")
+        return render_template(
+            "login.html", maintenance=maintenance, maintenance_until=maintenance_until
+        )
 
     # Gestion legacy: anciens hachages simples 'sha256$<salt>$<hash>' (Werkzeug versions anciennes)
     if user.password.startswith("sha256$"):

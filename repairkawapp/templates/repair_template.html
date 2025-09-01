@@ -269,7 +269,7 @@
         var stMsg = $('#subtypeInlineMsg');
         stMsg.addClass('d-none');
         if(typed && !hasType){
-          setHelp("Type inconnu : choisissez dans la liste ou laissez vide et utilisez 'Type libre'.", 'error');
+          setHelp("Type inconnu : choisissez l'objet complet dans la liste ou laissez vide et utilisez 'Type libre'.", 'error');
           helpMsg.removeClass('text-end');
           search.addClass('is-invalid');
         } else if(hasType && subtypeMissing){
@@ -278,10 +278,14 @@
           stMsg.removeClass('d-none');
           subtypeSel.addClass('is-invalid');
         } else if(hasType){
-          setHelp("N'ajoutez des précisions sur le type que si nécessaire");
+          setHelp("Objet complet sélectionné. Utilisez le champ 'Type libre' uniquement pour préciser une pièce / partie si besoin (ex: mécanisme portail – carte alimentation)." );
           helpMsg.addClass('text-end');
         } else {
-          setHelp("Choisissez un type standard. S'il n'existe pas, vous pouvez saisir un type libre à droite.");
+          if(catHidden.val() && !typed){
+            setHelp("Catégorie choisie : vérifiez d'abord si l'objet est prédéfini dans 'Type standard' (commencez à taper pour rechercher). S'il n'existe pas, saisissez l'objet ENTIER dans 'Type libre'." );
+          } else {
+            setHelp("Décrivez d'abord l'objet ENTIER (même si la panne concerne une partie). Choisissez un type standard. S'il n'existe pas, utilisez le champ 'Type libre'." );
+          }
           helpMsg.removeClass('text-end');
         }
       }
