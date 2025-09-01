@@ -489,6 +489,10 @@
   });
   load_locations_dropdown();
   $(document).ready(function(){ refresh_session_ui(); setInterval(refresh_session_ui, 60000); });
+  // Refresh notifications on dropdown show
+  document.addEventListener('shown.bs.dropdown', function(e){
+    if(e.target && e.target.id === 'notif_button'){ refresh_notifs(); }
+  });
 
   //$(function () {
   //  $('[data-toggle="tooltip"]').tooltip()

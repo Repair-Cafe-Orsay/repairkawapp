@@ -1,13 +1,15 @@
 {% if notifs|length == 0 %}
-<div class="text-muted fst-italic small px-1 py-1">Aucune notification</div>
+<li class="px-2 py-1 text-muted fst-italic small list-unstyled">Aucune notification</li>
 {% else %}
 	{% for notif in notifs %}
-	<div class="notification-item p-2 mb-1 bg-light border rounded small">
-		<div class="d-flex justify-content-between align-items-start">
-			<strong class="me-2">{{ notif.note.repair.display_id }}</strong>
-			<a class="text-decoration-none small" href="/update/{{notif.note.repair.display_id}}#note-{{notif.note.id}}">Ouvrir</a>
+	<li class="list-unstyled mb-1">
+		<div class="notification-item p-2 bg-light border rounded small">
+			<div class="d-flex justify-content-between align-items-start">
+				<strong class="me-2">{{ notif.note.repair.display_id }}</strong>
+				<a class="text-decoration-none small" href="/update/{{notif.note.repair.display_id}}#note-{{notif.note.id}}">Ouvrir</a>
+			</div>
+			<div class="small text-dark mt-1" style="white-space:pre-wrap">{{ notif.note.content|truncate(160) }}</div>
 		</div>
-		<div class="small text-dark mt-1" style="white-space:pre-wrap">{{ notif.note.content|truncate(160) }}</div>
-	</div>
+	</li>
 	{% endfor %}
 {% endif %}
