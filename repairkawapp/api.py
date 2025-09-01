@@ -202,6 +202,33 @@ def get_notifs():
     return render_template("notif_list.html", notifs=notifs)
 
 
+@api.route("/api/notifs_debug")
+@login_required
+def notifs_debug():
+    """Endpoint de debug JSON pour diagnostiquer l'affichage vide du dropdown.
+
+    Fournit: count, entries (id, note_id, has_note, has_repair, repair_display_id, content_preview).
+    """
+    rows = (
+        Notification.query.filter_by(user_id=current_user.id).order_by(Notification.id.desc()).all()
+    )
+    out = []
+    for n in rows:
+        note = getattr(n, "note", None)
+        repair = getattr(note, "repair", None) if note else None
+        out.append(
+            {
+                "id": n.id,
+                "note_id": getattr(note, "id", None),
+                "has_note": bool(note),
+                "has_repair": bool(repair),
+                "repair_display_id": getattr(repair, "display_id", None),
+                "content_preview": (note.content[:120] if note and note.content else None),
+            }
+        )
+    return jsonify({"count": len(rows), "entries": out})
+
+
 @api.route("/api/get_notifcount")
 @login_required
 def get_notifcount():
