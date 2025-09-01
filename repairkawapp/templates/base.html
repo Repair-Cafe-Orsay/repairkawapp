@@ -25,7 +25,10 @@
       /* Ajustements UI barre de navigation */
       nav .nav-items-wrapper{display:flex;align-items:center;gap:0.75rem;}
   /* Les icônes notification + message deviennent siblings directs pour un espacement identique */
-  .nav-icons{display:contents;}
+  .nav-group{gap:0.75rem;}
+  .nav-icons{gap:0.65rem;}
+  /* Suppression padding sur le conteneur notifications */
+  .dropdown-notif{padding:0 !important;}
   #notif_button,#msg_button{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0;border-radius:8px;position:relative;}
       #notif_button i,#msg_button i{font-size:1.15rem;}
       #notif_button .badge,#msg_button .badge{font-size:0.65rem;padding:0.30em 0.40em;}
@@ -76,7 +79,8 @@
                 <a class="py-2 link-primary" href="/repairs">Fiches</a>
                 <a class="py-2 link-primary" href="/sessions">Séances</a>
                 {% if current_user.is_authenticated %}
-                <div class="d-flex align-items-center flex-nowrap" style="gap:0.75rem!important">
+                <div class="d-flex align-items-center flex-nowrap nav-group">
+                  <div class="d-flex align-items-center flex-nowrap nav-icons" style="gap:0.65rem">
                   <!-- Notifications (cloche) -->
                   <div class="dropdown dropdown-notif">
                     <button id="notif_button" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" class="btn btn-outline-secondary position-relative" onclick="get_notifs()" title="Notifications / Rappels">
@@ -137,6 +141,9 @@
                       </div>
                     </div>
 
+                  </div> <!-- /nav-icons -->
+                  <div class="d-flex align-items-center flex-nowrap" style="gap:0.75rem">
+
                   <button type="button" class="btn btn-info dropdown-toggle btn-user-name" data-bs-toggle="dropdown" style="white-space:nowrap">{{ name }}</button>
           <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
             <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">Profil</a></li>
@@ -150,8 +157,9 @@
             <li><a class="dropdown-item" href="{{ url_for('admin.objecttypes_admin_list') }}">Types & Variantes</a></li>
             <li><a class="dropdown-item" href="{{ url_for('admin.settings_page') }}">Paramètres site</a></li>
           </ul>
-          {% endif %}
-        </div><!-- group end -->
+    {% endif %}
+      </div>
+  </div><!-- group end -->
     {% endif %}
       {% endif %}
             </nav>
