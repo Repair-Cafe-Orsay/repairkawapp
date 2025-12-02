@@ -10,6 +10,7 @@ import glob
 import os
 from datetime import datetime
 
+import requests
 from flask import (
     Blueprint,
     current_app,
@@ -32,6 +33,16 @@ from .models import (
     Session as SessionModel,
     SpareStatus,
     User,
+)
+from .services.repairmonitor_service import (
+    RepairMonitorLoginError,
+    clamp_limit,
+    count_repairs_pending_upload,
+    create_authenticated_session,
+    fetch_dashboard as rm_fetch_dashboard,
+    fetch_repair_form_tokens,
+    get_repairs_pending_upload,
+    serialize_repair_stub,
 )
 from .services.session_service import (
     change_session_owner,
@@ -228,6 +239,108 @@ def notifs_debug():
             }
         )
     return jsonify({"count": len(rows), "entries": out})
+
+
+# -------------------- RepairMonitor sync preview --------------------
+
+
+@api.route("/api/sync_repairmonitor", methods=["POST"])
+@login_required
+def api_sync_repairmonitor():
+    """Preview which repairs would be uploaded to RepairMonitor.
+
+    The sync itself will happen elsewhere; this endpoint simply lists candidate
+    repairs (closed, not already uploaded) limited by the requested batch size.
+    """
+
+    if not current_user.admin:
+        return jsonify({"error": "forbidden"}), 403
+
+    username = current_app.config.get("REPAIR_MONITOR_USERNAME")
+    password = current_app.config.get("REPAIR_MONITOR_PASSWORD")
+    language = current_app.config.get("REPAIR_MONITOR_LANGUAGE", "fr")
+    if not username or not password:
+        return jsonify({"error": "missing_credentials"}), 500
+
+    payload = request.get_json(silent=True) or request.form or {}
+    raw_limit = payload.get("limit") or request.args.get("limit")
+    raw_year = payload.get("year") or request.args.get("year")
+    try:
+        parsed_limit = int(raw_limit) if raw_limit is not None else None
+    except (TypeError, ValueError):
+        parsed_limit = None
+    try:
+        parsed_year = int(raw_year) if raw_year not in (None, "") else None
+    except (TypeError, ValueError):
+        parsed_year = None
+
+    if parsed_year is None:
+        parsed_year = datetime.utcnow().year
+
+    limit_value = clamp_limit(parsed_limit)
+    try:
+        session = create_authenticated_session(
+            username,
+            password,
+            language=language,
+        )
+        rm_fetch_dashboard(session, language=language)
+    except (RepairMonitorLoginError, requests.RequestException) as exc:
+        return (
+            jsonify({"error": "repairmonitor_login_failed", "details": str(exc)}),
+            502,
+        )
+
+    repairs = get_repairs_pending_upload(db.session, limit_value, year=parsed_year)
+    total_count = count_repairs_pending_upload(db.session, year=parsed_year)
+    return jsonify(
+        {
+            "requested_limit": raw_limit,
+            "limit": limit_value,
+            "count": len(repairs),
+            "repairs": [serialize_repair_stub(r) for r in repairs],
+            "repairmonitor": {"login": "ok", "language": language},
+            "year": parsed_year,
+            "total_count": total_count,
+        }
+    )
+
+
+@api.route("/api/sync_repairmonitor/form_tokens", methods=["POST"])
+@login_required
+def api_sync_repairmonitor_form_tokens():
+    """Fetch hidden RepairMonitor form fields (per-request)."""
+
+    if not current_user.admin:
+        return jsonify({"error": "forbidden"}), 403
+
+    username = current_app.config.get("REPAIR_MONITOR_USERNAME")
+    password = current_app.config.get("REPAIR_MONITOR_PASSWORD")
+    language = current_app.config.get("REPAIR_MONITOR_LANGUAGE", "fr")
+    if not username or not password:
+        return jsonify({"error": "missing_credentials"}), 500
+
+    payload = request.get_json(silent=True) or request.form or {}
+    override_language = payload.get("language")
+    if override_language:
+        language = override_language
+    repair_id = payload.get("repair_id")
+
+    try:
+        session = create_authenticated_session(
+            username,
+            password,
+            language=language,
+        )
+        rm_fetch_dashboard(session, language=language)
+        tokens = fetch_repair_form_tokens(session, language=language)
+    except (RepairMonitorLoginError, requests.RequestException) as exc:
+        return (
+            jsonify({"error": "repairmonitor_login_failed", "details": str(exc)}),
+            502,
+        )
+
+    return jsonify({"form_tokens": tokens, "language": language, "repair_id": repair_id})
 
 
 # -------------------- Messages (messagerie interne) --------------------

@@ -16,4 +16,147 @@
 {% if MAINTENANCE_MODE %}
 <div class="alert alert-warning mt-4 mb-0 small">Le mode maintenance est actif{% if MAINTENANCE_UNTIL %} jusqu'à {{ MAINTENANCE_UNTIL|local_dt }}{% endif %}.</div>
 {% endif %}
+
+<div class="card mt-5">
+  <div class="card-body">
+    <h5 class="card-title">Synchronisation RepairMonitor</h5>
+    <p class="card-text small text-muted">Prévisualise les fiches fermées prêtes à être exportées vers RepairMonitor avant de lancer une vraie synchronisation.</p>
+    <form id="rm-sync-form" class="row gy-2 align-items-center">
+      <div class="col-auto">
+        <label class="col-form-label" for="rm-sync-limit">Nombre maximum à traiter</label>
+      </div>
+      <div class="col-auto" style="max-width:160px">
+        <input type="number" min="1" max="200" class="form-control" id="rm-sync-limit" name="limit" value="20">
+      </div>
+      <div class="col-auto">
+        <label class="col-form-label" for="rm-sync-year">Année</label>
+      </div>
+      <div class="col-auto" style="max-width:140px">
+        <input type="number" min="2010" max="2100" class="form-control" id="rm-sync-year" name="year" value="{{ sync_default_year }}">
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary">Simuler</button>
+      </div>
+    </form>
+    <div id="rm-sync-feedback" class="mt-3"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const form = document.getElementById('rm-sync-form');
+  if(!form){ return; }
+  const output = document.getElementById('rm-sync-feedback');
+  const limitInput = document.getElementById('rm-sync-limit');
+  const yearInput = document.getElementById('rm-sync-year');
+  const tokenEndpoint = '{{ url_for('api.api_sync_repairmonitor_form_tokens') }}';
+
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  form.addEventListener('submit', async function(evt){
+    evt.preventDefault();
+    const limit = parseInt(limitInput.value || '0', 10);
+    const year = parseInt(yearInput.value || '', 10);
+    output.innerHTML = '<div class="text-muted">Connexion à RepairMonitor…</div>';
+    try {
+      const response = await fetch('{{ url_for('api.api_sync_repairmonitor') }}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ limit: limit, year: year })
+      });
+      if(!response.ok){
+        throw new Error('HTTP ' + response.status);
+      }
+      const data = await response.json();
+      const repairs = (data.repairs || []).map((rep, idx) => {
+        const uiId = rep.id ? `rm-sync-repair-${rep.id}` : `rm-sync-repair-${idx}`;
+        return { ...rep, _uiId: uiId, _order: idx };
+      });
+      const entries = repairs
+        .map((rep) => {
+          const repId = rep.display_id || (rep.id ? `#${rep.id}` : `(${rep._order + 1})`);
+          return `
+            <div class="border rounded p-2 mb-2" id="${rep._uiId}">
+              <div><strong>${repId}</strong> — créé ${rep.created || 'n/a'}</div>
+              <div class="small text-muted">close_status ${rep.close_status_id ?? 'n/a'}</div>
+              <div class="small text-muted rm-token-status">En attente de récupération des champs cachés…</div>
+              <details class="mt-2">
+                <summary>Champs cachés</summary>
+                <div class="small font-monospace rm-token-details text-muted">Non récupérés.</div>
+              </details>
+            </div>`;
+        })
+        .join('');
+      const connected = data.repairmonitor && data.repairmonitor.login === 'ok'
+        ? `<div class="mb-2"><span class="badge bg-success">Connecté à RepairMonitor (${data.repairmonitor.language || 'fr'})</span></div>`
+        : '';
+      const details = entries || '<div class="small text-muted mt-2">Aucune fiche à traiter.</div>';
+      output.innerHTML = `
+        <div class="alert alert-info mb-0">
+          ${connected}
+          <div><strong>${data.count}</strong> fiche(s) prêtes (lot ${data.limit}, année ${data.year}).</div>
+          <div class="small text-muted">Total éligibles ${data.total_count ?? 'n/a'} sur ${data.year}</div>
+          <div class="small text-muted">Récupération séquentielle des formulaires avec 5s d'intervalle.</div>
+          ${details}
+        </div>`;
+
+      if(repairs.length){
+        hydrateTokensSequentially(repairs, data.repairmonitor?.language || 'fr');
+      }
+    } catch (err) {
+      output.innerHTML = `<div class="alert alert-danger mb-0">Erreur: ${err.message}</div>`;
+    }
+  });
+
+  async function hydrateTokensSequentially(repairs, language){
+    const delayMs = 5000;
+    for(let idx = 0; idx < repairs.length; idx++){
+      const rep = repairs[idx];
+      const card = document.getElementById(rep._uiId);
+      if(!card){
+        continue;
+      }
+      const statusEl = card.querySelector('.rm-token-status');
+      const detailsEl = card.querySelector('.rm-token-details');
+      if(idx > 0){
+        if(statusEl){ statusEl.textContent = `Pause ${delayMs / 1000}s avant récupération…`; }
+        await sleep(delayMs);
+      }
+      if(statusEl){ statusEl.textContent = 'Lecture des champs cachés…'; }
+      try {
+        const resp = await fetch(tokenEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({ language, repair_id: rep.id })
+        });
+        if(!resp.ok){
+          throw new Error('HTTP ' + resp.status);
+        }
+        const payload = await resp.json();
+        const tokens = payload.form_tokens || {};
+        const tokenRows = Object.entries(tokens)
+          .map(([k, v]) => `<div><code>${k}</code>: <code>${v}</code></div>`)
+          .join('');
+        if(detailsEl){
+          detailsEl.innerHTML = tokenRows || '<span class="text-muted">Champs non disponibles.</span>';
+          detailsEl.classList.remove('text-muted');
+        }
+        if(statusEl){
+          statusEl.textContent = `Champs récupérés (${Object.keys(tokens).length})`;
+          statusEl.classList.remove('text-muted');
+        }
+      } catch (err) {
+        if(statusEl){ statusEl.textContent = `Erreur récupération: ${err.message}`; }
+        if(detailsEl){ detailsEl.innerHTML = '<span class="text-danger">Erreur lors de la récupération.</span>'; }
+      }
+    }
+  }
+})();
+</script>
 {% endblock %}

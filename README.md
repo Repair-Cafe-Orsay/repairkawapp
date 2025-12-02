@@ -89,6 +89,19 @@ pytest -q
 Prochaines améliorations possibles CI: publication badge de couverture (Codecov), workflow release taggé, build image Docker, matrice multi versions Python (3.10/3.11/3.12).
 
 
+## RepairMonitor synchro (beta)
+
+Une pré-synchronisation avec https://www.repairmonitor.org est en cours d'intégration. Pour permettre à l'application de se connecter automatiquement, ajoutez les clés suivantes dans `config.json` (et renseignez les valeurs réelles côté prod/dev) :
+
+```
+"REPAIR_MONITOR_USERNAME": "user@example.org",
+"REPAIR_MONITOR_PASSWORD": "mot-de-passe",
+"REPAIR_MONITOR_LANGUAGE": "fr"
+```
+
+Une fois les identifiants configurés, allez dans *Admin → Paramètres site* et utilisez le bloc « Synchronisation RepairMonitor » pour lancer une simulation (`/api/sync_repairmonitor`). L'endpoint se connecte à RepairMonitor avec les identifiants ci-dessus, vérifie l'accès au tableau de bord, puis liste les fiches clôturées prêtes à être exportées (limite paramétrable). La synchronisation complète (upload des fiches) arrivera dans une étape ultérieure.
+
+
 ## Templates
 Pages templates are build by routes (essentially in `main.py`) and use jinja templating engine: see https://jinja.palletsprojects.com/en/3.1.x/templates/
 for a full documentation. Templates are in `repairkawap/templates/` and are defining in cascade and blocks. All pages inherits from `base.html`- and some templates like

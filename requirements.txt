@@ -10,3 +10,5 @@ pytest
 pytest-flask
 pytest-cov
 alembic
+requests
+beautifulsoup4

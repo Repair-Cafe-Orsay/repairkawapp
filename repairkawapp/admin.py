@@ -7,7 +7,7 @@ Auteur principal: Jean Senellart
 Nettoyage global : imports organisés, PEP8, docstrings, harmonisation du style.
 """
 
-from datetime import date
+from datetime import date, datetime
 
 import pytz
 from flask import Blueprint, Response, current_app, redirect, render_template, request, url_for
@@ -71,7 +71,7 @@ def users_download():
     for u in users:
         last_conn = u.last_connection.isoformat().replace("T", " ") if u.last_connection else ""
         membership = (
-            f"{u.last_membership}-{u.last_membership+1}" if u.last_membership is not None else ""
+            f"{u.last_membership}-{u.last_membership + 1}" if u.last_membership is not None else ""
         )
         writer.writerow(
             [
@@ -117,8 +117,6 @@ def settings_page():
         setting.maintenance_mode = bool(request.form.get("maintenance_mode"))
         # Parse datetime-local
         dt_raw = request.form.get("maintenance_until") or ""
-        from datetime import datetime
-
         if dt_raw:
             try:
                 # Parse browser local datetime (naive) et stocke tel quel.
@@ -129,7 +127,12 @@ def settings_page():
             setting.maintenance_until = None
         db.session.commit()
         return redirect(url_for("admin.settings_page"))
-    return render_template("admin_settings.html", setting=setting, name=current_user.name)
+    return render_template(
+        "admin_settings.html",
+        setting=setting,
+        name=current_user.name,
+        sync_default_year=datetime.now().year,
+    )
 
 
 @admin.route("/admin/objecttypes", methods=["GET", "POST"])
