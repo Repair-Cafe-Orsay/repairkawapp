@@ -200,8 +200,8 @@ class Repair(db.Model):
     location = db.Column(db.String(50), default="Local")
     # session auquel la réparation est rattachée (optionnel)
     session_id = db.Column(db.Integer, db.ForeignKey("session.id"), nullable=True)
-    # horodatage de synchronisation RepairMonitor
-    rm_uploaded = db.Column(db.DateTime(timezone=True))
+    # identifiant généré par RepairMonitor lors de l'upload (ex: 0229_2025_1202_001)
+    rm_uploaded = db.Column(db.String(32))
     # Références facultatives vers le référentiel objet
     object_type_id = db.Column(db.Integer, db.ForeignKey("object_type.id"), nullable=True)
     object_type = db.relationship("ObjectType")

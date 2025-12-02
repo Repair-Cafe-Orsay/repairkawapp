@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import logging
+import threading
+import time
+import uuid
 from collections.abc import Sequence
 from datetime import date
 from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..models import Repair
@@ -31,6 +35,13 @@ REPAIR_FORM_REQUIRED_FIELDS: Sequence[str] = (
 )
 RM_HTTP_TIMEOUT = 30
 USER_AGENT = "repairkawapp/1.0 (+https://repaircafe-orsay.org)"
+SYNC_SESSION_TTL_SECONDS = 600
+REFERENCE_NUMBER_FIELD_NAME = "field_reference_number[0][value]"
+REFERENCE_SUFFIX_WIDTH = 3
+
+
+_SYNC_SESSION_LOCK = threading.Lock()
+_SYNC_SESSIONS: dict[str, dict] = {}
 
 
 class RepairMonitorLoginError(RuntimeError):
@@ -86,7 +97,7 @@ def serialize_repair_stub(repair: Repair) -> dict:
         "display_id": repair.display_id,
         "created": repair.created.isoformat() if repair.created else None,
         "close_status_id": repair.close_status_id,
-        "rm_uploaded": repair.rm_uploaded.isoformat() if repair.rm_uploaded else None,
+        "rm_uploaded": repair.rm_uploaded,
     }
 
 
@@ -218,13 +229,22 @@ def fetch_relative_page(
     return response
 
 
+def _extract_reference_metadata(form: BeautifulSoup) -> tuple[str | None, str | None]:
+    reference_input = form.find("input", attrs={"name": REFERENCE_NUMBER_FIELD_NAME})
+    if reference_input is None:
+        return None, None
+    prefix_span = reference_input.find_previous("span", class_="field-prefix")
+    prefix = prefix_span.get_text(strip=True) if prefix_span else None
+    return prefix or None, reference_input.get("name")
+
+
 def fetch_repair_form_tokens(
     session: requests.Session,
     *,
     language: str = "fr",
     timeout: int = RM_HTTP_TIMEOUT,
-) -> dict[str, str]:
-    """Retrieve hidden CSRF fields from the Repair form page."""
+) -> dict[str, str | dict | None]:
+    """Retrieve hidden CSRF fields and useful metadata from the Repair form page."""
 
     response = fetch_relative_page(
         session,
@@ -245,7 +265,59 @@ def fetch_repair_form_tokens(
     missing = [field for field in REPAIR_FORM_REQUIRED_FIELDS if field not in tokens]
     if missing:
         raise RepairMonitorLoginError("Missing hidden fields on repair form: " + ", ".join(missing))
-    return tokens
+    prefix, field_name = _extract_reference_metadata(form)
+    return {
+        "tokens": tokens,
+        "reference_prefix": prefix,
+        "reference_field_name": field_name,
+    }
+
+
+def compute_reference_sequence(
+    session: Session,
+    *,
+    prefix: str,
+    width: int = REFERENCE_SUFFIX_WIDTH,
+) -> dict[str, str | int | None]:
+    """Derive the next RepairMonitor identifier based on existing uploads."""
+
+    normalized_prefix = prefix or ""
+    if not normalized_prefix:
+        return {
+            "prefix": None,
+            "previous_reference": None,
+            "next_number": None,
+            "next_suffix": None,
+            "reference_id": None,
+        }
+
+    like_pattern = f"{normalized_prefix}%"
+    latest_value = (
+        session.query(func.max(Repair.rm_uploaded))
+        .filter(Repair.rm_uploaded.isnot(None))
+        .filter(Repair.rm_uploaded.like(like_pattern))
+        .scalar()
+    )
+
+    last_number = None
+    if (
+        latest_value
+        and isinstance(latest_value, str)
+        and latest_value.startswith(normalized_prefix)
+    ):
+        suffix = latest_value[len(normalized_prefix) :]
+        if suffix.isdigit():
+            last_number = int(suffix)
+
+    next_number = (last_number or 0) + 1
+    padded_suffix = str(next_number).zfill(width)
+    return {
+        "prefix": normalized_prefix,
+        "previous_reference": latest_value,
+        "next_number": next_number,
+        "next_suffix": padded_suffix,
+        "reference_id": f"{normalized_prefix}{padded_suffix}",
+    }
 
 
 def verify_credentials(
@@ -259,3 +331,58 @@ def verify_credentials(
 
     session = create_authenticated_session(username, password, language=language, timeout=timeout)
     fetch_dashboard(session, language=language, timeout=timeout)
+
+
+def cache_sync_session(session: requests.Session, *, language: str) -> str:
+    """Store an authenticated session for reuse during a single preview run."""
+
+    sync_id = uuid.uuid4().hex
+    now = time.time()
+    with _SYNC_SESSION_LOCK:
+        _cleanup_expired_sessions_locked(now)
+        _SYNC_SESSIONS[sync_id] = {
+            "session": session,
+            "language": language,
+            "created": now,
+            "last_used": now,
+        }
+    return sync_id
+
+
+def get_cached_sync_session(sync_id: str) -> dict | None:
+    """Return cached session metadata (session + language) if still valid."""
+
+    now = time.time()
+    with _SYNC_SESSION_LOCK:
+        _cleanup_expired_sessions_locked(now)
+        meta = _SYNC_SESSIONS.get(sync_id)
+        if not meta:
+            return None
+        meta["last_used"] = now
+        return meta
+
+
+def release_sync_session(sync_id: str) -> None:
+    """Remove a cached session immediately (best-effort)."""
+
+    with _SYNC_SESSION_LOCK:
+        meta = _SYNC_SESSIONS.pop(sync_id, None)
+    if not meta:
+        return
+    try:
+        meta["session"].close()
+    except Exception:  # pragma: no cover - defensive cleanup
+        pass
+
+
+def _cleanup_expired_sessions_locked(now: float) -> None:
+    expire_before = now - SYNC_SESSION_TTL_SECONDS
+    expired = [
+        sid for sid, meta in _SYNC_SESSIONS.items() if meta.get("last_used", 0) < expire_before
+    ]
+    for sid in expired:
+        session = _SYNC_SESSIONS.pop(sid)["session"]
+        try:
+            session.close()
+        except Exception:  # pragma: no cover
+            pass

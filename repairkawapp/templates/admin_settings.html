@@ -50,6 +50,7 @@
   const limitInput = document.getElementById('rm-sync-limit');
   const yearInput = document.getElementById('rm-sync-year');
   const tokenEndpoint = '{{ url_for('api.api_sync_repairmonitor_form_tokens') }}';
+  let currentSyncId = null;
 
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -103,15 +104,19 @@
           ${details}
         </div>`;
 
-      if(repairs.length){
-        hydrateTokensSequentially(repairs, data.repairmonitor?.language || 'fr');
+      currentSyncId = data.sync_id || null;
+      if(repairs.length && currentSyncId){
+        hydrateTokensSequentially(repairs, data.repairmonitor?.language || 'fr', currentSyncId);
+      } else if(!currentSyncId && repairs.length){
+        output.insertAdjacentHTML('beforeend', '<div class="alert alert-warning mt-2">Impossible de réutiliser la session RepairMonitor (sync_id manquant).</div>');
       }
     } catch (err) {
+      currentSyncId = null;
       output.innerHTML = `<div class="alert alert-danger mb-0">Erreur: ${err.message}</div>`;
     }
   });
 
-  async function hydrateTokensSequentially(repairs, language){
+  async function hydrateTokensSequentially(repairs, language, syncId){
     const delayMs = 5000;
     for(let idx = 0; idx < repairs.length; idx++){
       const rep = repairs[idx];
@@ -133,22 +138,40 @@
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
           },
-          body: JSON.stringify({ language, repair_id: rep.id })
+          body: JSON.stringify({ language, repair_id: rep.id, sync_id: syncId })
         });
         if(!resp.ok){
           throw new Error('HTTP ' + resp.status);
         }
         const payload = await resp.json();
         const tokens = payload.form_tokens || {};
-        const tokenRows = Object.entries(tokens)
-          .map(([k, v]) => `<div><code>${k}</code>: <code>${v}</code></div>`)
-          .join('');
+        const referenceInfo = payload.reference_sequence || null;
+        const rows = [];
+        if(referenceInfo && referenceInfo.reference_id){
+          rows.push(`<div><strong>ID suggéré</strong>: <code>${referenceInfo.reference_id}</code></div>`);
+        }
+        if(referenceInfo && referenceInfo.next_number){
+          rows.push(`<div class="text-muted">Compteur proposé: ${referenceInfo.next_number}</div>`);
+        }
+        if(referenceInfo && referenceInfo.previous_reference){
+          rows.push(`<div class="text-muted">Dernier ID utilisé: <code>${referenceInfo.previous_reference}</code></div>`);
+        }
+        if(referenceInfo && referenceInfo.prefix && !referenceInfo.reference_id){
+          rows.push(`<div><code>Préfixe</code>: <code>${referenceInfo.prefix}</code></div>`);
+        }
+        rows.push(
+          ...Object.entries(tokens).map(([k, v]) => `<div><code>${k}</code>: <code>${v}</code></div>`)
+        );
+        const tokenRows = rows.join('');
         if(detailsEl){
           detailsEl.innerHTML = tokenRows || '<span class="text-muted">Champs non disponibles.</span>';
           detailsEl.classList.remove('text-muted');
         }
         if(statusEl){
-          statusEl.textContent = `Champs récupérés (${Object.keys(tokens).length})`;
+          const base = `Champs récupérés (${Object.keys(tokens).length})`;
+          statusEl.textContent = referenceInfo && referenceInfo.reference_id
+            ? `${base} • prochain ID ${referenceInfo.reference_id}`
+            : base;
           statusEl.classList.remove('text-muted');
         }
       } catch (err) {

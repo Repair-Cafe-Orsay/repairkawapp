@@ -36,11 +36,14 @@ from .models import (
 )
 from .services.repairmonitor_service import (
     RepairMonitorLoginError,
+    cache_sync_session,
     clamp_limit,
+    compute_reference_sequence,
     count_repairs_pending_upload,
     create_authenticated_session,
     fetch_dashboard as rm_fetch_dashboard,
     fetch_repair_form_tokens,
+    get_cached_sync_session,
     get_repairs_pending_upload,
     serialize_repair_stub,
 )
@@ -291,6 +294,7 @@ def api_sync_repairmonitor():
             502,
         )
 
+    sync_id = cache_sync_session(session, language=language)
     repairs = get_repairs_pending_upload(db.session, limit_value, year=parsed_year)
     total_count = count_repairs_pending_upload(db.session, year=parsed_year)
     return jsonify(
@@ -302,6 +306,7 @@ def api_sync_repairmonitor():
             "repairmonitor": {"login": "ok", "language": language},
             "year": parsed_year,
             "total_count": total_count,
+            "sync_id": sync_id,
         }
     )
 
@@ -314,33 +319,47 @@ def api_sync_repairmonitor_form_tokens():
     if not current_user.admin:
         return jsonify({"error": "forbidden"}), 403
 
-    username = current_app.config.get("REPAIR_MONITOR_USERNAME")
-    password = current_app.config.get("REPAIR_MONITOR_PASSWORD")
-    language = current_app.config.get("REPAIR_MONITOR_LANGUAGE", "fr")
-    if not username or not password:
-        return jsonify({"error": "missing_credentials"}), 500
-
     payload = request.get_json(silent=True) or request.form or {}
-    override_language = payload.get("language")
-    if override_language:
-        language = override_language
+    sync_id = payload.get("sync_id")
+    if not sync_id:
+        return jsonify({"error": "missing_sync_id"}), 400
+    cached = get_cached_sync_session(sync_id)
+    if not cached:
+        return jsonify({"error": "sync_session_expired"}), 410
     repair_id = payload.get("repair_id")
+    session = cached["session"]
+    language = cached.get("language", current_app.config.get("REPAIR_MONITOR_LANGUAGE", "fr"))
 
     try:
-        session = create_authenticated_session(
-            username,
-            password,
-            language=language,
-        )
-        rm_fetch_dashboard(session, language=language)
-        tokens = fetch_repair_form_tokens(session, language=language)
-    except (RepairMonitorLoginError, requests.RequestException) as exc:
+        form_snapshot = fetch_repair_form_tokens(session, language=language)
+    except RepairMonitorLoginError as exc:
         return (
             jsonify({"error": "repairmonitor_login_failed", "details": str(exc)}),
             502,
         )
+    if isinstance(form_snapshot, dict) and "tokens" in form_snapshot:
+        tokens = form_snapshot.get("tokens", {})
+        reference_prefix = form_snapshot.get("reference_prefix")
+        reference_field_name = form_snapshot.get("reference_field_name")
+    else:  # backward compatibility fallback
+        tokens = form_snapshot or {}
+        reference_prefix = None
+        reference_field_name = None
 
-    return jsonify({"form_tokens": tokens, "language": language, "repair_id": repair_id})
+    reference_sequence = None
+    if reference_prefix:
+        reference_sequence = compute_reference_sequence(db.session, prefix=reference_prefix)
+
+    return jsonify(
+        {
+            "form_tokens": tokens,
+            "language": language,
+            "repair_id": repair_id,
+            "reference_prefix": reference_prefix,
+            "reference_field_name": reference_field_name,
+            "reference_sequence": reference_sequence,
+        }
+    )
 
 
 # -------------------- Messages (messagerie interne) --------------------
