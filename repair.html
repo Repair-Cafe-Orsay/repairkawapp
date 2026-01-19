@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr" prefix="content: http://purl.org/rss/1.0/modules/content/  dc: http://purl.org/dc/terms/  foaf: http://xmlns.com/foaf/0.1/  og: http://ogp.me/ns#  rdfs: http://www.w3.org/2000/01/rdf-schema#  schema: http://schema.org/  sioc: http://rdfs.org/sioc/ns#  sioct: http://rdfs.org/sioc/types#  skos: http://www.w3.org/2004/02/skos/core#  xsd: http://www.w3.org/2001/XMLSchema# ">
+  <head>
+    <meta charset="utf-8" />
+<noscript><meta http-equiv="Refresh" content="0; URL=/fr/big_pipe/no-js?destination=/fr/node/add/repair" />
+</noscript><meta name="Generator" content="Drupal 10 (https://www.drupal.org)" />
+<meta name="MobileOptimized" content="width" />
+<meta name="HandheldFriendly" content="true" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<link rel="icon" href="/themes/repair_monitor/favicon.ico" type="image/vnd.microsoft.icon" />
+
+    <title>Introduire une nouvelle réparation | RepairMonitor.org</title>
+    <link rel="stylesheet" media="all" href="/themes/contrib/stable/css/node/node.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/core.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/autocomplete.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/menu.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/core/components/progress.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/core/components/ajax-progress.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/core/components/autocomplete-loading.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/align.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/fieldgroup.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/container-inline.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/clearfix.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/details.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/hidden.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/item-list.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/js.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/nowrap.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/position-container.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/reset-appearance.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/resize.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/system-status-counter.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/system-status-report-counters.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/system-status-report-general-info.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/tablesort.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/core/vertical-tabs.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/theme.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/core/assets/vendor/normalize-css/normalize.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/core/normalize-fixes.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/action-links.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/breadcrumb.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/button.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/collapse-processed.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/container-inline.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/details.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/exposed-filters.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/field.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/form.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/icons.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/inline-form.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/item-list.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/link.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/links.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/menu.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/more-link.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/pager.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/tabledrag.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/tableselect.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/tablesort.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/tabs.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/textarea.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/ui-dialog.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/messages.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/progress.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/repair_monitor/css/style.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/uncinc_d8_basetheme/css/style.css?st0jgk" />
+
+
+  </head>
+  <body class="user-logged-in path-node">
+        <a href="#main-content" class="visually-hidden focusable skip-link">
+      Aller au contenu principal
+    </a>
+
+      <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
+      <div class="region region-navigation">
+    <div class="container">
+      <section  id="block-repair-monitor-branding">
+  <div class='block-wrapper'>
+
+
+    <div class='block-content-wrapper'>
+      <!-- <div class="container"> -->
+          <a href="/fr" title="Accueil" rel="home" class="site-logo">
+        <img src="/sites/default/files/RepairMonitor-logo.png" alt="Accueil" />
+      </a>
+              <!-- </div> -->
+    </div>
+  </div>
+</section>
+<nav role="navigation" aria-labelledby="block-headermenu-menu" id="block-headermenu" class="main-navigation block block-menu navigation menu--header-menu">
+
+    <h2 class="visually-hidden" id="block-headermenu-menu">Header menu</h2>
+
+
+
+              <ul class="menu">
+                    <li class="menu-item">
+        <a href="/fr" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="&lt;front&gt;">Home</a>
+              </li>
+                <li class="menu-item">
+        <a href="/fr" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="&lt;front&gt;">Aperçu</a>
+              </li>
+                <li class="menu-item">
+        <a href="https://dashboard.repairmonitor.org/?language=fr" title="" id="" name="" rel="" style="" target="" accesskey="">Tableau de bord</a>
+              </li>
+                <li class="menu-item">
+        <a href="/fr/node/537" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="node/537">Sur nous</a>
+              </li>
+                <li class="menu-item">
+        <a href="/fr/node/539" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="node/539">FAQ</a>
+              </li>
+        </ul>
+
+
+
+    </nav>
+<span data-big-pipe-placeholder-id="callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder&amp;args%5B0%5D=languagemenu&amp;args%5B1%5D=full&amp;args%5B2%5D&amp;token=OcjzDOydAEr5z-0TC1pqqP0LAu1e3SVH1sR9Yk7xBT0">
+</span>
+    </div>
+  </div>
+
+
+  <div class="container py-0">
+      <div class="region region-sub-navigation">
+    <span data-big-pipe-placeholder-id="callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder&amp;args%5B0%5D=menunavigation&amp;args%5B1%5D=full&amp;args%5B2%5D&amp;token=OX7G5WML5xOCx81V6-Vau9PI-ptEH235Nli1cCgRTEU">
+</span>
+  </div>
+
+  </div>
+
+  <div class="container">
+      <div class="region region-content">
+    <div data-drupal-messages-fallback class="hidden"></div><span data-big-pipe-placeholder-id="callback=Drupal%5CCore%5CRender%5CElement%5CStatusMessages%3A%3ArenderMessages&amp;args%5B0%5D&amp;token=_HAdUpwWmet0TOTe2PSiJuMntExoshbm1kh2wQzzzAA">
+</span><section  id="block-pagetitle">
+  <div class='block-wrapper'>
+
+
+    <div class='block-content-wrapper'>
+
+		<h1 class="page-title">Introduire une nouvelle réparation</h1>
+
+
+        </div>
+  </div>
+</section>
+<section  id="block-repair-monitor-content">
+  <div class='block-wrapper'>
+
+
+    <div class='block-content-wrapper'>
+          <form class="node-repair-form node-form" data-drupal-selector="node-repair-form" action="/fr/node/add/repair" method="post" id="node-repair-form" accept-charset="UTF-8">
+		<input data-drupal-selector="edit-changed" type="hidden" name="changed" value="1764708880" />
+<div class="field--type-datetime field--name-field-repair-date field--widget-datetime-default js-form-wrapper form-wrapper" data-drupal-selector="edit-field-repair-date-wrapper" id="edit-field-repair-date-wrapper">      <div class="input-field js-form-item form-item js-form-type-date form-type-date js-form-item-field-repair-date-0-value form-item-field-repair-date-0-value">
+      <input data-disable-refocus="true" type="date" data-drupal-selector="edit-field-repair-date-0-value" data-refocus-blur="true" id="edit-field-repair-date-0-value" name="field_repair_date[0][value]" value="2025-12-02" class="form-date required" required="required" aria-required="true" />
+
+        <label for="edit-field-repair-date-0-value" class="js-form-required form-required">Date de réparation</label>
+        </div>
+
+  </div>
+<input autocomplete="off" data-drupal-selector="form-t3wao5jinv43tigzcpwewyfd9vg86bw6-f7wnypdy90" type="hidden" name="form_build_id" value="form-T3wAO5jINV43tIGzcpWEWyFd9vg86bw6_f7wNYpdY90" />
+<input data-drupal-selector="edit-node-repair-form-form-token" type="hidden" name="form_token" value="Ci2aGwqN1SswCU3CGlGAuqiRKB31bwSisR32hKZgeL8" />
+<input data-drupal-selector="edit-node-repair-form" type="hidden" name="form_id" value="node_repair_form" />
+<div class="field--type-integer field--name-field-reference-number field--widget-number reference-input js-form-wrapper form-wrapper" data-drupal-selector="edit-field-reference-number-wrapper" id="edit-field-reference-number-wrapper">      <div class="input-field js-form-item form-item js-form-type-number form-type-number js-form-item-field-reference-number-0-value form-item-field-reference-number-0-value">
+      <input data-drupal-selector="edit-field-reference-number-0-value" type="number" id="edit-field-reference-number-0-value" name="field_reference_number[0][value]" value="1" step="1" placeholder="" class="form-number required" required="required" aria-required="true" />
+
+        <label for="edit-field-reference-number-0-value" class="js-form-required form-required">Numéro de réf. </label>
+        </div>
+
+  </div>
+
+<div  class="field-group" data-drupal-selector="edit-group-about-the-product">
+  <h5>About the product</h5>
+    <div class="field--type-entity-reference field--name-field-kind-product field--widget-kind-product-autocomplete-or-other-tags form-label-required js-form-wrapper form-wrapper" data-drupal-selector="edit-field-kind-product-wrapper" id="edit-field-kind-product-wrapper">      <div class="input-field js-form-item form-item js-form-type-kind-product-autocomplete form-type-kind-product-autocomplete js-form-item-field-kind-product-0-target-id form-item-field-kind-product-0-target-id">
+      <input placeholder="Aspirateur / pantalon / vélo" data-drupal-selector="edit-field-kind-product-0-target-id" class="form-autocomplete form-text" data-autocomplete-path="/fr/kind_product_autocomplete/taxonomy_term/default%3Ataxonomy_term/HnNwTT2VlSuQATdNR_eXD-f1b4Q797uTKVyIhd2Kdjk" type="text" id="edit-field-kind-product-0-target-id" name="field_kind_product[0][target_id]" size="60" maxlength="1024" />
+
+        <label for="edit-field-kind-product-0-target-id">Type de produit</label>
+        </div>
+
+  </div>
+<div class="input-field js-form-item form-item js-form-type-textfield form-type-textfield js-form-item-field-kind-product-0-kp-other form-item-field-kind-product-0-kp-other">
+      <input data-drupal-selector="edit-field-kind-product-0-kp-other" type="text" id="edit-field-kind-product-0-kp-other" name="field_kind_product[0][kp_other]" value="" size="60" maxlength="128" class="form-text" data-drupal-states="{&quot;visible&quot;:{&quot;filled&quot;:true,&quot;:input[name=\u0022field_kind_product[0][autocomplete_fill_field]\u0022]&quot;:{&quot;value&quot;:&quot;Ajouter un nouveau produit&quot;}},&quot;required&quot;:{&quot;:input[name=\u0022field_kind_product[0][autocomplete_fill_field]\u0022]&quot;:{&quot;value&quot;:&quot;Ajouter un nouveau produit&quot;}}}" />
+
+        <label for="edit-field-kind-product-0-kp-other">Ajouter un nouveau produit</label>
+        </div>
+<div class="hidden"><div class="input-field js-form-item form-item js-form-type-textfield form-type-textfield js-form-item-field-brand-0-autocomplete-fill-field form-item-field-brand-0-autocomplete-fill-field">
+      <input data-drupal-selector="edit-field-brand-0-autocomplete-fill-field" type="text" id="edit-field-brand-0-autocomplete-fill-field" name="field_brand[0][autocomplete_fill_field]" value="" size="60" maxlength="128" class="form-text" />
+
+
+        </div>
+</div><div class="field--type-entity-reference field--name-field-categorie field--widget-options-select form-label-required js-form-wrapper form-wrapper" data-drupal-selector="edit-field-categorie-wrapper" id="edit-field-categorie-wrapper"><div class="input-field js-form-item form-item js-form-type-select form-type-select js-form-item-field-categorie form-item-field-categorie">
+      <select data-drupal-selector="edit-field-categorie" id="edit-field-categorie" name="field_categorie" class="form-select"><option value="_none">- Choisir catégorie -</option><option value="5343">Articles ménagers non électriques</option><option value="1685">Autres</option><option value="18707">Bijoux</option><option value="1693">Jouets non électriques</option><option value="1692">Jouets électriques</option><option value="1689">Matériel d&#039;image et de son</option><option value="1677">Matériel informatique/téléphones</option><option value="1683">Meubles</option><option value="1691">Outils non électriques</option><option value="1690">Outils électriques</option><option value="18706">Pendules, horloges et réveils</option><option value="1684">Textiles</option><option value="1679">Vélos</option><option value="1678">Électroménager</option></select>
+        <label for="edit-field-categorie">Catégorie </label>
+        </div>
+</div>
+<div class="hidden"><div class="input-field js-form-item form-item js-form-type-textfield form-type-textfield js-form-item-field-kind-product-0-autocomplete-fill-field form-item-field-kind-product-0-autocomplete-fill-field">
+      <input data-drupal-selector="edit-field-kind-product-0-autocomplete-fill-field" type="text" id="edit-field-kind-product-0-autocomplete-fill-field" name="field_kind_product[0][autocomplete_fill_field]" value="" size="60" maxlength="128" class="form-text" />
+
+
+        </div>
+</div><div class="field--type-entity-reference field--name-field-brand field--widget-entity-reference-autocomplete-or-other-tags form-label-required js-form-wrapper form-wrapper" data-drupal-selector="edit-field-brand-wrapper" id="edit-field-brand-wrapper">      <div class="input-field js-form-item form-item js-form-type-brand-autocomplete form-type-brand-autocomplete js-form-item-field-brand-0-target-id form-item-field-brand-0-target-id">
+      <input placeholder="Philips / Bosch / Inconnue/s.o." data-drupal-selector="edit-field-brand-0-target-id" class="form-autocomplete form-text" data-autocomplete-path="/fr/brand_autocomplete/taxonomy_term/default%3Ataxonomy_term/gEOAwRaHjAqY5yzY4R7uND2yYOY1Zg_vOGhm4pd2Nsk" type="text" id="edit-field-brand-0-target-id" name="field_brand[0][target_id]" size="60" maxlength="1024" />
+
+        <label for="edit-field-brand-0-target-id">Marque</label>
+        </div>
+
+  </div>
+<div class="input-field js-form-item form-item js-form-type-textfield form-type-textfield js-form-item-field-brand-0-other form-item-field-brand-0-other">
+      <input data-drupal-selector="edit-field-brand-0-other" type="text" id="edit-field-brand-0-other" name="field_brand[0][other]" value="" size="60" maxlength="128" class="form-text" data-drupal-states="{&quot;visible&quot;:{&quot;filled&quot;:true,&quot;:input[name=\u0022field_brand[0][autocomplete_fill_field]\u0022]&quot;:{&quot;value&quot;:&quot;Ajouter une nouvelle marque&quot;}},&quot;required&quot;:{&quot;:input[name=\u0022field_brand[0][autocomplete_fill_field]\u0022]&quot;:{&quot;value&quot;:&quot;Ajouter une nouvelle marque&quot;}}}" />
+
+        <label for="edit-field-brand-0-other">Ajouter une nouvelle marque</label>
+        </div>
+<div class="field--type-integer field--name-field-product-buildyear field--widget-number js-form-wrapper form-wrapper" data-drupal-selector="edit-field-product-buildyear-wrapper" id="edit-field-product-buildyear-wrapper">      <div class="input-field js-form-item form-item js-form-type-number form-type-number js-form-item-field-product-buildyear-0-value form-item-field-product-buildyear-0-value">
+      <input data-drupal-selector="edit-field-product-buildyear-0-value" type="number" id="edit-field-product-buildyear-0-value" name="field_product_buildyear[0][value]" value="" step="1" min="1900" max="2100" placeholder="" class="form-number" />
+
+        <label for="edit-field-product-buildyear-0-value">Année de fabrication (estimée)</label>
+        </div>
+
+  </div>
+<div class="field--type-entity-reference field--name-field-model field--widget-entity-reference-autocomplete js-form-wrapper form-wrapper" data-drupal-selector="edit-field-model-wrapper" id="edit-field-model-wrapper">      <div class="input-field js-form-item form-item js-form-type-custom-autocomplete form-type-custom-autocomplete js-form-item-field-model-0-target-id form-item-field-model-0-target-id">
+      <input placeholder="Senseo HD 7850" data-drupal-selector="edit-field-model-0-target-id" class="form-autocomplete form-text" data-autocomplete-path="/fr/custom_autocomplete/taxonomy_term/default%3Ataxonomy_term/zq4x3p9pBA4y-EmNPgLZwFcgY2kExYad4BbVbobeoWk" type="text" id="edit-field-model-0-target-id" name="field_model[0][target_id]" value="" size="60" maxlength="1024" />
+
+        <label for="edit-field-model-0-target-id">Modèle, numéro de type et/ou numéro de série</label>
+        </div>
+
+  </div>
+<div class="field--type-string field--name-field-cause-of-fault field--widget-string-textfield js-form-wrapper form-wrapper" data-drupal-selector="edit-field-cause-of-fault-wrapper" id="edit-field-cause-of-fault-wrapper">      <div class="input-field js-form-item form-item js-form-type-textfield form-type-textfield js-form-item-field-cause-of-fault-0-value form-item-field-cause-of-fault-0-value">
+      <input class="js-text-full text-full form-text" placeholder="Ne marche pas, mal entretenu" data-drupal-selector="edit-field-cause-of-fault-0-value" type="text" id="edit-field-cause-of-fault-0-value" name="field_cause_of_fault[0][value]" value="" size="60" maxlength="255" />
+
+        <label for="edit-field-cause-of-fault-0-value">Description du problème + cause probable </label>
+        </div>
+
+  </div>
+
+  </div>
+<div  class="field-group" data-drupal-selector="edit-group-about-the-repair">
+  <h5>About the repair</h5>
+    <div class="field--type-entity-reference field--name-field-repairer field--widget-entity-reference-autocomplete js-form-wrapper form-wrapper" data-drupal-selector="edit-field-repairer-wrapper" id="edit-field-repairer-wrapper">      <div class="input-field js-form-item form-item js-form-type-repairer-autocomplete form-type-repairer-autocomplete js-form-item-field-repairer-0-target-id form-item-field-repairer-0-target-id">
+      <input data-drupal-selector="edit-field-repairer-0-target-id" class="form-autocomplete form-text" data-autocomplete-path="/fr/repairer_autocomplete/taxonomy_term/default%3Ataxonomy_term/GIpXfIbjz8DUn9rOjdO4nshaygSCDUuc4AxyFNMHXIQ?selection_repair_cafe=28527" type="text" id="edit-field-repairer-0-target-id" name="field_repairer[0][target_id]" value="" size="60" maxlength="1024" placeholder="" />
+
+        <label for="edit-field-repairer-0-target-id">Reparateur</label>
+        </div>
+
+  </div>
+<div class="field--type-string-long field--name-field-fault field--widget-string-textarea js-form-wrapper form-wrapper" data-drupal-selector="edit-field-fault-wrapper" id="edit-field-fault-wrapper">      <div class="input-field js-form-item form-item js-form-type-textarea form-type-textarea js-form-item-field-fault-0-value form-item-field-fault-0-value">
+        <textarea class="js-text-full text-full form-textarea materialize-textarea resize-vertical" data-drupal-selector="edit-field-fault-0-value" id="edit-field-fault-0-value" name="field_fault[0][value]" rows="5" cols="60" placeholder=""></textarea>
+
+        <label for="edit-field-fault-0-value">Defect trouvé</label>
+        </div>
+
+  </div>
+<div class="field--type-list-string field--name-field-product-repaired field--widget-options-buttons form-span-required js-form-wrapper form-wrapper" data-drupal-selector="edit-field-product-repaired-wrapper" id="edit-field-product-repaired-wrapper"><fieldset data-drupal-selector="edit-field-product-repaired" id="edit-field-product-repaired--wrapper" class="fieldgroup form-composite js-form-item form-item js-form-wrapper form-wrapper">
+      <legend>
+    <span class="fieldset-legend">Le produit a-t-il été réparé ?</span>
+  </legend>
+  <div class="fieldset-wrapper">
+            <div id="edit-field-product-repaired" class="form-radios"><div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-product-repaired form-item-field-product-repaired">
+      <input data-drupal-selector="edit-field-product-repaired-yes" type="radio" id="edit-field-product-repaired-yes" name="field_product_repaired" value="yes" class="form-radio" />
+
+          <label for="edit-field-product-repaired-yes" class="option">Oui</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-product-repaired form-item-field-product-repaired">
+      <input data-drupal-selector="edit-field-product-repaired-half" type="radio" id="edit-field-product-repaired-half" name="field_product_repaired" value="half" class="form-radio" />
+
+          <label for="edit-field-product-repaired-half" class="option">En partie et/ou donné un conseil</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-product-repaired form-item-field-product-repaired">
+      <input data-drupal-selector="edit-field-product-repaired-no" type="radio" id="edit-field-product-repaired-no" name="field_product_repaired" value="no" class="form-radio" />
+
+          <label for="edit-field-product-repaired-no" class="option">Non</label>
+      </div>
+</div>
+
+          </div>
+</fieldset>
+</div>
+<div class="field--type-string-long field--name-field-solution field--widget-string-textarea js-form-wrapper form-wrapper" data-drupal-selector="edit-field-solution-wrapper" data-drupal-states="{&quot;visible&quot;:{&quot;:input[name=field_product_repaired]&quot;:{&quot;value&quot;:&quot;yes&quot;}}}" id="edit-field-solution-wrapper">      <div class="input-field js-form-item form-item js-form-type-textarea form-type-textarea js-form-item-field-solution-0-value form-item-field-solution-0-value">
+        <textarea class="js-text-full text-full form-textarea materialize-textarea resize-vertical" data-drupal-selector="edit-field-solution-0-value" id="edit-field-solution-0-value" name="field_solution[0][value]" rows="5" cols="60" placeholder=""></textarea>
+
+        <label for="edit-field-solution-0-value">Qu'est-ce que vous avez fait pour le réparer ?</label>
+        </div>
+
+  </div>
+<div class="field--type-entity-reference field--name-field-repair-failed field--widget-options-select js-form-wrapper form-wrapper" data-drupal-selector="edit-field-repair-failed-wrapper" data-drupal-states="{&quot;visible&quot;:{&quot;:input[name=field_product_repaired]&quot;:{&quot;value&quot;:&quot;no&quot;}}}" id="edit-field-repair-failed-wrapper"><div class="input-field js-form-item form-item js-form-type-select form-type-select js-form-item-field-repair-failed form-item-field-repair-failed">
+      <select data-drupal-selector="edit-field-repair-failed" id="edit-field-repair-failed" name="field_repair_failed" class="form-select"><option value="_none">Sélectionnez la réponse</option><option value="19827">Pièces de rechange pas disponibles au moment de la réparation</option><option value="19828">Pièces de rechange pas à vendre</option><option value="19829">Pièces de rechange trop chères</option><option value="19830">Impossible d&#039;ouvrir le produit</option><option value="19831">Informations sur la réparation pas disponibles</option><option value="19832">Manque d&#039;outil à l&#039;endroit de réparation</option><option value="19833">Problème inconnu</option><option value="19834">Mange trop de temps</option><option value="19835">Trop usé</option><option value="23953">Aucun moyen de réparer ce produit</option></select>
+        <label for="edit-field-repair-failed">Pourquoi n'avez-vous pas pu le réparer?</label>
+        </div>
+</div>
+<div class="field--type-string-long field--name-field-advice field--widget-string-textarea js-form-wrapper form-wrapper" data-drupal-selector="edit-field-advice-wrapper" data-drupal-states="{&quot;visible&quot;:{&quot;:input[name=field_product_repaired]&quot;:{&quot;value&quot;:&quot;half&quot;}}}" id="edit-field-advice-wrapper">      <div class="input-field js-form-item form-item js-form-type-textarea form-type-textarea js-form-item-field-advice-0-value form-item-field-advice-0-value">
+        <textarea class="js-text-full text-full form-textarea materialize-textarea resize-vertical" data-drupal-selector="edit-field-advice-0-value" id="edit-field-advice-0-value" name="field_advice[0][value]" rows="5" cols="60" placeholder=""></textarea>
+
+        <label for="edit-field-advice-0-value">﻿﻿Qu-est-ce que vous avez fait/quel conseil avez-vous donné ? </label>
+        </div>
+
+  </div>
+<div class="field--type-list-string field--name-field-repairability field--widget-options-buttons js-form-wrapper form-wrapper" data-drupal-selector="edit-field-repairability-wrapper" id="edit-field-repairability-wrapper"><fieldset data-drupal-selector="edit-field-repairability" aria-describedby="edit-field-repairability--wrapper--description" id="edit-field-repairability--wrapper" class="fieldgroup form-composite js-form-item form-item js-form-wrapper form-wrapper">
+      <legend>
+    <span class="fieldset-legend">Réparabilité du produit: (1 = difficile, 10 = facile)</span>
+  </legend>
+  <div class="fieldset-wrapper">
+            <div id="edit-field-repairability" class="form-radios"><div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repairability form-item-field-repairability">
+      <input data-drupal-selector="edit-field-repairability-1" aria-describedby="edit-field-repairability--description" type="radio" id="edit-field-repairability-1" name="field_repairability" value="1" class="form-radio" />
+
+          <label for="edit-field-repairability-1" class="option">1</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repairability form-item-field-repairability">
+      <input data-drupal-selector="edit-field-repairability-2" aria-describedby="edit-field-repairability--description" type="radio" id="edit-field-repairability-2" name="field_repairability" value="2" class="form-radio" />
+
+          <label for="edit-field-repairability-2" class="option">2</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repairability form-item-field-repairability">
+      <input data-drupal-selector="edit-field-repairability-3" aria-describedby="edit-field-repairability--description" type="radio" id="edit-field-repairability-3" name="field_repairability" value="3" class="form-radio" />
+
+          <label for="edit-field-repairability-3" class="option">3</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repairability form-item-field-repairability">
+      <input data-drupal-selector="edit-field-repairability-4" aria-describedby="edit-field-repairability--description" type="radio" id="edit-field-repairability-4" name="field_repairability" value="4" class="form-radio" />
+
+          <label for="edit-field-repairability-4" class="option">4</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repairability form-item-field-repairability">
+      <input data-drupal-selector="edit-field-repairability-5" aria-describedby="edit-field-repairability--description" type="radio" id="edit-field-repairability-5" name="field_repairability" value="5" class="form-radio" />
+
+          <label for="edit-field-repairability-5" class="option">5</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repairability form-item-field-repairability">
+      <input data-drupal-selector="edit-field-repairability-6" aria-describedby="edit-field-repairability--description" type="radio" id="edit-field-repairability-6" name="field_repairability" value="6" class="form-radio" />
+
+          <label for="edit-field-repairability-6" class="option">6</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repairability form-item-field-repairability">
+      <input data-drupal-selector="edit-field-repairability-7" aria-describedby="edit-field-repairability--description" type="radio" id="edit-field-repairability-7" name="field_repairability" value="7" class="form-radio" />
+
+          <label for="edit-field-repairability-7" class="option">7</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repairability form-item-field-repairability">
+      <input data-drupal-selector="edit-field-repairability-8" aria-describedby="edit-field-repairability--description" type="radio" id="edit-field-repairability-8" name="field_repairability" value="8" class="form-radio" />
+
+          <label for="edit-field-repairability-8" class="option">8</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repairability form-item-field-repairability">
+      <input data-drupal-selector="edit-field-repairability-9" aria-describedby="edit-field-repairability--description" type="radio" id="edit-field-repairability-9" name="field_repairability" value="9" class="form-radio" />
+
+          <label for="edit-field-repairability-9" class="option">9</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repairability form-item-field-repairability">
+      <input data-drupal-selector="edit-field-repairability-10" aria-describedby="edit-field-repairability--description" type="radio" id="edit-field-repairability-10" name="field_repairability" value="10" class="form-radio" />
+
+          <label for="edit-field-repairability-10" class="option">10</label>
+      </div>
+</div>
+
+              <div id="edit-field-repairability--wrapper--description" data-drupal-field-elements="description" class="description">Ce que vous entrez ici est par définition subjectif. Ce n'est pas grave. Nous sommes curieux de connaître votre expérience personnelle avec la réparation de ce produit.</div>
+      </div>
+</fieldset>
+</div>
+<div class="field--type-list-string field--name-field-repair-information field--widget-options-buttons js-form-wrapper form-wrapper" data-drupal-selector="edit-field-repair-information-wrapper" id="edit-field-repair-information-wrapper"><fieldset data-drupal-selector="edit-field-repair-information" id="edit-field-repair-information--wrapper" class="fieldgroup form-composite js-form-item form-item js-form-wrapper form-wrapper">
+      <legend>
+    <span class="fieldset-legend">Avez-vous utilisé des informations de réparation ?</span>
+  </legend>
+  <div class="fieldset-wrapper">
+            <div id="edit-field-repair-information" class="form-radios"><div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repair-information form-item-field-repair-information">
+      <input data-drupal-selector="edit-field-repair-information-yes" type="radio" id="edit-field-repair-information-yes" name="field_repair_information" value="yes" class="form-radio" />
+
+          <label for="edit-field-repair-information-yes" class="option">Oui</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repair-information form-item-field-repair-information">
+      <input data-drupal-selector="edit-field-repair-information-no" type="radio" id="edit-field-repair-information-no" name="field_repair_information" value="no" class="form-radio" />
+
+          <label for="edit-field-repair-information-no" class="option">Non, pas trouvé</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repair-information form-item-field-repair-information">
+      <input data-drupal-selector="edit-field-repair-information-unknown" type="radio" id="edit-field-repair-information-unknown" name="field_repair_information" value="unknown" class="form-radio" />
+
+          <label for="edit-field-repair-information-unknown" class="option">Non, pas cherché</label>
+      </div>
+</div>
+
+          </div>
+</fieldset>
+</div>
+<div class="field--type-list-string field--name-field-repair-information-resourc field--widget-options-buttons js-form-wrapper form-wrapper" data-drupal-selector="edit-field-repair-information-resourc-wrapper" data-drupal-states="{&quot;visible&quot;:{&quot;:input[name=field_repair_information]&quot;:{&quot;value&quot;:&quot;yes&quot;}}}" id="edit-field-repair-information-resourc-wrapper"><fieldset data-drupal-selector="edit-field-repair-information-resourc" id="edit-field-repair-information-resourc--wrapper" class="fieldgroup form-composite js-form-item form-item js-form-wrapper form-wrapper">
+      <legend>
+    <span class="fieldset-legend">D’où viennent ces informations ?</span>
+  </legend>
+  <div class="fieldset-wrapper">
+            <div id="edit-field-repair-information-resourc" class="form-radios"><div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repair-information-resourc form-item-field-repair-information-resourc">
+      <input data-drupal-selector="edit-field-repair-information-resourc-supplier" type="radio" id="edit-field-repair-information-resourc-supplier" name="field_repair_information_resourc" value="supplier" class="form-radio" />
+
+          <label for="edit-field-repair-information-resourc-supplier" class="option">Du fabricant</label>
+      </div>
+<div class="input-field js-form-item form-item js-form-type-radio form-type-radio js-form-item-field-repair-information-resourc form-item-field-repair-information-resourc">
+      <input data-drupal-selector="edit-field-repair-information-resourc-user" type="radio" id="edit-field-repair-information-resourc-user" name="field_repair_information_resourc" value="user" class="form-radio" />
+
+          <label for="edit-field-repair-information-resourc-user" class="option">De collègues réparateurs</label>
+      </div>
+</div>
+
+          </div>
+</fieldset>
+</div>
+<div class="field--type-string-long field--name-field-repair-source field--widget-string-textarea js-form-wrapper form-wrapper" data-drupal-selector="edit-field-repair-source-wrapper" data-drupal-states="{&quot;visible&quot;:{&quot;:input[name=field_repair_information]&quot;:{&quot;value&quot;:&quot;yes&quot;}}}" id="edit-field-repair-source-wrapper">      <div class="input-field js-form-item form-item js-form-type-textarea form-type-textarea js-form-item-field-repair-source-0-value form-item-field-repair-source-0-value">
+        <textarea class="js-text-full text-full form-textarea materialize-textarea resize-vertical" placeholder="Url site web: ifixit.com, youtube.com..." data-drupal-selector="edit-field-repair-source-0-value" id="edit-field-repair-source-0-value" name="field_repair_source[0][value]" rows="5" cols="60"></textarea>
+
+        <label for="edit-field-repair-source-0-value">Source des informations de réparation (url site web)</label>
+        </div>
+
+  </div>
+<div class="field--type-string-long field--name-field-hint field--widget-string-textarea js-form-wrapper form-wrapper" data-drupal-selector="edit-field-hint-wrapper" id="edit-field-hint-wrapper">      <div class="input-field js-form-item form-item js-form-type-textarea form-type-textarea js-form-item-field-hint-0-value form-item-field-hint-0-value">
+        <textarea class="js-text-full text-full form-textarea materialize-textarea resize-vertical" data-drupal-selector="edit-field-hint-0-value" id="edit-field-hint-0-value" name="field_hint[0][value]" rows="5" cols="60" placeholder=""></textarea>
+
+        <label for="edit-field-hint-0-value">Avez-vous un conseil pour d'autres réparateurs sur la réparation de ce produit (ou similaire) ?</label>
+        </div>
+
+  </div>
+
+  </div><p data-drupal-selector="edit-required">* Champ obligatoire</p>
+<div class="actions-group form-actions js-form-wrapper form-wrapper" data-drupal-selector="edit-actions" id="edit-actions"><input class="button btn-primary btn btn-pull-right button--primary js-form-submit form-submit" data-drupal-selector="edit-submit" type="submit" id="edit-submit" name="op" value="Sauvegarder brouillon" />
+<input class="button button--primary js-form-submit form-submit btn btn-pull-right button button--primary js-form-submit form-submit btn" data-drupal-selector="edit-publish" type="submit" id="edit-publish" name="op" value="Achever la réparation " />
+</div>
+<div class="input-field js-form-item form-item js-form-type-vertical-tabs form-type-vertical-tabs js-form-item- form-item- form-no-label">
+      <div class="entity-meta" data-drupal-selector="edit-advanced" data-vertical-tabs-panes><input class="vertical-tabs__active-tab" data-drupal-selector="edit-advanced-active-tab" type="hidden" name="advanced__active_tab" value="edit-revision-information" />
+</div>
+
+        <label for="edit-advanced" class="visually-hidden">Vertical Tabs</label>
+        </div>
+<div class="container-inline text-center js-form-wrapper form-wrapper" data-drupal-selector="edit-delete-container" id="edit-delete-container"><a href="/fr" data-drupal-selector="edit-cancel" id="edit-cancel">Annuler</a></div>
+
+</form>
+
+        </div>
+  </div>
+</section>
+
+  </div>
+
+  </div>
+
+
+  <footer role="contentinfo">
+    <div class="container">
+        <div class="region region-footer">
+    <nav role="navigation" aria-labelledby="block-hoofdnavigatie-menu" id="block-hoofdnavigatie" class="main-navigation block block-menu navigation menu--main">
+
+    <h2 class="visually-hidden" id="block-hoofdnavigatie-menu">Hoofdnavigatie</h2>
+
+
+
+              <ul class="menu">
+                    <li class="menu-item">
+        <a href="/fr" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="&lt;front&gt;">Home</a>
+              </li>
+                <li class="menu-item">
+        <a href="/fr" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="&lt;front&gt;">Overview</a>
+              </li>
+                <li class="menu-item">
+        <a href="https://dashboard.repairmonitor.org/?language=en" title="" id="" name="" rel="" style="" target="" accesskey="">Dashboard</a>
+              </li>
+                <li class="menu-item">
+        <a href="/fr/node/537" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="node/537">About us</a>
+              </li>
+                <li class="menu-item">
+        <a href="/fr/node/539" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="node/539">FAQ</a>
+              </li>
+                <li class="menu-item">
+        <a href="" title="" id="" name="" rel="" class="icon-hide-navigation" style="" target="" accesskey="">Hide menu</a>
+              </li>
+        </ul>
+
+
+
+    </nav>
+<span data-big-pipe-placeholder-id="callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder&amp;args%5B0%5D=languagemenu_2&amp;args%5B1%5D=full&amp;args%5B2%5D&amp;token=HzDRCN4QZ7_ncxrZVPSIUpAoq4SsCbyXpnV-5A8qGOc">
+</span>
+  </div>
+
+    </div>
+  </footer>
+
+  </div>
+
+
+
+  <script type="application/json" data-drupal-selector="drupal-settings-json">{"path":{"baseUrl":"\/","pathPrefix":"fr\/","currentPath":"node\/add\/repair","currentPathIsAdmin":false,"isFront":false,"currentLanguage":"fr"},"pluralDelimiter":"\u0003","suppressDeprecationErrors":true,"ajaxPageState":{"libraries":"eJx1kNGSwjAIRX-omtf9mwyh2EWTkAXqTP16U-s4VmffDvdkgJB4io0bhfSEATOYLSGBvbiQGUxkA4pSGHVukI-Azlc6ZK6XfT67oJSWyWknUHKGZvvQHPyj8ZXUGSEfHNLTcHXS2t35byZdjifRspnaCTLfaKgyvlqsvAWPl0oNWCPCicIbx3dZpLKLhilL6rPR7B9z_hKlf0H5scVqbTGnsh1wrsgV4_gT19J_qfRLi7i5QrsD8CGTDg","theme":"repair_monitor","theme_token":null},"ajaxTrustedUrl":{"form_action_p_pvdeGsVG5zNF_XLGPTvYSKCf43t8qZYSwcfZl2uzM":true,"\/fr\/node\/add\/repair?ajax_form=1":true},"bigPipePlaceholderIds":{"callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder\u0026args%5B0%5D=languagemenu_2\u0026args%5B1%5D=full\u0026args%5B2%5D\u0026token=HzDRCN4QZ7_ncxrZVPSIUpAoq4SsCbyXpnV-5A8qGOc":true,"callback=Drupal%5CCore%5CRender%5CElement%5CStatusMessages%3A%3ArenderMessages\u0026args%5B0%5D\u0026token=_HAdUpwWmet0TOTe2PSiJuMntExoshbm1kh2wQzzzAA":true,"callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder\u0026args%5B0%5D=menunavigation\u0026args%5B1%5D=full\u0026args%5B2%5D\u0026token=OX7G5WML5xOCx81V6-Vau9PI-ptEH235Nli1cCgRTEU":true,"callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder\u0026args%5B0%5D=languagemenu\u0026args%5B1%5D=full\u0026args%5B2%5D\u0026token=OcjzDOydAEr5z-0TC1pqqP0LAu1e3SVH1sR9Yk7xBT0":true},"field_group":{"html_element":{"mode":"default","context":"form","settings":{"classes":"field-group","show_empty_fields":false,"id":"","element":"div","show_label":true,"label_element":"h5","label_element_classes":"","attributes":"","effect":"none","speed":"fast","required_fields":false}}},"ajax":{"edit-field-kind-product-0-target-id":{"callback":"repair_cafe_category_change","event":"autocompleteclose","url":"\/fr\/node\/add\/repair?ajax_form=1","httpMethod":"POST","dialogType":"ajax","submit":{"_triggering_element_name":"field_kind_product[0][target_id]"}},"edit-field-repair-date-0-value":{"callback":"referenceDateCallback","wrapper":"ajax_target","event":"blur","progress":{"type":"throbber","message":"Updating reference number"},"url":"\/fr\/node\/add\/repair?ajax_form=1","httpMethod":"POST","dialogType":"ajax","submit":{"_triggering_element_name":"field_repair_date[0][value]"}}},"user":{"uid":"5013","permissionsHash":"158bf649eef3d07bbd9db0b7af76b9090b9a6c448a366565364ebd062444cffc"}}</script>
+<script src="/core/assets/vendor/jquery/jquery.min.js?v=3.7.1"></script>
+<script src="/core/assets/vendor/once/once.min.js?v=1.0.1"></script>
+<script src="/sites/default/files/languages/fr_tJjeP_Qn6HSM-EshhXgIUBNsyQMs0tzAV_Vx5bzj9wM.js?st0jgk"></script>
+<script src="/core/misc/drupalSettingsLoader.js?v=10.4.3"></script>
+<script src="/core/misc/drupal.js?v=10.4.3"></script>
+<script src="/core/misc/drupal.init.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/version-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/data-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/disable-selection-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/jquery-patch-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/scroll-parent-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/unique-id-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/focusable-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/keycode-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/plugin-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widget-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/labels-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widgets/autocomplete-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widgets/menu-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/tabbable/index.umd.min.js?v=6.2.0"></script>
+<script src="/core/misc/autocomplete.js?v=10.4.3"></script>
+<script src="/core/misc/progress.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/loadjs/loadjs.min.js?v=4.3.0"></script>
+<script src="/core/misc/debounce.js?v=10.4.3"></script>
+<script src="/core/misc/announce.js?v=10.4.3"></script>
+<script src="/core/misc/message.js?v=10.4.3"></script>
+<script src="/core/misc/ajax.js?v=10.4.3"></script>
+<script src="/themes/contrib/stable/js/ajax.js?v=10.4.3"></script>
+<script src="/core/modules/big_pipe/js/big_pipe.js?v=10.4.3"></script>
+<script src="/core/misc/active-link.js?v=10.4.3"></script>
+<script src="/core/misc/jquery.tabbable.shim.js?v=10.4.3"></script>
+<script src="/core/misc/position.js?v=10.4.3"></script>
+<script src="/core/misc/form.js?v=10.4.3"></script>
+<script src="/core/misc/details-summarized-content.js?v=10.4.3"></script>
+<script src="/core/misc/details-aria.js?v=10.4.3"></script>
+<script src="/core/misc/details.js?v=10.4.3"></script>
+<script src="/core/misc/states.js?v=10.4.3"></script>
+<script src="/core/misc/vertical-tabs.js?v=10.4.3"></script>
+<script src="/core/misc/jquery.form.js?v=4.3.0"></script>
+<script src="/core/misc/entity-form.js?v=10.4.3"></script>
+<script src="/core/modules/node/node.js?v=10.4.3"></script>
+<script src="/modules/custom/repair_cafe/js/repairmonitor.js?v=1"></script>
+<script src="/themes/repair_monitor/js/javascript.js?st0jgk"></script>
+<script src="/themes/repair_monitor/js/materialize.js?st0jgk"></script>
+
+<script type="application/vnd.drupal-ajax" data-big-pipe-event="start"></script>
+<script type="application/vnd.drupal-ajax" data-big-pipe-replacement-for-placeholder-with-id="callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder&amp;args%5B0%5D=languagemenu&amp;args%5B1%5D=full&amp;args%5B2%5D&amp;token=OcjzDOydAEr5z-0TC1pqqP0LAu1e3SVH1sR9Yk7xBT0">
+[{"command":"insert","method":"replaceWith","selector":"[data-big-pipe-placeholder-id=\u0022callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder\u0026args%5B0%5D=languagemenu\u0026args%5B1%5D=full\u0026args%5B2%5D\u0026token=OcjzDOydAEr5z-0TC1pqqP0LAu1e3SVH1sR9Yk7xBT0\u0022]","data":"\u003Csection  id=\u0022block-languagemenu\u0022\u003E\n  \u003Cdiv class=\u0027block-wrapper\u0027\u003E\n    \n        \n    \u003Cdiv class=\u0027block-content-wrapper\u0027\u003E\n          \u003Cdiv class=\u0022language--menu\u0022\u003E\u003Cdiv class=\u0022item-list\u0022\u003E\u003Cul class=\u0022language--menu--list\u0022\u003E\u003Cli\u003E\u003Cspan class=\u0022language--menu--list--item language--menu--list--item--current\u0022\u003Efr\u003C\/span\u003E\n\u003C\/li\u003E\u003Cli\u003E\u003Ca href=\u0022\/en\/node\/add\/repair\u0022 class=\u0022language--menu--list--item\u0022 hreflang=\u0022en\u0022\u003Een\u003C\/a\u003E\u003C\/li\u003E\u003Cli\u003E\u003Ca href=\u0022\/nl\/node\/add\/repair\u0022 class=\u0022language--menu--list--item\u0022 hreflang=\u0022nl\u0022\u003Enl\u003C\/a\u003E\u003C\/li\u003E\u003Cli\u003E\u003Ca href=\u0022\/de\/node\/add\/repair\u0022 class=\u0022language--menu--list--item\u0022 hreflang=\u0022de\u0022\u003Ede\u003C\/a\u003E\u003C\/li\u003E\u003C\/ul\u003E\u003C\/div\u003E\u003C\/div\u003E\n\n        \u003C\/div\u003E\n  \u003C\/div\u003E\n\u003C\/section\u003E\n","settings":null}]
+</script><script type="application/vnd.drupal-ajax" data-big-pipe-replacement-for-placeholder-with-id="callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder&amp;args%5B0%5D=menunavigation&amp;args%5B1%5D=full&amp;args%5B2%5D&amp;token=OX7G5WML5xOCx81V6-Vau9PI-ptEH235Nli1cCgRTEU">
+[{"command":"insert","method":"replaceWith","selector":"[data-big-pipe-placeholder-id=\u0022callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder\u0026args%5B0%5D=menunavigation\u0026args%5B1%5D=full\u0026args%5B2%5D\u0026token=OX7G5WML5xOCx81V6-Vau9PI-ptEH235Nli1cCgRTEU\u0022]","data":"\u003Cnav role=\u0022navigation\u0022 aria-labelledby=\u0022block-menunavigation-menu\u0022 id=\u0022block-menunavigation\u0022 class=\u0022main-navigation block block-menu navigation menu--menu-navigation\u0022\u003E\n                      \n    \u003Ch2 class=\u0022visually-hidden\u0022 id=\u0022block-menunavigation-menu\u0022\u003EMenu Navigation\u003C\/h2\u003E\n    \n\n              \n              \u003Cul class=\u0022menu\u0022\u003E\n                    \u003Cli class=\u0022menu-item menu-item--active-trail\u0022\u003E\n        \u003Ca href=\u0022\/fr\/node\/add\/repair\u0022 title=\u0022\u0022 id=\u0022\u0022 name=\u0022\u0022 rel=\u0022\u0022 style=\u0022\u0022 target=\u0022\u0022 accesskey=\u0022\u0022 data-drupal-link-system-path=\u0022node\/add\/repair\u0022\u003ENouvelle r\u00e9paration\u003C\/a\u003E\n              \u003C\/li\u003E\n                \u003Cli class=\u0022menu-item\u0022\u003E\n        \u003Ca href=\u0022\/fr\/repairs\u0022 title=\u0022\u0022 id=\u0022\u0022 name=\u0022\u0022 rel=\u0022\u0022 style=\u0022\u0022 target=\u0022\u0022 accesskey=\u0022\u0022 data-drupal-link-system-path=\u0022repairs\u0022\u003ER\u00e9parations en attente\u003C\/a\u003E\n              \u003C\/li\u003E\n                \u003Cli class=\u0022menu-item\u0022\u003E\n        \u003Ca href=\u0022\/fr\/repairs\/closed\u0022 title=\u0022\u0022 id=\u0022\u0022 name=\u0022\u0022 rel=\u0022\u0022 style=\u0022\u0022 target=\u0022\u0022 accesskey=\u0022\u0022 data-drupal-link-system-path=\u0022repairs\/closed\u0022\u003ER\u00e9parations achev\u00e9es\u003C\/a\u003E\n              \u003C\/li\u003E\n                \u003Cli class=\u0022menu-item\u0022\u003E\n        \u003Ca href=\u0022\/fr\/results\/cafe\u0022 title=\u0022\u0022 id=\u0022\u0022 name=\u0022\u0022 rel=\u0022\u0022 style=\u0022\u0022 target=\u0022\u0022 accesskey=\u0022\u0022 data-drupal-link-system-path=\u0022results\/cafe\u0022\u003ER\u00e9sultats\u003C\/a\u003E\n              \u003C\/li\u003E\n        \u003C\/ul\u003E\n  \n\n\n    \u003C\/nav\u003E\n","settings":null}]
+</script><script type="application/vnd.drupal-ajax" data-big-pipe-replacement-for-placeholder-with-id="callback=Drupal%5CCore%5CRender%5CElement%5CStatusMessages%3A%3ArenderMessages&amp;args%5B0%5D&amp;token=_HAdUpwWmet0TOTe2PSiJuMntExoshbm1kh2wQzzzAA">
+[{"command":"insert","method":"replaceWith","selector":"[data-big-pipe-placeholder-id=\u0022callback=Drupal%5CCore%5CRender%5CElement%5CStatusMessages%3A%3ArenderMessages\u0026args%5B0%5D\u0026token=_HAdUpwWmet0TOTe2PSiJuMntExoshbm1kh2wQzzzAA\u0022]","data":"","settings":null}]
+</script><script type="application/vnd.drupal-ajax" data-big-pipe-replacement-for-placeholder-with-id="callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder&amp;args%5B0%5D=languagemenu_2&amp;args%5B1%5D=full&amp;args%5B2%5D&amp;token=HzDRCN4QZ7_ncxrZVPSIUpAoq4SsCbyXpnV-5A8qGOc">
+[{"command":"insert","method":"replaceWith","selector":"[data-big-pipe-placeholder-id=\u0022callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder\u0026args%5B0%5D=languagemenu_2\u0026args%5B1%5D=full\u0026args%5B2%5D\u0026token=HzDRCN4QZ7_ncxrZVPSIUpAoq4SsCbyXpnV-5A8qGOc\u0022]","data":"\u003Csection  id=\u0022block-languagemenu-2\u0022\u003E\n  \u003Cdiv class=\u0027block-wrapper\u0027\u003E\n    \n        \n    \u003Cdiv class=\u0027block-content-wrapper\u0027\u003E\n          \u003Cdiv class=\u0022language--menu\u0022\u003E\u003Cdiv class=\u0022item-list\u0022\u003E\u003Cul class=\u0022language--menu--list\u0022\u003E\u003Cli\u003E\u003Cspan class=\u0022language--menu--list--item language--menu--list--item--current\u0022\u003Efr\u003C\/span\u003E\n\u003C\/li\u003E\u003Cli\u003E\u003Ca href=\u0022\/en\/node\/add\/repair\u0022 class=\u0022language--menu--list--item\u0022 hreflang=\u0022en\u0022\u003Een\u003C\/a\u003E\u003C\/li\u003E\u003Cli\u003E\u003Ca href=\u0022\/nl\/node\/add\/repair\u0022 class=\u0022language--menu--list--item\u0022 hreflang=\u0022nl\u0022\u003Enl\u003C\/a\u003E\u003C\/li\u003E\u003Cli\u003E\u003Ca href=\u0022\/de\/node\/add\/repair\u0022 class=\u0022language--menu--list--item\u0022 hreflang=\u0022de\u0022\u003Ede\u003C\/a\u003E\u003C\/li\u003E\u003C\/ul\u003E\u003C\/div\u003E\u003C\/div\u003E\n\n        \u003C\/div\u003E\n  \u003C\/div\u003E\n\u003C\/section\u003E\n","settings":null}]
+</script>
+<script type="application/vnd.drupal-ajax" data-big-pipe-event="stop"></script>
+</body>
+</html>

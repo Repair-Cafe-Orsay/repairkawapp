@@ -202,6 +202,8 @@ class Repair(db.Model):
     session_id = db.Column(db.Integer, db.ForeignKey("session.id"), nullable=True)
     # identifiant généré par RepairMonitor lors de l'upload (ex: 0229_2025_1202_001)
     rm_uploaded = db.Column(db.String(32))
+    # identifiant de nœud RepairMonitor (ex: 174985)
+    rm_node_id = db.Column(db.Integer)
     # Références facultatives vers le référentiel objet
     object_type_id = db.Column(db.Integer, db.ForeignKey("object_type.id"), nullable=True)
     object_type = db.relationship("ObjectType")

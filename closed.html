@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr" prefix="content: http://purl.org/rss/1.0/modules/content/  dc: http://purl.org/dc/terms/  foaf: http://xmlns.com/foaf/0.1/  og: http://ogp.me/ns#  rdfs: http://www.w3.org/2000/01/rdf-schema#  schema: http://schema.org/  sioc: http://rdfs.org/sioc/ns#  sioct: http://rdfs.org/sioc/types#  skos: http://www.w3.org/2004/02/skos/core#  xsd: http://www.w3.org/2001/XMLSchema# ">
+  <head>
+    <meta charset="utf-8" />
+<noscript><meta http-equiv="Refresh" content="0; URL=/fr/big_pipe/no-js?destination=/fr/repairs/closed" />
+</noscript><meta name="Generator" content="Drupal 10 (https://www.drupal.org)" />
+<meta name="MobileOptimized" content="width" />
+<meta name="HandheldFriendly" content="true" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<link rel="icon" href="/themes/repair_monitor/favicon.ico" type="image/vnd.microsoft.icon" />
+
+    <title>Réparations achevées | RepairMonitor.org</title>
+    <link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/core.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/autocomplete.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/menu.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/core/components/progress.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/core/components/ajax-progress.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/core/components/autocomplete-loading.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/align.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/fieldgroup.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/container-inline.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/clearfix.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/details.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/hidden.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/item-list.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/js.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/nowrap.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/position-container.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/reset-appearance.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/resize.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/system-status-counter.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/system-status-report-counters.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/system-status-report-general-info.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/system/components/tablesort.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/views/views.module.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/theme.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/core/assets/vendor/normalize-css/normalize.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/stable/css/core/normalize-fixes.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/action-links.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/breadcrumb.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/button.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/collapse-processed.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/container-inline.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/details.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/exposed-filters.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/field.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/form.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/icons.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/inline-form.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/item-list.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/link.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/links.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/menu.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/more-link.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/pager.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/tabledrag.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/tableselect.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/tablesort.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/tabs.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/textarea.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/ui-dialog.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/messages.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/contrib/classy/css/components/progress.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/repair_monitor/css/style.css?st0jgk" />
+<link rel="stylesheet" media="all" href="/themes/uncinc_d8_basetheme/css/style.css?st0jgk" />
+
+
+  </head>
+  <body class="user-logged-in path-repairs">
+        <a href="#main-content" class="visually-hidden focusable skip-link">
+      Aller au contenu principal
+    </a>
+
+      <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
+      <div class="region region-navigation">
+    <div class="container">
+      <section  id="block-repair-monitor-branding">
+  <div class='block-wrapper'>
+
+
+    <div class='block-content-wrapper'>
+      <!-- <div class="container"> -->
+          <a href="/fr" title="Accueil" rel="home" class="site-logo">
+        <img src="/sites/default/files/RepairMonitor-logo.png" alt="Accueil" />
+      </a>
+              <!-- </div> -->
+    </div>
+  </div>
+</section>
+<nav role="navigation" aria-labelledby="block-headermenu-menu" id="block-headermenu" class="main-navigation block block-menu navigation menu--header-menu">
+
+    <h2 class="visually-hidden" id="block-headermenu-menu">Header menu</h2>
+
+
+
+              <ul class="menu">
+                    <li class="menu-item">
+        <a href="/fr" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="&lt;front&gt;">Home</a>
+              </li>
+                <li class="menu-item">
+        <a href="/fr" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="&lt;front&gt;">Aperçu</a>
+              </li>
+                <li class="menu-item">
+        <a href="https://dashboard.repairmonitor.org/?language=fr" title="" id="" name="" rel="" style="" target="" accesskey="">Tableau de bord</a>
+              </li>
+                <li class="menu-item">
+        <a href="/fr/node/537" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="node/537">Sur nous</a>
+              </li>
+                <li class="menu-item">
+        <a href="/fr/node/539" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="node/539">FAQ</a>
+              </li>
+        </ul>
+
+
+
+    </nav>
+<span data-big-pipe-placeholder-id="callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder&amp;args%5B0%5D=languagemenu&amp;args%5B1%5D=full&amp;args%5B2%5D&amp;token=OcjzDOydAEr5z-0TC1pqqP0LAu1e3SVH1sR9Yk7xBT0">
+</span>
+    </div>
+  </div>
+
+
+  <div class="container py-0">
+      <div class="region region-sub-navigation">
+    <span data-big-pipe-placeholder-id="callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder&amp;args%5B0%5D=menunavigation&amp;args%5B1%5D=full&amp;args%5B2%5D&amp;token=OX7G5WML5xOCx81V6-Vau9PI-ptEH235Nli1cCgRTEU">
+</span>
+  </div>
+
+  </div>
+
+  <div class="container">
+      <div class="region region-content">
+    <div data-drupal-messages-fallback class="hidden"></div><span data-big-pipe-placeholder-id="callback=Drupal%5CCore%5CRender%5CElement%5CStatusMessages%3A%3ArenderMessages&amp;args%5B0%5D&amp;token=_HAdUpwWmet0TOTe2PSiJuMntExoshbm1kh2wQzzzAA">
+</span><section  id="block-pagetitle">
+  <div class='block-wrapper'>
+
+
+    <div class='block-content-wrapper'>
+
+		<h1 class="page-title">Réparations achevées</h1>
+
+
+        </div>
+  </div>
+</section>
+<section  id="block-repair-monitor-content">
+  <div class='block-wrapper'>
+
+
+    <div class='block-content-wrapper'>
+          <div class="views-element-container"><div class="view view-repairs view-id-repairs view-display-id-page_1 js-view-dom-id-251cd2c8a1e085d4ddc41393dadd7b05ed9c1810b260777d36da4d8bbe96b7ef">
+
+
+      <div class="view-filters">
+      <form class="views-exposed-form" data-drupal-selector="views-exposed-form-repairs-page-1" action="/fr/repairs/closed" method="get" id="views-exposed-form-repairs-page-1" accept-charset="UTF-8">
+		<div class="form--inline clearfix">
+  <div class="input-field js-form-item form-item js-form-type-date form-type-date js-form-item-field-repair-date-value form-item-field-repair-date-value">
+      <input type="date" data-drupal-selector="edit-field-repair-date-value" id="edit-field-repair-date-value" name="field_repair_date_value" value="" size="30" class="form-date" />
+
+        <label for="edit-field-repair-date-value">Date de réparation</label>
+        </div>
+<div class="input-field js-form-item form-item js-form-type-textfield form-type-textfield js-form-item-field-reference-number-value form-item-field-reference-number-value">
+      <input data-drupal-selector="edit-field-reference-number-value" type="text" id="edit-field-reference-number-value" name="field_reference_number_value" value="" size="30" maxlength="128" class="form-text" />
+
+        <label for="edit-field-reference-number-value">Numéro de réf.</label>
+        </div>
+<div class="input-field js-form-item form-item js-form-type-custom-autocomplete form-type-custom-autocomplete js-form-item-field-kind-product-target-id form-item-field-kind-product-target-id">
+      <input data-drupal-selector="edit-field-kind-product-target-id" class="form-autocomplete form-text" data-autocomplete-path="/fr/custom_autocomplete/taxonomy_term/default/Ct_XIMZeVXnYv-PDDhl9Er8-hPWju0pSDIofSVtpC7o" type="text" id="edit-field-kind-product-target-id" name="field_kind_product_target_id" value="" size="60" maxlength="128" />
+
+        <label for="edit-field-kind-product-target-id">Type de produit</label>
+        </div>
+<div class="input-field js-form-item form-item js-form-type-select form-type-select js-form-item-field-categorie-target-id form-item-field-categorie-target-id">
+      <select data-drupal-selector="edit-field-categorie-target-id" id="edit-field-categorie-target-id" name="field_categorie_target_id" class="form-select"><option value="All" selected="selected">- Tout -</option><option value="5343">Articles ménagers non électriques</option><option value="1685">Autres</option><option value="18707">Bijoux</option><option value="1693">Jouets non électriques</option><option value="1692">Jouets électriques</option><option value="1689">Matériel d&#039;image et de son</option><option value="1677">Matériel informatique/téléphones</option><option value="1683">Meubles</option><option value="1691">Outils non électriques</option><option value="1690">Outils électriques</option><option value="18706">Pendules, horloges et réveils</option><option value="1684">Textiles</option><option value="1679">Vélos</option><option value="1678">Électroménager</option></select>
+        <label for="edit-field-categorie-target-id">Catégorie</label>
+        </div>
+<div class="input-field js-form-item form-item js-form-type-custom-autocomplete form-type-custom-autocomplete js-form-item-field-brand-target-id form-item-field-brand-target-id">
+      <input data-drupal-selector="edit-field-brand-target-id" class="form-autocomplete form-text" data-autocomplete-path="/fr/custom_autocomplete/taxonomy_term/default/ANSRLJGjfBSHwLeA-MVuSE3MkMAgFQZ8JeGSmQNYuxA" type="text" id="edit-field-brand-target-id" name="field_brand_target_id" value="" size="60" maxlength="128" />
+
+        <label for="edit-field-brand-target-id">Marque</label>
+        </div>
+<div class="input-field js-form-item form-item js-form-type-custom-autocomplete form-type-custom-autocomplete js-form-item-field-repairer-target-id form-item-field-repairer-target-id">
+      <input data-drupal-selector="edit-field-repairer-target-id" class="form-autocomplete form-text" data-autocomplete-path="/fr/custom_autocomplete/taxonomy_term/default/LH_-Sajq1g94TVsSaYDcjmChvtHk1KX9hbrj3yrtysA" type="text" id="edit-field-repairer-target-id" name="field_repairer_target_id" value="" size="60" maxlength="128" />
+
+        <label for="edit-field-repairer-target-id">Réparateur</label>
+        </div>
+<div class="input-field js-form-item form-item js-form-type-select form-type-select js-form-item-field-product-repaired-value form-item-field-product-repaired-value">
+      <select data-drupal-selector="edit-field-product-repaired-value" id="edit-field-product-repaired-value" name="field_product_repaired_value" class="form-select"><option value="All" selected="selected">- Tout -</option><option value="yes">Oui</option><option value="half">En partie et/ou donné un conseil</option><option value="no">Non</option></select>
+        <label for="edit-field-product-repaired-value">Réparé ?</label>
+        </div>
+<div data-drupal-selector="edit-actions" class="form-actions js-form-wrapper form-wrapper" id="edit-actions"><input data-drupal-selector="edit-submit-repairs" type="submit" id="edit-submit-repairs" value="Rechercher" class="button js-form-submit form-submit btn" />
+</div>
+
+</div>
+
+</form>
+
+    </div>
+      <div class="view-header">
+      <h2>Résultats (1 - 50 of 68)</h2>
+  </div>
+
+      <div class="view-content">
+      <div class="item-list">
+
+      <ul>
+
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="31345" about="/fr/node/31345" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/31345" class="link-overlay" rel="bookmark">0229_2020_0315_14 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-15T12:00:00Z" class="datetime">Dimanche 15 mars 2020</time>
+</div>
+       <span>Marque Apple, Ordinateur</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Apple, Ordinateur
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="31343" about="/fr/node/31343" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/31343" class="link-overlay" rel="bookmark">0229_2020_0315_12 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-15T12:00:00Z" class="datetime">Dimanche 15 mars 2020</time>
+</div>
+       <span>Marque Philips, Bouilloire</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Philips, Bouilloire
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="31342" about="/fr/node/31342" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/31342" class="link-overlay" rel="bookmark">0229_2020_0315_11 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-15T12:00:00Z" class="datetime">Dimanche 15 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Manteau</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Manteau
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="31341" about="/fr/node/31341" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/31341" class="link-overlay" rel="bookmark">0229_2020_0315_10 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-15T12:00:00Z" class="datetime">Dimanche 15 mars 2020</time>
+</div>
+       <span>Marque H&amp;M, Chemise</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque H&amp;M, Chemise
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="31340" about="/fr/node/31340" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/31340" class="link-overlay" rel="bookmark">0229_2020_0315_9 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-15T12:00:00Z" class="datetime">Dimanche 15 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Radio</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Radio
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="31339" about="/fr/node/31339" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/31339" class="link-overlay" rel="bookmark">0229_2020_0315_8 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-15T12:00:00Z" class="datetime">Dimanche 15 mars 2020</time>
+</div>
+       <span>Marque Rowenta, Aspirateur</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Rowenta, Aspirateur
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="31338" about="/fr/node/31338" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/31338" class="link-overlay" rel="bookmark">0229_2020_0315_7 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-15T12:00:00Z" class="datetime">Dimanche 15 mars 2020</time>
+</div>
+       <span>Marque Philips, Téléphone (pas de portable ou smartphone)</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Philips, Téléphone (pas de portable ou smartphone)
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="31337" about="/fr/node/31337" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/31337" class="link-overlay" rel="bookmark">0229_2020_0315_6 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-15T12:00:00Z" class="datetime">Dimanche 15 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Pull</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Pull
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="31336" about="/fr/node/31336" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/31336" class="link-overlay" rel="bookmark">0229_2020_0315_5 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-15T12:00:00Z" class="datetime">Dimanche 15 mars 2020</time>
+</div>
+       <span>Marque Lampe / Éclairage</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Lampe / Éclairage
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="31335" about="/fr/node/31335" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/31335" class="link-overlay" rel="bookmark">0229_2020_0315_4 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-15T12:00:00Z" class="datetime">Dimanche 15 mars 2020</time>
+</div>
+       <span>Marque Terraillon, Balance de cuisine</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Terraillon, Balance de cuisine
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="31334" about="/fr/node/31334" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/31334" class="link-overlay" rel="bookmark">0229_2020_0315_3 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-15T12:00:00Z" class="datetime">Dimanche 15 mars 2020</time>
+</div>
+       <span>Marque Lampe / Éclairage</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Lampe / Éclairage
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="31332" about="/fr/node/31332" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/31332" class="link-overlay" rel="bookmark">0229_2020_0314_1 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-14T12:00:00Z" class="datetime">Samedi 14 mars 2020</time>
+</div>
+       <span>Marque Nespresso, Cafetière / Machine à café</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Nespresso, Cafetière / Machine à café
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30982" about="/fr/node/30982" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30982" class="link-overlay" rel="bookmark">0229_2020_0309_18 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-09T12:00:00Z" class="datetime">Lundi 9 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Lampe / Éclairage</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Lampe / Éclairage
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30981" about="/fr/node/30981" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30981" class="link-overlay" rel="bookmark">0229_2020_0309_17 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-09T12:00:00Z" class="datetime">Lundi 9 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Lampe / Éclairage</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Lampe / Éclairage
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30980" about="/fr/node/30980" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30980" class="link-overlay" rel="bookmark">0229_2020_0307_16 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-07T12:00:00Z" class="datetime">Samedi 7 mars 2020</time>
+</div>
+       <span>Marque Philips, Radio</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Philips, Radio
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30979" about="/fr/node/30979" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30979" class="link-overlay" rel="bookmark">0229_2020_0307_15 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-07T12:00:00Z" class="datetime">Samedi 7 mars 2020</time>
+</div>
+       <span>Marque Brandt, Bouilloire électrique</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Brandt, Bouilloire électrique
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30978" about="/fr/node/30978" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30978" class="link-overlay" rel="bookmark">0229_2020_0307_14 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-07T12:00:00Z" class="datetime">Samedi 7 mars 2020</time>
+</div>
+       <span>Marque Apple, Smartphone</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Apple, Smartphone
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30977" about="/fr/node/30977" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30977" class="link-overlay" rel="bookmark">0229_2020_0307_13 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-07T12:00:00Z" class="datetime">Samedi 7 mars 2020</time>
+</div>
+       <span>Marque LG, Télécommande</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque LG, Télécommande
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30976" about="/fr/node/30976" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30976" class="link-overlay" rel="bookmark">0229_2020_0307_12 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-07T12:00:00Z" class="datetime">Samedi 7 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Vélo / Bicyclette</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Vélo / Bicyclette
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30975" about="/fr/node/30975" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30975" class="link-overlay" rel="bookmark">0229_2020_0307_11 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-07T12:00:00Z" class="datetime">Samedi 7 mars 2020</time>
+</div>
+       <span>Marque Philips, Aspirateur</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Philips, Aspirateur
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30974" about="/fr/node/30974" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30974" class="link-overlay" rel="bookmark">0229_2020_0307_10 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-07T12:00:00Z" class="datetime">Samedi 7 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Vélo / Bicyclette</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Vélo / Bicyclette
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30972" about="/fr/node/30972" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30972" class="link-overlay" rel="bookmark">0229_2020_0307_8 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-07T12:00:00Z" class="datetime">Samedi 7 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Grille-pain</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Grille-pain
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30970" about="/fr/node/30970" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30970" class="link-overlay" rel="bookmark">0229_2020_0307_6 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-07T12:00:00Z" class="datetime">Samedi 7 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Fiche multiple</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Fiche multiple
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30968" about="/fr/node/30968" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30968" class="link-overlay" rel="bookmark">0229_2020_0307_3 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-07T12:00:00Z" class="datetime">Samedi 7 mars 2020</time>
+</div>
+       <span>Marque Philips, Fer à repasser</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Philips, Fer à repasser
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30967" about="/fr/node/30967" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30967" class="link-overlay" rel="bookmark">0229_2020_0307_2 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-07T12:00:00Z" class="datetime">Samedi 7 mars 2020</time>
+</div>
+       <span>Marque Singer, Machine à coudre</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Singer, Machine à coudre
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30966" about="/fr/node/30966" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30966" class="link-overlay" rel="bookmark">0229_2020_0307_1 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-07T12:00:00Z" class="datetime">Samedi 7 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Lampe / Éclairage</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Lampe / Éclairage
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30446" about="/fr/node/30446" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30446" class="link-overlay" rel="bookmark">0229_2020_0301_54 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-01T12:00:00Z" class="datetime">Dimanche 1 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Chaîne stéréo / HIFI</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Chaîne stéréo / HIFI
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30445" about="/fr/node/30445" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30445" class="link-overlay" rel="bookmark">0229_2020_0301_52 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-01T12:00:00Z" class="datetime">Dimanche 1 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Jouet</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Jouet
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30444" about="/fr/node/30444" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30444" class="link-overlay" rel="bookmark">0229_2020_0301_51 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-01T12:00:00Z" class="datetime">Dimanche 1 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Divers</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Divers
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30443" about="/fr/node/30443" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30443" class="link-overlay" rel="bookmark">0229_2020_0301_50 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-01T12:00:00Z" class="datetime">Dimanche 1 mars 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Service à raclette</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Service à raclette
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30442" about="/fr/node/30442" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30442" class="link-overlay" rel="bookmark">0229_2020_0301_49 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-03-01T12:00:00Z" class="datetime">Dimanche 1 mars 2020</time>
+</div>
+       <span>Marque Nespresso, Cafetière / Machine à café</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Nespresso, Cafetière / Machine à café
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30439" about="/fr/node/30439" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30439" class="link-overlay" rel="bookmark">0229_2020_0229_46 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Cafetière / Machine à café</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Cafetière / Machine à café
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30438" about="/fr/node/30438" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30438" class="link-overlay" rel="bookmark">0229_2020_0229_45 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Chargeur (batterie / alimentation)</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Chargeur (batterie / alimentation)
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30437" about="/fr/node/30437" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30437" class="link-overlay" rel="bookmark">0229_2020_0229_44 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Machine à coudre</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Machine à coudre
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30436" about="/fr/node/30436" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30436" class="link-overlay" rel="bookmark">0229_2020_0229_43 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque One Touch, Ouvre-boîte</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque One Touch, Ouvre-boîte
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30435" about="/fr/node/30435" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30435" class="link-overlay" rel="bookmark">0229_2020_0229_42 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Écran</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Écran
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30429" about="/fr/node/30429" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30429" class="link-overlay" rel="bookmark">0229_2020_0229_36 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Dual, Amplificateur</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Dual, Amplificateur
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30425" about="/fr/node/30425" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30425" class="link-overlay" rel="bookmark">0229_2020_0229_32 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Grille-pain</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Grille-pain
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30424" about="/fr/node/30424" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30424" class="link-overlay" rel="bookmark">0229_2020_0229_31 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Amplificateur</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Amplificateur
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30423" about="/fr/node/30423" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30423" class="link-overlay" rel="bookmark">0229_2020_0229_30 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Grille-pain</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Grille-pain
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30422" about="/fr/node/30422" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30422" class="link-overlay" rel="bookmark">0229_2020_0229_29 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Mixeur</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Mixeur
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30420" about="/fr/node/30420" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30420" class="link-overlay" rel="bookmark">0229_2020_0229_28 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Lampe / Éclairage</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Lampe / Éclairage
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30405" about="/fr/node/30405" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30405" class="link-overlay" rel="bookmark">0229_2020_0229_26 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Huawei, Smartphone</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Huawei, Smartphone
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30401" about="/fr/node/30401" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30401" class="link-overlay" rel="bookmark">0229_2020_0229_25 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Lecteur CD / cassettes</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Lecteur CD / cassettes
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30397" about="/fr/node/30397" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30397" class="link-overlay" rel="bookmark">0229_2020_0229_24 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Réveil</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Réveil
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30394" about="/fr/node/30394" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30394" class="link-overlay" rel="bookmark">0229_2020_0229_23 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Radio-réveil</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Radio-réveil
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30393" about="/fr/node/30393" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30393" class="link-overlay" rel="bookmark">0229_2020_0229_22 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Télécommande</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Télécommande
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30391" about="/fr/node/30391" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30391" class="link-overlay" rel="bookmark">0229_2020_0229_21 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Akai, Ampli-tuner</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Akai, Ampli-tuner
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30388" about="/fr/node/30388" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30388" class="link-overlay" rel="bookmark">0229_2020_0229_20 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Inconnue/s.o., Vélo / Bicyclette</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Inconnue/s.o., Vélo / Bicyclette
+  </div>
+
+</article>
+
+            </div>
+          </li>
+                  <li>
+            <div class="container">
+
+<article data-history-node-id="30383" about="/fr/node/30383" class="repair-teaser">
+
+      <span>
+      <a href="/fr/node/30383" class="link-overlay" rel="bookmark">0229_2020_0229_19 |
+            <div class="field field--name-field-repair-date field--type-datetime field--label-hidden field__item"><time datetime="2020-02-29T12:00:00Z" class="datetime">Samedi 29 février 2020</time>
+</div>
+       <span>Marque Mobile (pas smartphone)</span></a>
+    </span>
+    <div class="teaser-product-info m-inline--children">
+    Marque Mobile (pas smartphone)
+  </div>
+
+</article>
+
+            </div>
+          </li>
+
+      </ul>
+
+    </div>
+
+    </div>
+
+      <div class="view-footer">
+      <p>Résultats (1 - 50 of 68)</p>
+    </div>
+
+        <nav class="pager" role="navigation" aria-labelledby="pagination-heading">
+    <h4 id="pagination-heading" class="visually-hidden">Pagination</h4>
+    <ul class="pager__items js-pager__items">
+                                                        <li class="pager__item is-active">
+                                          <a href="?page=0" title="Page courante" aria-current="page">
+            <span class="visually-hidden">
+              Page courante
+            </span>1</a>
+        </li>
+              <li class="pager__item">
+                                          <a href="?page=1" title="Go to page 2">
+            <span class="visually-hidden">
+              Page
+            </span>2</a>
+        </li>
+                                      <li class="pager__item pager__item--next">
+          <a href="?page=1" title="Aller à la page suivante" rel="next">
+            <span class="visually-hidden">Page suivante</span>
+            <span aria-hidden="true">Next ›</span>
+          </a>
+        </li>
+                          <li class="pager__item pager__item--last">
+          <a href="?page=1" title="Aller à la dernière page">
+            <span class="visually-hidden">Dernière page</span>
+            <span aria-hidden="true">Last »</span>
+          </a>
+        </li>
+          </ul>
+  </nav>
+
+        </div>
+</div>
+
+        </div>
+  </div>
+</section>
+
+  </div>
+
+  </div>
+
+
+  <footer role="contentinfo">
+    <div class="container">
+        <div class="region region-footer">
+    <nav role="navigation" aria-labelledby="block-hoofdnavigatie-menu" id="block-hoofdnavigatie" class="main-navigation block block-menu navigation menu--main">
+
+    <h2 class="visually-hidden" id="block-hoofdnavigatie-menu">Hoofdnavigatie</h2>
+
+
+
+              <ul class="menu">
+                    <li class="menu-item">
+        <a href="/fr" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="&lt;front&gt;">Home</a>
+              </li>
+                <li class="menu-item">
+        <a href="/fr" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="&lt;front&gt;">Overview</a>
+              </li>
+                <li class="menu-item">
+        <a href="https://dashboard.repairmonitor.org/?language=en" title="" id="" name="" rel="" style="" target="" accesskey="">Dashboard</a>
+              </li>
+                <li class="menu-item">
+        <a href="/fr/node/537" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="node/537">About us</a>
+              </li>
+                <li class="menu-item">
+        <a href="/fr/node/539" title="" id="" name="" rel="" style="" target="" accesskey="" data-drupal-link-system-path="node/539">FAQ</a>
+              </li>
+                <li class="menu-item">
+        <a href="" title="" id="" name="" rel="" class="icon-hide-navigation" style="" target="" accesskey="">Hide menu</a>
+              </li>
+        </ul>
+
+
+
+    </nav>
+<span data-big-pipe-placeholder-id="callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder&amp;args%5B0%5D=languagemenu_2&amp;args%5B1%5D=full&amp;args%5B2%5D&amp;token=HzDRCN4QZ7_ncxrZVPSIUpAoq4SsCbyXpnV-5A8qGOc">
+</span>
+  </div>
+
+    </div>
+  </footer>
+
+  </div>
+
+
+    <script type="application/json" data-drupal-selector="drupal-settings-json">{"path":{"baseUrl":"\/","pathPrefix":"fr\/","currentPath":"repairs\/closed","currentPathIsAdmin":false,"isFront":false,"currentLanguage":"fr"},"pluralDelimiter":"\u0003","suppressDeprecationErrors":true,"ajaxPageState":{"libraries":"eJx1j9EKwjAMRX-os6_-Tcm6MKNJU5p0Mr9et4kg4ks4uQdC7khzqlQxjm8ImcFsjSPYhwXNYEYLWRvGqfUKfILstODAVG7feXfNKpXR8RBFmwDTA0PDCtSSaCHXFmfWEXjIZn_M9UcIODbar23WVnOU49leMpWcpnPaVr-gvFqpunmDGhbCu8V9nkSnzvgE4-thwA","theme":"repair_monitor","theme_token":null},"ajaxTrustedUrl":{"\/fr\/repairs\/closed":true},"bigPipePlaceholderIds":{"callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder\u0026args%5B0%5D=languagemenu_2\u0026args%5B1%5D=full\u0026args%5B2%5D\u0026token=HzDRCN4QZ7_ncxrZVPSIUpAoq4SsCbyXpnV-5A8qGOc":true,"callback=Drupal%5CCore%5CRender%5CElement%5CStatusMessages%3A%3ArenderMessages\u0026args%5B0%5D\u0026token=_HAdUpwWmet0TOTe2PSiJuMntExoshbm1kh2wQzzzAA":true,"callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder\u0026args%5B0%5D=menunavigation\u0026args%5B1%5D=full\u0026args%5B2%5D\u0026token=OX7G5WML5xOCx81V6-Vau9PI-ptEH235Nli1cCgRTEU":true,"callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder\u0026args%5B0%5D=languagemenu\u0026args%5B1%5D=full\u0026args%5B2%5D\u0026token=OcjzDOydAEr5z-0TC1pqqP0LAu1e3SVH1sR9Yk7xBT0":true},"user":{"uid":"5013","permissionsHash":"158bf649eef3d07bbd9db0b7af76b9090b9a6c448a366565364ebd062444cffc"}}</script>
+<script src="/core/assets/vendor/jquery/jquery.min.js?v=3.7.1"></script>
+<script src="/core/assets/vendor/once/once.min.js?v=1.0.1"></script>
+<script src="/sites/default/files/languages/fr_tJjeP_Qn6HSM-EshhXgIUBNsyQMs0tzAV_Vx5bzj9wM.js?st0jgk"></script>
+<script src="/core/misc/drupalSettingsLoader.js?v=10.4.3"></script>
+<script src="/core/misc/drupal.js?v=10.4.3"></script>
+<script src="/core/misc/drupal.init.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/version-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/data-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/disable-selection-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/jquery-patch-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/scroll-parent-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/unique-id-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/focusable-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/keycode-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/plugin-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widget-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/labels-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widgets/autocomplete-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widgets/menu-min.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/tabbable/index.umd.min.js?v=6.2.0"></script>
+<script src="/core/misc/autocomplete.js?v=10.4.3"></script>
+<script src="/core/misc/progress.js?v=10.4.3"></script>
+<script src="/core/assets/vendor/loadjs/loadjs.min.js?v=4.3.0"></script>
+<script src="/core/misc/debounce.js?v=10.4.3"></script>
+<script src="/core/misc/announce.js?v=10.4.3"></script>
+<script src="/core/misc/message.js?v=10.4.3"></script>
+<script src="/core/misc/ajax.js?v=10.4.3"></script>
+<script src="/themes/contrib/stable/js/ajax.js?v=10.4.3"></script>
+<script src="/core/modules/big_pipe/js/big_pipe.js?v=10.4.3"></script>
+<script src="/core/misc/active-link.js?v=10.4.3"></script>
+<script src="/core/misc/jquery.tabbable.shim.js?v=10.4.3"></script>
+<script src="/core/misc/position.js?v=10.4.3"></script>
+<script src="/themes/repair_monitor/js/javascript.js?st0jgk"></script>
+<script src="/themes/repair_monitor/js/materialize.js?st0jgk"></script>
+
+
+<script type="application/vnd.drupal-ajax" data-big-pipe-event="start"></script>
+<script type="application/vnd.drupal-ajax" data-big-pipe-replacement-for-placeholder-with-id="callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder&amp;args%5B0%5D=languagemenu&amp;args%5B1%5D=full&amp;args%5B2%5D&amp;token=OcjzDOydAEr5z-0TC1pqqP0LAu1e3SVH1sR9Yk7xBT0">
+[{"command":"insert","method":"replaceWith","selector":"[data-big-pipe-placeholder-id=\u0022callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder\u0026args%5B0%5D=languagemenu\u0026args%5B1%5D=full\u0026args%5B2%5D\u0026token=OcjzDOydAEr5z-0TC1pqqP0LAu1e3SVH1sR9Yk7xBT0\u0022]","data":"\u003Csection  id=\u0022block-languagemenu\u0022\u003E\n  \u003Cdiv class=\u0027block-wrapper\u0027\u003E\n    \n        \n    \u003Cdiv class=\u0027block-content-wrapper\u0027\u003E\n          \u003Cdiv class=\u0022language--menu\u0022\u003E\u003Cdiv class=\u0022item-list\u0022\u003E\u003Cul class=\u0022language--menu--list\u0022\u003E\u003Cli\u003E\u003Cspan class=\u0022language--menu--list--item language--menu--list--item--current\u0022\u003Efr\u003C\/span\u003E\n\u003C\/li\u003E\u003Cli\u003E\u003Ca href=\u0022\/en\/repairs\/closed\u0022 class=\u0022language--menu--list--item\u0022 hreflang=\u0022en\u0022\u003Een\u003C\/a\u003E\u003C\/li\u003E\u003Cli\u003E\u003Ca href=\u0022\/nl\/repairs\/closed\u0022 class=\u0022language--menu--list--item\u0022 hreflang=\u0022nl\u0022\u003Enl\u003C\/a\u003E\u003C\/li\u003E\u003Cli\u003E\u003Ca href=\u0022\/de\/repairs\/closed\u0022 class=\u0022language--menu--list--item\u0022 hreflang=\u0022de\u0022\u003Ede\u003C\/a\u003E\u003C\/li\u003E\u003C\/ul\u003E\u003C\/div\u003E\u003C\/div\u003E\n\n        \u003C\/div\u003E\n  \u003C\/div\u003E\n\u003C\/section\u003E\n","settings":null}]
+</script><script type="application/vnd.drupal-ajax" data-big-pipe-replacement-for-placeholder-with-id="callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder&amp;args%5B0%5D=menunavigation&amp;args%5B1%5D=full&amp;args%5B2%5D&amp;token=OX7G5WML5xOCx81V6-Vau9PI-ptEH235Nli1cCgRTEU">
+[{"command":"insert","method":"replaceWith","selector":"[data-big-pipe-placeholder-id=\u0022callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder\u0026args%5B0%5D=menunavigation\u0026args%5B1%5D=full\u0026args%5B2%5D\u0026token=OX7G5WML5xOCx81V6-Vau9PI-ptEH235Nli1cCgRTEU\u0022]","data":"\u003Cnav role=\u0022navigation\u0022 aria-labelledby=\u0022block-menunavigation-menu\u0022 id=\u0022block-menunavigation\u0022 class=\u0022main-navigation block block-menu navigation menu--menu-navigation\u0022\u003E\n                      \n    \u003Ch2 class=\u0022visually-hidden\u0022 id=\u0022block-menunavigation-menu\u0022\u003EMenu Navigation\u003C\/h2\u003E\n    \n\n              \n              \u003Cul class=\u0022menu\u0022\u003E\n                    \u003Cli class=\u0022menu-item\u0022\u003E\n        \u003Ca href=\u0022\/fr\/node\/add\/repair\u0022 title=\u0022\u0022 id=\u0022\u0022 name=\u0022\u0022 rel=\u0022\u0022 style=\u0022\u0022 target=\u0022\u0022 accesskey=\u0022\u0022 data-drupal-link-system-path=\u0022node\/add\/repair\u0022\u003ENouvelle r\u00e9paration\u003C\/a\u003E\n              \u003C\/li\u003E\n                \u003Cli class=\u0022menu-item\u0022\u003E\n        \u003Ca href=\u0022\/fr\/repairs\u0022 title=\u0022\u0022 id=\u0022\u0022 name=\u0022\u0022 rel=\u0022\u0022 style=\u0022\u0022 target=\u0022\u0022 accesskey=\u0022\u0022 data-drupal-link-system-path=\u0022repairs\u0022\u003ER\u00e9parations en attente\u003C\/a\u003E\n              \u003C\/li\u003E\n                \u003Cli class=\u0022menu-item menu-item--active-trail\u0022\u003E\n        \u003Ca href=\u0022\/fr\/repairs\/closed\u0022 title=\u0022\u0022 id=\u0022\u0022 name=\u0022\u0022 rel=\u0022\u0022 style=\u0022\u0022 target=\u0022\u0022 accesskey=\u0022\u0022 data-drupal-link-system-path=\u0022repairs\/closed\u0022\u003ER\u00e9parations achev\u00e9es\u003C\/a\u003E\n              \u003C\/li\u003E\n                \u003Cli class=\u0022menu-item\u0022\u003E\n        \u003Ca href=\u0022\/fr\/results\/cafe\u0022 title=\u0022\u0022 id=\u0022\u0022 name=\u0022\u0022 rel=\u0022\u0022 style=\u0022\u0022 target=\u0022\u0022 accesskey=\u0022\u0022 data-drupal-link-system-path=\u0022results\/cafe\u0022\u003ER\u00e9sultats\u003C\/a\u003E\n              \u003C\/li\u003E\n        \u003C\/ul\u003E\n  \n\n\n    \u003C\/nav\u003E\n","settings":null}]
+</script><script type="application/vnd.drupal-ajax" data-big-pipe-replacement-for-placeholder-with-id="callback=Drupal%5CCore%5CRender%5CElement%5CStatusMessages%3A%3ArenderMessages&amp;args%5B0%5D&amp;token=_HAdUpwWmet0TOTe2PSiJuMntExoshbm1kh2wQzzzAA">
+[{"command":"insert","method":"replaceWith","selector":"[data-big-pipe-placeholder-id=\u0022callback=Drupal%5CCore%5CRender%5CElement%5CStatusMessages%3A%3ArenderMessages\u0026args%5B0%5D\u0026token=_HAdUpwWmet0TOTe2PSiJuMntExoshbm1kh2wQzzzAA\u0022]","data":"","settings":null}]
+</script><script type="application/vnd.drupal-ajax" data-big-pipe-replacement-for-placeholder-with-id="callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder&amp;args%5B0%5D=languagemenu_2&amp;args%5B1%5D=full&amp;args%5B2%5D&amp;token=HzDRCN4QZ7_ncxrZVPSIUpAoq4SsCbyXpnV-5A8qGOc">
+[{"command":"insert","method":"replaceWith","selector":"[data-big-pipe-placeholder-id=\u0022callback=Drupal%5Cblock%5CBlockViewBuilder%3A%3AlazyBuilder\u0026args%5B0%5D=languagemenu_2\u0026args%5B1%5D=full\u0026args%5B2%5D\u0026token=HzDRCN4QZ7_ncxrZVPSIUpAoq4SsCbyXpnV-5A8qGOc\u0022]","data":"\u003Csection  id=\u0022block-languagemenu-2\u0022\u003E\n  \u003Cdiv class=\u0027block-wrapper\u0027\u003E\n    \n        \n    \u003Cdiv class=\u0027block-content-wrapper\u0027\u003E\n          \u003Cdiv class=\u0022language--menu\u0022\u003E\u003Cdiv class=\u0022item-list\u0022\u003E\u003Cul class=\u0022language--menu--list\u0022\u003E\u003Cli\u003E\u003Cspan class=\u0022language--menu--list--item language--menu--list--item--current\u0022\u003Efr\u003C\/span\u003E\n\u003C\/li\u003E\u003Cli\u003E\u003Ca href=\u0022\/en\/repairs\/closed\u0022 class=\u0022language--menu--list--item\u0022 hreflang=\u0022en\u0022\u003Een\u003C\/a\u003E\u003C\/li\u003E\u003Cli\u003E\u003Ca href=\u0022\/nl\/repairs\/closed\u0022 class=\u0022language--menu--list--item\u0022 hreflang=\u0022nl\u0022\u003Enl\u003C\/a\u003E\u003C\/li\u003E\u003Cli\u003E\u003Ca href=\u0022\/de\/repairs\/closed\u0022 class=\u0022language--menu--list--item\u0022 hreflang=\u0022de\u0022\u003Ede\u003C\/a\u003E\u003C\/li\u003E\u003C\/ul\u003E\u003C\/div\u003E\u003C\/div\u003E\n\n        \u003C\/div\u003E\n  \u003C\/div\u003E\n\u003C\/section\u003E\n","settings":null}]
+</script>
+<script type="application/vnd.drupal-ajax" data-big-pipe-event="stop"></script>
+</body>
+</html>

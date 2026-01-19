@@ -7,3 +7,38 @@
 
 - mode mobile à améliorer
 - clean-up sur les marques?
+
+
+
+
+Current State
+
+Branch sync_repairmonitor branched from refactor; contains commit 00a1269 (“connection and iteration logic”).
+Admin settings page now includes a “Synchronisation RepairMonitor” card with limit/year controls.
+/api/sync_repairmonitor authenticates against RepairMonitor, lists eligible repairs (year-filtered) without slowing for per-item form scraping.
+/api/sync_repairmonitor/form_tokens is a lightweight endpoint that logs in, fetches the /node/add/repair page, and returns the hidden fields (changed, form_build_id, form_token, form_id).
+repairmonitor_service.fetch_repair_form_tokens encapsulates the scraping logic, reusing the existing session helpers.
+Frontend JS renders the candidate repairs immediately, then sequentially calls the token endpoint with a 5 s pause, updating each card’s status/details once the fields arrive. Errors per item are surfaced inline.
+Next Logic To Implement
+
+Persist token session: reuse the same authenticated session when iterating over repairs to avoid logging in for every token fetch (likely via server-side job or session ID handoff).
+Actual upload flow:
+Reuse the fetched hidden fields plus repair data to submit the full RepairMonitor form (/node/add/repair).
+Handle validation errors per record; mark successes (rm_uploaded timestamp) and surface failure reasons in the admin UI.
+Consider batching with resume support.
+Throttling/error strategy:
+Configurable delay between submissions.
+Retry policy for transient HTTP failures; stop vs continue on fatal errors.
+UI enhancements:
+Button to trigger the real sync run.
+Progress indicators, failure list, and ability to re-run failed items.
+Possibly allow choosing language or specifying dry-run mode.
+Backend safety:
+Audit logging for who triggered syncs.
+Guardrails (max batch size, required credentials, feature toggle).
+Feel free to copy this summary when opening a new chat so the next assistant can pick up exactly where we stopped.
+
+
+
+https://www.repairmonitor.org/fr/kind_product_autocomplete/taxonomy_term/default%3Ataxonomy_term/HnNwTT2VlSuQATdNR_eXD-f1b4Q797uTKVyIhd2Kdjk?q=balai
+https://www.repairmonitor.org/fr/brand_autocomplete/taxonomy_term/default%3Ataxonomy_term/gEOAwRaHjAqY5yzY4R7uND2yYOY1Zg_vOGhm4pd2Nsk?q=Phi

@@ -10,7 +10,15 @@
   <a href="{{ url_for('main.repairs_home') }}" id="btn-back" class="btn btn-sm btn-outline-secondary mb-3">← Retour</a>
 </div>
 
-<h1 class="fw-light text-center text-lg-start mt-4 mb-0">Fiche {{ r.display_id }} - {{ r.close_status.label }}</h1>
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-4 mb-1">
+  <h1 class="fw-light m-0">Fiche {{ r.display_id }} - {{ r.close_status.label }}</h1>
+  {% if r.rm_node_id %}
+    <a href="https://www.repairmonitor.org/fr/node/{{ r.rm_node_id }}" target="_blank" rel="noopener" class="d-inline-flex align-items-center gap-2 text-decoration-none">
+      <img src="{{ url_for('static', filename='img/RepairMonitor-logo.png') }}" alt="RepairMonitor" style="height:42px; width:auto;">
+      <span class="badge bg-success">RM #{{ r.rm_node_id }}</span>
+    </a>
+  {% endif %}
+</div>
 {% set s = r.session %}
 <div class="mb-2">
   <p class="text-center text-lg-start mt-1 mb-0 small text-muted">
@@ -25,6 +33,21 @@
       <em>Créée hors séance</em>
     {% endif %}
   </p>
+  {% if r.rm_uploaded or r.rm_node_id %}
+    <p class="text-center text-lg-start mt-1 mb-0 small">
+      RepairMonitor:
+      {% if r.rm_uploaded %}
+        <span class="badge bg-success">Ref {{ r.rm_uploaded }}</span>
+      {% else %}
+        <span class="badge bg-secondary">Ref manquante</span>
+      {% endif %}
+      {% if r.rm_node_id %}
+        <a class="ms-2" href="https://www.repairmonitor.org/fr/node/{{ r.rm_node_id }}" target="_blank" rel="noopener">Voir RM #{{ r.rm_node_id }}</a>
+      {% else %}
+        <span class="text-muted ms-2">Lien RM indisponible</span>
+      {% endif %}
+    </p>
+  {% endif %}
 </div>
 <hr class="mt-2 mb-3">
 <div class="row mb-3">

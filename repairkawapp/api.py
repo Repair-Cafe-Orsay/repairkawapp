@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import glob
 import os
-from datetime import datetime
+from datetime import date, datetime
 
 import requests
 from flask import (
@@ -27,6 +27,7 @@ from .models import (
     Category,
     Location,
     Message as MessageModel,
+    Note,
     Notification,
     NotificationType,
     Repair,
@@ -35,17 +36,25 @@ from .models import (
     User,
 )
 from .services.repairmonitor_service import (
+    DRAFT_BUTTON_VALUE,
+    REFERENCE_NUMBER_FIELD_NAME,
     RepairMonitorLoginError,
+    build_repairmonitor_payload,
     cache_sync_session,
     clamp_limit,
     compute_reference_sequence,
     count_repairs_pending_upload,
     create_authenticated_session,
+    extract_form_messages,
+    extract_rm_node_id,
+    extract_rm_reference_id,
     fetch_dashboard as rm_fetch_dashboard,
     fetch_repair_form_tokens,
     get_cached_sync_session,
     get_repairs_pending_upload,
+    resolve_repair_autocomplete_values,
     serialize_repair_stub,
+    submit_repair_form,
 )
 from .services.session_service import (
     change_session_owner,
@@ -247,6 +256,42 @@ def notifs_debug():
 # -------------------- RepairMonitor sync preview --------------------
 
 
+def _build_rm_extra_comment(repair_obj: Repair) -> str | None:
+    """Compose a short hint combining local ID and attached notes."""
+
+    parts: list[str] = []
+    display_id = getattr(repair_obj, "display_id", None) or ""
+    numeric_id = getattr(repair_obj, "id", None)
+    if display_id or numeric_id:
+        label = display_id or str(numeric_id)
+        parts.append(f"ID local: {label}")
+
+    note_lines: list[str] = []
+    if numeric_id:
+        notes = (
+            db.session.query(Note)
+            .filter(Note.repair_id == numeric_id)
+            .order_by(Note.date.asc())
+            .all()
+        )
+        for n in notes:
+            content = (n.content or "").strip()
+            if not content:
+                continue
+            author = getattr(getattr(n, "user", None), "name", None) or getattr(
+                getattr(n, "user", None), "email", None
+            )
+            if author:
+                note_lines.append(f"{content} (par {author})")
+            else:
+                note_lines.append(content)
+
+    if note_lines:
+        parts.append("Notes:\n- " + "\n- ".join(note_lines))
+
+    return "\n".join(parts) if parts else None
+
+
 @api.route("/api/sync_repairmonitor", methods=["POST"])
 @login_required
 def api_sync_repairmonitor():
@@ -358,6 +403,358 @@ def api_sync_repairmonitor_form_tokens():
             "reference_prefix": reference_prefix,
             "reference_field_name": reference_field_name,
             "reference_sequence": reference_sequence,
+        }
+    )
+
+
+@api.route("/api/sync_repairmonitor/upload_one", methods=["POST"])
+@login_required
+def api_sync_repairmonitor_upload_one():
+    """Upload a single repair to RepairMonitor (test-focused, logs verbose details)."""
+
+    if not current_user.admin:
+        return jsonify({"error": "forbidden"}), 403
+
+    payload = request.get_json(silent=True) or request.form or {}
+    sync_id = payload.get("sync_id")
+    raw_test = payload.get("test")
+    test_mode = str(raw_test).lower() in {"1", "true", "yes", "on"}
+    repair_id = payload.get("repair_id")
+
+    if not sync_id:
+        return jsonify({"error": "missing_sync_id"}), 400
+
+    cached = get_cached_sync_session(sync_id)
+    if not cached:
+        return jsonify({"error": "sync_session_expired"}), 410
+
+    session = cached["session"]
+    language = cached.get("language", current_app.config.get("REPAIR_MONITOR_LANGUAGE", "fr"))
+
+    # Choose repair (test uses real pending unless none available)
+    repair_obj = None
+    if repair_id:
+        try:
+            repair_obj = db.session.get(Repair, int(repair_id))
+        except Exception:
+            repair_obj = None
+    if repair_obj is None:
+        repairs = get_repairs_pending_upload(db.session, 1)
+        repair_obj = repairs[0] if repairs else None
+    if repair_obj is None:
+        if test_mode:
+            # Fallback dummy only if nothing pending
+            class _DummyBrand:
+                def __init__(self, name: str):
+                    self.name = name
+
+            class _DummyCategory:
+                def __init__(self, rm_icon_id: int, name: str):
+                    self.rm_icon_id = rm_icon_id
+                    self.name = name
+
+            class _DummyRepair:
+                def __init__(self):
+                    self.id = -9999
+                    self.display_id = "_9999"
+                    self.created = date.today()
+                    self.category = _DummyCategory(1685, "N - Autre")
+                    self.brand = _DummyBrand("TestBrand")
+                    self.model = "TestModel"
+                    self.otype = "Test object"
+                    self.description = "Test upload from RepairKawapp"
+                    self.close_status_id = 2
+                    self.users = []
+
+            repair_obj = _DummyRepair()
+        else:
+            return jsonify({"error": "no_repair_found"}), 404
+
+    try:
+        form_snapshot = fetch_repair_form_tokens(session, language=language)
+    except RepairMonitorLoginError as exc:
+        return jsonify({"error": "repairmonitor_login_failed", "details": str(exc)}), 502
+
+    if isinstance(form_snapshot, dict) and "tokens" in form_snapshot:
+        tokens = form_snapshot.get("tokens", {})
+        reference_prefix = form_snapshot.get("reference_prefix")
+    else:
+        tokens = form_snapshot or {}
+        reference_prefix = None
+
+    reference_sequence = None
+    if reference_prefix:
+        reference_sequence = compute_reference_sequence(db.session, prefix=reference_prefix)
+
+    resolved_autocomplete = resolve_repair_autocomplete_values(
+        session,
+        form_snapshot=form_snapshot if isinstance(form_snapshot, dict) else {},
+        repair=repair_obj,
+        language=language,
+    )
+
+    current_app.logger.info(
+        "[RM] Resolved autocomplete kind=%s brand=%s model=%s repairer=%s",
+        resolved_autocomplete.get("resolved_kind"),
+        resolved_autocomplete.get("resolved_brand"),
+        resolved_autocomplete.get("resolved_model"),
+        resolved_autocomplete.get("resolved_repairer"),
+    )
+
+    reference_value = None
+    if isinstance(form_snapshot, dict):
+        reference_value = form_snapshot.get("reference_value")
+
+    rm_payload = build_repairmonitor_payload(
+        repair_obj,
+        form_tokens=tokens,
+        reference_prefix=reference_prefix,
+        reference_sequence=reference_sequence,
+        reference_value=reference_value,
+        **resolved_autocomplete,
+        extra_comment=_build_rm_extra_comment(repair_obj),
+    )
+
+    current_app.logger.info(
+        "[RM] Payload keys=%s category=%s brand=%s model_len=%s desc_len=%s",
+        sorted(rm_payload.keys()),
+        rm_payload.get("field_categorie"),
+        rm_payload.get("field_brand[0][other]") or rm_payload.get("field_brand[0][target_id]"),
+        len(rm_payload.get("field_model[0][target_id]", "")),
+        len(rm_payload.get("field_fault[0][value]", "")),
+    )
+
+    current_app.logger.info(
+        "[RM] Uploading repair %s display=%s ref=%s lang=%s",
+        getattr(repair_obj, "id", None),
+        getattr(repair_obj, "display_id", None),
+        reference_sequence.get("reference_id") if reference_sequence else None,
+        language,
+    )
+
+    submit_label = DRAFT_BUTTON_VALUE if test_mode else None
+
+    # Dump exact POST payload for manual comparison/debug
+    try:
+        label = (
+            getattr(repair_obj, "display_id", None) or getattr(repair_obj, "id", None) or "unknown"
+        )
+        safe_label = str(label).replace("/", "_")
+        timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+        payload_filename = f"post-{safe_label}-{timestamp}.txt"
+        with open(payload_filename, "w", encoding="utf-8") as f:
+            for k in sorted(rm_payload.keys()):
+                f.write(f"{k}={rm_payload[k]}\n")
+        current_app.logger.info("[RM] Saved POST payload to %s", payload_filename)
+    except Exception:
+        current_app.logger.exception("[RM] Failed to write POST payload dump")
+
+    def _submit(payload, label):
+        return submit_repair_form(
+            session,
+            language=language,
+            payload=payload,
+            submit_label=label,
+        )
+
+    last_payload = rm_payload
+
+    try:
+        response = _submit(last_payload, submit_label)
+    except requests.RequestException as exc:
+        current_app.logger.exception("[RM] Upload request failed: %s", exc)
+        return jsonify({"error": "repairmonitor_upload_failed", "details": str(exc)}), 502
+
+    ref_id = reference_sequence.get("reference_id") if reference_sequence else None
+    node_id = extract_rm_node_id(
+        response.url if response is not None else None,
+        response.text if response is not None else None,
+        history_urls=[h.url for h in response.history] if response is not None else None,
+    )
+    body_text = response.text or ""
+    messages = extract_form_messages(body_text) if response is not None else {}
+    if not ref_id:
+        ref_id = extract_rm_reference_id(body_text if response is not None else None)
+
+    # Detect RM-side fatal errors even when HTTP status is 200
+    fatal_markers = [
+        "the website encountered an unexpected error",
+    ]
+    fatal_hit = None
+    lower_body = body_text.lower()
+    for marker in fatal_markers:
+        if marker in lower_body:
+            fatal_hit = marker
+            break
+
+    # Retry once with incremented reference if RM reports a collision
+    ref_conflict = any(
+        "reference number is already in use" in (msg or "").lower()
+        for msg in (messages.get("error") or [])
+    )
+    if ref_conflict:
+        current_ref_value = rm_payload.get(REFERENCE_NUMBER_FIELD_NAME)
+        next_number = None
+        try:
+            if current_ref_value is not None:
+                next_number = str(int(str(current_ref_value)) + 1)
+        except Exception:
+            next_number = None
+
+        if next_number:
+            retry_payload = dict(rm_payload)
+            retry_payload[REFERENCE_NUMBER_FIELD_NAME] = next_number
+            current_app.logger.info(
+                "[RM] Reference collision detected, retrying with %s", next_number
+            )
+            try:
+                response = _submit(retry_payload, submit_label)
+            except requests.RequestException as exc:
+                current_app.logger.exception("[RM] Retry after reference collision failed: %s", exc)
+                return jsonify({"error": "repairmonitor_upload_failed", "details": str(exc)}), 502
+
+            last_payload = retry_payload
+
+            node_id = extract_rm_node_id(
+                response.url if response is not None else None,
+                response.text if response is not None else None,
+                history_urls=[h.url for h in response.history] if response is not None else None,
+            )
+            body_text = response.text or ""
+            messages = extract_form_messages(body_text) if response is not None else {}
+            lower_body = body_text.lower()
+            fatal_hit = None
+            for marker in fatal_markers:
+                if marker in lower_body:
+                    fatal_hit = marker
+                    break
+
+            # Update ref_id to reflect the retried suffix
+            if reference_prefix:
+                ref_id = f"{reference_prefix}{next_number}"
+            else:
+                ref_id = next_number
+
+    # If HTTP status is an error, a fatal marker is present, or form-level errors remain, fail
+    form_errors = messages.get("error") if messages else []
+    if response.status_code >= 400 or fatal_hit or form_errors:
+        current_app.logger.error(
+            "[RM] Upload failed status=%s ref=%s len=%s errors=%s warnings=%s "
+            "statuses=%s url=%s fatal=%s",
+            response.status_code,
+            ref_id,
+            len(body_text or ""),
+            messages.get("error") if messages else None,
+            messages.get("warning") if messages else None,
+            messages.get("status") if messages else None,
+            response.url,
+            fatal_hit,
+        )
+        # Retry once as draft to mimic previous TEST ONE behavior if not already a draft
+        if submit_label != DRAFT_BUTTON_VALUE:
+            try:
+                draft_response = _submit(last_payload, DRAFT_BUTTON_VALUE)
+                draft_body = draft_response.text or ""
+                draft_fatal = any(m in draft_body.lower() for m in fatal_markers)
+                draft_messages = (
+                    extract_form_messages(draft_body) if draft_response is not None else {}
+                )
+                draft_node_id = extract_rm_node_id(
+                    draft_response.url if draft_response is not None else None,
+                    draft_body if draft_response is not None else None,
+                    history_urls=(
+                        [h.url for h in draft_response.history]
+                        if draft_response is not None
+                        else None
+                    ),
+                )
+                draft_ref = ref_id or extract_rm_reference_id(draft_body)
+                if draft_response.status_code < 400 and not draft_fatal:
+                    ref_id = draft_ref or ref_id
+                    node_id = draft_node_id or node_id
+                    response = draft_response
+                    body_text = draft_body
+                    messages = draft_messages
+                    fatal_hit = None
+                    form_errors = messages.get("error") if messages else []
+                else:
+                    current_app.logger.error(
+                        "[RM] Draft retry failed status=%s ref=%s fatal=%s url=%s",
+                        draft_response.status_code,
+                        draft_ref,
+                        draft_fatal,
+                        getattr(draft_response, "url", None),
+                    )
+            except Exception:
+                current_app.logger.exception("[RM] Draft retry threw exception")
+
+        if fatal_hit or response.status_code >= 400 or form_errors:
+            return (
+                jsonify(
+                    {
+                        "error": "repairmonitor_upload_failed",
+                        "details": (
+                            "fatal_error"
+                            if fatal_hit
+                            else ("form_errors" if form_errors else f"HTTP {response.status_code}")
+                        ),
+                        "reference_id": ref_id,
+                        "rm_node_id": node_id,
+                        "response_url": response.url,
+                        "response_status": response.status_code,
+                        "messages": messages,
+                        "fatal_marker": fatal_hit,
+                    }
+                ),
+                502,
+            )
+    try:
+        label = (
+            getattr(repair_obj, "display_id", None) or getattr(repair_obj, "id", None) or "unknown"
+        )
+        safe_label = str(label).replace("/", "_")
+        timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+        filename = f"result-{safe_label}-{timestamp}.html"
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(response.text)
+        current_app.logger.info("[RM] Saved response to %s", filename)
+    except Exception:  # pragma: no cover - defensive file write
+        current_app.logger.exception("[RM] Failed to write result HTML dump")
+
+    current_app.logger.info(
+        "[RM] Upload response status=%s ref=%s len=%s errors=%s warnings=%s statuses=%s url=%s",
+        response.status_code,
+        ref_id,
+        len(response.text or ""),
+        messages.get("error"),
+        messages.get("warning"),
+        messages.get("status"),
+        response.url,
+    )
+
+    if not test_mode and (ref_id or node_id):
+        try:
+            if ref_id:
+                repair_obj.rm_uploaded = ref_id
+            if node_id:
+                repair_obj.rm_node_id = node_id
+            db.session.commit()
+        except Exception:  # pragma: no cover - defensive
+            db.session.rollback()
+            current_app.logger.exception(
+                "[RM] Failed to persist rm_uploaded for repair %s", repair_obj.id
+            )
+
+    return jsonify(
+        {
+            "status": "ok",
+            "repair_id": getattr(repair_obj, "id", None),
+            "display_id": getattr(repair_obj, "display_id", None),
+            "reference_id": ref_id,
+            "rm_node_id": node_id,
+            "response_url": response.url,
+            "response_status": response.status_code,
+            "test_mode": test_mode,
         }
     )
 
