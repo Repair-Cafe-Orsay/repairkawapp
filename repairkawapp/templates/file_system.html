@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-3">Fichiers</h1>
+<div class="d-flex mb-3 gap-2">
+  <a href="{{ url_for('admin.file_new') }}" class="btn btn-sm btn-primary ms-auto">Nouveau fichier</a>
+</div>
+
+<table class="table table-sm align-middle w-100">
+  <thead>
+    <tr>
+      <th>Actions</th>
+      <th>Nom</th>
+      <th>Créé par</th>
+      <th>Date création</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for file, user in files %}
+      <tr>
+        <td class="text-nowrap">
+          <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.file_download', file_id=file.id) }}">Télécharger</a>
+          <form method="post" action="{{ url_for('admin.file_delete', file_id=file.id) }}" class="d-inline">
+            <button class="btn btn-outline-danger btn-sm" type="submit">Supprimer</button>
+          </form>
+        </td>
+        <td>{{ file.file_name }}</td>
+        <td>{{ user.name or user.email }}</td>
+        <td>{{ file.creation|local_dt }}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="4" class="text-muted">Aucun fichier.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

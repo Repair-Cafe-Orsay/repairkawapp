@@ -205,6 +205,7 @@
                   <button type="button" class="btn btn-warning dropdown-toggle btn-admin-menu" data-bs-toggle="dropdown" style="white-space:nowrap">Admin</button>
           <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
             <li><a class="dropdown-item" href="{{ url_for('admin.user_list') }}">Gestion Réparateurs</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin.file_system') }}">Fichiers</a></li>
             <li><a class="dropdown-item" href="{{ url_for('admin.objecttypes_admin_list') }}">Types & Variantes</a></li>
             <li><a class="dropdown-item" href="{{ url_for('admin.settings_page') }}">Paramètres site</a></li>
           </ul>
@@ -815,7 +816,11 @@
       url: apiUrl('/api/session/open'),
       contentType: 'application/json',
       data: JSON.stringify({location: loc, opened_time: hh+':'+mm}),
-      success: function(){
+      success: function(js){
+        if (js && js.id){
+          window.location = pageUrl('/sessions/' + js.id);
+          return;
+        }
         refresh_session_ui();
         load_locations_dropdown();
         // si on est sur la page /sessions, recharger pour afficher la nouvelle séance
@@ -851,7 +856,15 @@
     const mm = String(now.getMinutes()).padStart(2,'0');
     $.ajax({
       type:'POST', url: apiUrl('/api/session/open'), contentType:'application/json', data: JSON.stringify({location: loc, opened_time: hh+':'+mm}),
-      success:function(){ refresh_session_ui(); load_locations_dropdown(); if(window.location.pathname.startsWith('/sessions')) window.location.reload(); }
+      success:function(js){
+        if (js && js.id){
+          window.location = pageUrl('/sessions/' + js.id);
+          return;
+        }
+        refresh_session_ui();
+        load_locations_dropdown();
+        if(window.location.pathname.startsWith('/sessions')) window.location.reload();
+      }
     });
   });
   load_locations_dropdown();

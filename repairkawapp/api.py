@@ -47,6 +47,7 @@ from .services.spare_service import add_spare, delete_spare
 from .services.stats_service import compute_stats, get_cached_lists, parse_period
 from .services.tenant_service import (
     ensure_cafe_upload_folder,
+    filter_active_membership_or_founder,
     get_cafe_upload_relative_path,
     get_mail_sender,
     get_upload_prefix,
@@ -578,18 +579,32 @@ def api_messages_toggle_unread(msg_id: int):
 def api_users_simple():
     """Liste simple des utilisateurs (id, name) pour autocomplétion / sélection destinataire.
 
-    Paramètre optionnel q (préfixe insensible) limite 50.
+    Paramètres optionnels:
+        - q (préfixe insensible)
+        - limit (max 500, défaut 50)
     """
     active_cafe = _active_cafe()
     from .models import user_repaircafe
 
     q = (request.args.get("q") or "").strip()
-    query = db.session.query(User).join(user_repaircafe)
-    query = query.filter(user_repaircafe.c.repaircafe_id == active_cafe.id)
+    try:
+        limit = int(request.args.get("limit", 50))
+    except Exception:
+        limit = 50
+    limit = max(1, min(limit, 500))
+    base_query = db.session.query(User).join(user_repaircafe)
+    base_query = base_query.filter(user_repaircafe.c.repaircafe_id == active_cafe.id)
+    query = filter_active_membership_or_founder(base_query)
     if q:
         like = f"{q}%"
         query = query.filter(User.name.like(like))
-    users = query.order_by(User.name.asc()).limit(50).all()
+    users = query.order_by(User.name.asc()).limit(limit).all()
+    # Assurer présence des fondateurs même si limite atteinte
+    founder_users = base_query.filter(User.founder.is_(True)).all()
+    existing_ids = {u.id for u in users}
+    for u in founder_users:
+        if u.id not in existing_ids:
+            users.append(u)
     return jsonify([{"id": u.id, "name": u.name or u.email} for u in users])
 
 

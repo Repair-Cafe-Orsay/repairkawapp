@@ -423,6 +423,20 @@ class AppSetting(db.Model):
     )
 
 
+class CafeFile(db.Model):
+    """Fichier partagé par Repair Café (admin)."""
+
+    __tablename__ = "cafe_file"
+    id = db.Column(db.Integer, primary_key=True)
+    repaircafe_id = db.Column(db.Integer, db.ForeignKey("repaircafe.id"), nullable=False)
+    repaircafe = db.relationship("RepairCafe", foreign_keys=[repaircafe_id])
+    sender_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    sender = db.relationship("User", foreign_keys=[sender_id])
+    file_name = db.Column(db.String(256), nullable=False)
+    file_path = db.Column(db.String(256), nullable=False)
+    creation = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
 class Message(db.Model):
     """Message direct (un destinataire) limité à 250 caractères.
 

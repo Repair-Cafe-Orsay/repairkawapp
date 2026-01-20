@@ -79,6 +79,10 @@
 </div>
 <hr>
 <h5>Autres réparateurs (<span id="other-participants-count">{{ participants | selectattr('id','ne', session.owner_id) | list | length }}</span>)</h5>
+<script id="current-participants-info" type="application/json">{{ participants | selectattr('id','ne', session.owner_id) | map(attribute='id') | list | tojson | safe }}</script>
+<script id="current-participants-names" type="application/json">{{ participants | selectattr('id','ne', session.owner_id) | map(attribute='name') | list | tojson | safe }}</script>
+<script id="current-participants-emails" type="application/json">{{ participants | selectattr('id','ne', session.owner_id) | map(attribute='email') | list | tojson | safe }}</script>
+<script id="session-owner-info" type="application/json">{{ {"id": session.owner_id, "name": session.owner.name if session.owner else None, "email": session.owner.email if session.owner else None} | tojson | safe }}</script>
 <div class="mb-2" id="participants-manager">
   <div class="d-flex flex-wrap align-items-end gap-2">
     <div>
@@ -93,7 +97,8 @@
     <div class="ms-auto small text-muted" id="participants-status"></div>
   </div>
   <div class="small mt-2">
-  <strong>Actuels:</strong> <span id="participants-current-list">{% for u in participants if u.id != session.owner_id %}{{ u.name }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
+    <strong>Actuels:</strong>
+    <span id="participants-current-badges" class="d-inline-flex flex-wrap gap-1 align-items-center"></span>
   </div>
 </div>
 <noscript><ul>{% for u in participants if u.id != session.owner_id %}<li>{{ u.name }} ({{ u.email }})</li>{% endfor %}</ul></noscript>
@@ -107,6 +112,9 @@
 </ul>
   <style>
     .loc-color-dot { width:14px; height:14px; border-radius:50%; border:1px solid #555; display:inline-block; background:#ccc; }
+    .rk-participant-badge .btn-close { font-size:0.45rem; margin-left:0.35rem; }
+    .rk-participant-badge { background:#6c757d; }
+    .rk-participant-owner { background:#0d6efd; }
   </style>
   <script>
     document.addEventListener('DOMContentLoaded', function(){
@@ -150,8 +158,23 @@ $('#session-update').on('submit', function(e){
   $.ajax({type:'POST', url: apiUrl('/api/session/update/{{ session.id }}'), contentType:'application/json', data: JSON.stringify(payload), success:function(){location.reload();}});
 });
 $('#btn-change-owner').on('click', function(){
-  const owner_id = $('#new-owner').val();
-  $.ajax({type:'POST', url: apiUrl('/api/session/owner/{{ session.id }}'), contentType:'application/json', data: JSON.stringify({owner_id: owner_id}), success:function(){location.reload();}});
+  const owner_id = parseInt($('#new-owner').val(), 10);
+  $.ajax({
+    type:'POST',
+    url: apiUrl('/api/session/owner/{{ session.id }}'),
+    contentType:'application/json',
+    data: JSON.stringify({owner_id: owner_id}),
+    success:function(){
+      window.__rkOwnerIdCurrent = owner_id;
+      if (window.__rkRenderCurrentBadges && window.__rkGetOrderedIds && window.__rkCurrentIds){
+        const orderedIds = window.__rkGetOrderedIds(Array.from(window.__rkCurrentIds));
+        window.__rkRenderCurrentBadges(orderedIds);
+      }
+      if (window.__rkRefreshOwnerDropdown && window.__rkCurrentIds){
+        window.__rkRefreshOwnerDropdown(Array.from(window.__rkCurrentIds));
+      }
+    }
+  });
 });
 const btnNow = $('#btn-set-now');
 if (btnNow.length){
@@ -201,38 +224,98 @@ updateLocationDot();
 const participantsManager = (function(){
   const selectEl = document.getElementById('all-users-select');
   if(!selectEl) return;
-  const currentIds = new Set(JSON.parse('{{ participants | selectattr("id","ne", session.owner_id) | map(attribute="id") | list | tojson | safe }}'));
-  const ownerId = {{ session.owner_id | tojson }};
-  function loadAllUsers(){
-    fetch(apiUrl('/api/users/simple')).then(r=>r.json()).then(list=>{
-      selectEl.innerHTML='';
-      list.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
-      list.forEach(u=>{
-  if(u.id === ownerId) return; // exclure responsable
+  const currentParticipantIds = JSON.parse(document.getElementById('current-participants-info')?.textContent || '[]');
+  const currentParticipantNames = JSON.parse(document.getElementById('current-participants-names')?.textContent || '[]');
+  const currentParticipantEmails = JSON.parse(document.getElementById('current-participants-emails')?.textContent || '[]');
+  const ownerInfo = JSON.parse(document.getElementById('session-owner-info')?.textContent || '{}');
+  const currentIds = new Set(currentParticipantIds);
+  if(ownerInfo && ownerInfo.id){
+    currentIds.add(ownerInfo.id);
+  }
+  window.__rkOwnerIdCurrent = {{ session.owner_id | tojson }};
+  let userMap = new Map();
+  let userList = [];
+  (function seedParticipantNames(){
+    currentParticipantIds.forEach((id, idx)=>{
+      const name = currentParticipantNames[idx] || currentParticipantEmails[idx] || ('#'+id);
+      userMap.set(id, name);
+    });
+    if(ownerInfo && ownerInfo.id){
+      const ownerName = ownerInfo.name || ownerInfo.email || ('#'+ownerInfo.id);
+      userMap.set(ownerInfo.id, ownerName);
+    }
+  })();
+  function renderSelectOptions(selectedIds){
+    if(!selectEl) return;
+    selectEl.innerHTML='';
+    const selectedSet = new Set(selectedIds);
+    userList
+      .filter(u=> !selectedSet.has(u.id))
+      .sort((a,b)=> (a.name||'').localeCompare(b.name||''))
+      .forEach(u=>{
         const opt=document.createElement('option');
         opt.value = u.id;
         opt.textContent = u.name || ('#'+u.id);
-        if(currentIds.has(u.id)) opt.selected = true;
         selectEl.appendChild(opt);
       });
+  }
+  function getOrderedIds(ids){
+    return ids.slice().sort((a,b)=> (userMap.get(a)||'').localeCompare(userMap.get(b)||''));
+  }
+  function renderCurrentBadges(ids){
+    const wrap = document.getElementById('participants-current-badges');
+    if(!wrap) return;
+    wrap.innerHTML = '';
+    if(!ids.length){
+      wrap.innerHTML = '<span class="text-muted">Aucun</span>';
+      return;
+    }
+    ids.forEach(id=>{
+      const badge = document.createElement('span');
+      const isOwner = id === window.__rkOwnerIdCurrent;
+      badge.className = 'badge rk-participant-badge d-inline-flex align-items-center';
+      badge.textContent = userMap.get(id) || ('#'+id);
+      if(isOwner){
+        badge.classList.add('rk-participant-owner');
+        badge.textContent = badge.textContent + ' (responsable)';
+      } else {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-close btn-close-white';
+        btn.setAttribute('aria-label', 'Retirer');
+        btn.dataset.removeUser = id;
+        badge.appendChild(btn);
+      }
+      wrap.appendChild(badge);
+    });
+  }
+  function loadAllUsers(){
+    fetch(apiUrl('/api/users/simple?limit=500')).then(r=>r.json()).then(list=>{
+      userList = list
+        .filter(u=> u.id !== window.__rkOwnerIdCurrent)
+        .map(u=> ({id: u.id, name: u.name || ('#'+u.id)}));
+      userList.forEach(u=>{ if(!userMap.has(u.id)) userMap.set(u.id, u.name); });
+      const orderedIds = getOrderedIds(Array.from(currentIds));
+      renderCurrentBadges(orderedIds);
+      renderSelectOptions(orderedIds);
     });
   }
   loadAllUsers();
   document.getElementById('btn-participants-reset').addEventListener('click', function(){
-    Array.from(selectEl.options).forEach(o=>{ o.selected = currentIds.has(parseInt(o.value)); });
+    const orderedIds = getOrderedIds(Array.from(currentIds));
+    renderSelectOptions(orderedIds);
   });
   function refreshOwnerDropdown(participantIds){
     const ownerSelect = document.getElementById('new-owner');
     if(!ownerSelect) return;
-  const ownerIdCurrent = parseInt(ownerSelect.value || ownerId,10);
-  const keep = new Set([ownerIdCurrent, ...participantIds]);
+    const keep = new Set([window.__rkOwnerIdCurrent, ...participantIds]);
     // Supprimer options (sauf owner) qui ne sont plus participants
     Array.from(ownerSelect.options).forEach(opt=>{
       const vid = parseInt(opt.value,10);
-  if(vid !== ownerIdCurrent && !keep.has(vid)) opt.remove();
+      if(vid !== window.__rkOwnerIdCurrent && !keep.has(vid)) opt.remove();
     });
     // Ajouter nouvelles
-  const existing = new Set(Array.from(ownerSelect.options).map(o=> parseInt(o.value,10)));
+    const existing = new Set(Array.from(ownerSelect.options).map(o=> parseInt(o.value,10)));
     participantIds.forEach(pid=>{
       if(!existing.has(pid)){
         // récupérer le nom depuis la liste multi
@@ -244,21 +327,44 @@ const participantsManager = (function(){
         ownerSelect.appendChild(opt);
       }
     });
+    ownerSelect.value = String(window.__rkOwnerIdCurrent);
   }
-  document.getElementById('btn-participants-apply').addEventListener('click', function(){
-    const sel = Array.from(selectEl.selectedOptions).map(o=> parseInt(o.value));
-    fetch(apiUrl('/api/session/update/{{ session.id }}'), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({participants: sel})})
+  function applyParticipantsUpdate(selectedIds){
+    fetch(apiUrl('/api/session/update/{{ session.id }}'), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({participants: selectedIds})})
       .then(r=>{ if(!r.ok) throw new Error('Erreur maj participants'); return r.json(); })
       .then(js=>{
+        currentIds.clear();
+        selectedIds.forEach(id=> currentIds.add(id));
         document.getElementById('participants-status').textContent='Sauvegardé';
         setTimeout(()=>{ document.getElementById('participants-status').textContent=''; }, 2500);
-        const selectedNames = Array.from(selectEl.selectedOptions).map(o=> o.textContent);
-        document.getElementById('participants-current-list').textContent = selectedNames.join(', ');
-        document.getElementById('other-participants-count').textContent = sel.length;
-        refreshOwnerDropdown(sel);
+        const orderedIds = getOrderedIds(selectedIds.slice());
+        renderCurrentBadges(orderedIds);
+        renderSelectOptions(orderedIds);
+        document.getElementById('other-participants-count').textContent = selectedIds.length;
+        refreshOwnerDropdown(selectedIds);
       })
       .catch(err=>{ document.getElementById('participants-status').textContent=err.message; });
+  }
+  document.getElementById('btn-participants-apply').addEventListener('click', function(){
+      const added = Array.from(selectEl.selectedOptions).map(o=> parseInt(o.value, 10));
+      const merged = Array.from(currentIds).concat(added);
+    applyParticipantsUpdate(merged);
   });
+  const badgeWrap = document.getElementById('participants-current-badges');
+  if(badgeWrap){
+    badgeWrap.addEventListener('click', function(e){
+      const btn = e.target.closest('[data-remove-user]');
+      if(!btn) return;
+      const uid = parseInt(btn.dataset.removeUser, 10);
+      const added = Array.from(selectEl.selectedOptions).map(o=> parseInt(o.value, 10));
+      const remaining = Array.from(currentIds).filter(id=> id !== uid).concat(added);
+      applyParticipantsUpdate(remaining);
+    });
+  }
+  window.__rkRenderCurrentBadges = renderCurrentBadges;
+  window.__rkGetOrderedIds = getOrderedIds;
+  window.__rkRefreshOwnerDropdown = refreshOwnerDropdown;
+  window.__rkCurrentIds = currentIds;
 })();
 </script>
 <script>

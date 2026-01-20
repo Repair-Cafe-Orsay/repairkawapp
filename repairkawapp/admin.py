@@ -8,18 +8,30 @@ Nettoyage global : imports organisés, PEP8, docstrings, harmonisation du style.
 """
 
 import os
+import uuid
 from datetime import date
 
 import pytz
-from flask import Blueprint, Response, current_app, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    Response,
+    current_app,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    url_for,
+)
 from flask_login import current_user, login_required
 from sqlalchemy import and_
 from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
 
 from . import db
 from .models import (
     AppSetting,
     BoardRoleLog,
+    CafeFile,
     Category,
     MembershipLog,
     ObjectSubtype,
@@ -43,6 +55,31 @@ from .services.tenant_service import (
 
 admin = Blueprint("admin", __name__)
 LOCAL_TIMEZONE = pytz.timezone("Europe/Paris")
+ALLOWED_CAFE_FILE_EXTENSIONS = {
+    "pdf",
+    "txt",
+    "csv",
+    "doc",
+    "docx",
+    "xls",
+    "xlsx",
+    "ppt",
+    "pptx",
+    "odt",
+    "ods",
+    "odp",
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+}
+
+
+def _is_allowed_cafe_file(filename: str) -> bool:
+    if not filename or "." not in filename:
+        return False
+    ext = filename.rsplit(".", 1)[1].lower()
+    return ext in ALLOWED_CAFE_FILE_EXTENSIONS
 
 
 @admin.route("/admin")
@@ -64,6 +101,110 @@ def user_list():
         filter_email=email,
         users=users_q.all(),
     )
+
+
+@admin.route("/admin/files")
+@login_required
+def file_system():
+    _admin_only()
+    cafe = require_active_repaircafe()
+    rows = (
+        db.session.query(CafeFile, User)
+        .join(User, User.id == CafeFile.sender_id)
+        .filter(CafeFile.repaircafe_id == cafe.id)
+        .order_by(CafeFile.file_name.asc())
+        .all()
+    )
+    return render_template(
+        "file_system.html",
+        name=current_user.name,
+        files=rows,
+    )
+
+
+@admin.route("/admin/files/new", methods=["GET", "POST"])
+@login_required
+def file_new():
+    _admin_only()
+    cafe = require_active_repaircafe()
+    if request.method == "GET":
+        return render_template("file_new.html", name=current_user.name)
+
+    uploaded = request.files.get("file")
+    if not uploaded or not uploaded.filename:
+        return redirect(request.url)
+
+    display_name = (request.form.get("name") or "").strip()
+    if not display_name:
+        return redirect(request.url)
+
+    if not _is_allowed_cafe_file(uploaded.filename):
+        return redirect(request.url)
+
+    display_name = secure_filename(display_name)
+    stored_name = f"file_{uuid.uuid4().hex}_{secure_filename(uploaded.filename)}"
+    upload_dir = ensure_cafe_upload_folder(current_app.config["UPLOAD_FOLDER"], cafe)
+    stored_path = get_cafe_upload_relative_path(cafe, stored_name)
+    dest = os.path.join(upload_dir, stored_name)
+    uploaded.save(dest)
+
+    db.session.add(
+        CafeFile(
+            repaircafe_id=cafe.id,
+            sender_id=current_user.id,
+            file_name=display_name,
+            file_path=stored_path,
+        )
+    )
+    db.session.commit()
+    return redirect(url_for("admin.file_system"), code=302)
+
+
+@admin.route("/admin/files/<int:file_id>/download", methods=["GET"])
+@login_required
+def file_download(file_id: int):
+    _admin_only()
+    cafe = require_active_repaircafe()
+    file = (
+        db.session.query(CafeFile)
+        .filter(CafeFile.id == file_id)
+        .filter(CafeFile.repaircafe_id == cafe.id)
+        .first()
+    )
+    if not file:
+        return ("", 404)
+    upload_root = current_app.config["UPLOAD_FOLDER"]
+    response = send_from_directory(
+        upload_root,
+        file.file_path,
+        download_name=file.file_name,
+        as_attachment=True,
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@admin.route("/admin/files/<int:file_id>/delete", methods=["POST"])
+@login_required
+def file_delete(file_id: int):
+    _admin_only()
+    cafe = require_active_repaircafe()
+    file = (
+        db.session.query(CafeFile)
+        .filter(CafeFile.id == file_id)
+        .filter(CafeFile.repaircafe_id == cafe.id)
+        .first()
+    )
+    if not file:
+        return redirect(url_for("admin.file_system"))
+
+    upload_root = current_app.config["UPLOAD_FOLDER"]
+    path = os.path.join(upload_root, file.file_path)
+    if os.path.exists(path):
+        os.remove(path)
+    db.session.delete(file)
+    db.session.commit()
+    return redirect(url_for("admin.file_system"))
 
 
 @admin.route("/admin/users/download")

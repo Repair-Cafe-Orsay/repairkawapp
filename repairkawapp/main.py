@@ -51,12 +51,15 @@ from .services.repair_service import (
 )
 from .services.tenant_service import (
     ensure_cafe_upload_folder,
+    filter_active_membership_or_founder,
     get_active_repaircafe,
+    get_allowed_memberships,
     get_cafe_upload_folder,
     get_cafe_upload_relative_path,
     get_upload_prefix,
     get_user_cafe_photo,
     is_cafe_admin,
+    is_membership_allowed,
     require_active_repaircafe,
     set_user_cafe_photo,
 )
@@ -516,7 +519,11 @@ def uploaded_file(filename):
     # Si un préfixe est attendu, on empêche l'accès aux autres cafés.
     if prefix and not filename.startswith(prefix + "/"):
         return ("", 404)
-    return send_from_directory(upload_root, filename)
+    force_download = "/file_" in filename or filename.startswith("file_")
+    response = send_from_directory(upload_root, filename, as_attachment=force_download)
+    if force_download:
+        response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 # Route legacy conservée (redirection permanente) pour compatibilité anciens liens
@@ -586,22 +593,35 @@ def get_update(id):
         session_obj = r.session  # relationship déjà chargée (lazy) si accès.
         allowed_ids = {u.id for u in session_obj.participants}
         allowed_ids.add(session_obj.owner_id)
+        if active_cafe:
+            from .models import user_repaircafe
+
+            founder_ids = (
+                db.session.query(User.id)
+                .join(user_repaircafe)
+                .filter(user_repaircafe.c.repaircafe_id == active_cafe.id)
+                .filter(User.founder.is_(True))
+                .all()
+            )
+            allowed_ids.update({row[0] for row in founder_ids})
         # On récupère uniquement ces réparateurs pour l'affichage (hors déjà sélectionnés).
         # Les réparateurs déjà associés (r.users) restent listés même s'ils ne
         # sont plus participants : on peut les retirer mais pas les réajouter.
         candidate_users = (
-            User.query.filter(User.id.in_(allowed_ids)).order_by(User.name.asc()).all()
+            filter_active_membership_or_founder(User.query.filter(User.id.in_(allowed_ids)))
+            .order_by(User.name.asc())
+            .all()
             if allowed_ids
             else []
         )
     else:
         from .models import user_repaircafe
 
+        base_users = User.query.join(user_repaircafe).filter(
+            user_repaircafe.c.repaircafe_id == active_cafe.id
+        )
         candidate_users = (
-            User.query.join(user_repaircafe)
-            .filter(user_repaircafe.c.repaircafe_id == active_cafe.id)
-            .order_by(User.name.asc())
-            .all()
+            filter_active_membership_or_founder(base_users).order_by(User.name.asc()).all()
         )
 
     return render_template(
@@ -804,26 +824,17 @@ def trombinoscope():
         and active_cafe
         and is_cafe_admin(current_user, active_cafe.id)
     ):
-        # Vue complète interne (pas de filtrage cotisation)
+        # Vue complète interne (sans filtre de visibilité)
         all_users = base_query.all()
     else:
-        # Filtrer visibilité publique
-        visibility_query = base_query.filter(User.visibility_public_trombi.is_(True))
-        users_visibles = visibility_query.all()
-        if current_user.is_authenticated:
-            # Connecté non admin: respecte visibilité, pas de filtre cotisation supplémentaire
-            all_users = users_visibles
-        else:
-            # Public non connecté: exige cotisation année précédente,
-            # courante ou N+1
-            from datetime import date as _date
+        # Filtrer visibilité publique (fondateurs inclus même sans visibilité)
+        visibility_query = base_query.filter(
+            (User.visibility_public_trombi.is_(True)) | (User.founder.is_(True))
+        )
+        all_users = visibility_query.all()
 
-            today = _date.today()
-            acad_start = today.year if today.month >= 9 else today.year - 1
-            previous_acad = acad_start - 1
-            next_acad = acad_start + 1
-            allowed = {previous_acad, acad_start, next_acad}
-            all_users = [u for u in users_visibles if u.last_membership in allowed]
+    # Filtrer cotisation (active ou N-1) pour tous sauf fondateurs
+    all_users = [u for u in all_users if is_membership_allowed(u)]
     # Sépare bureau / autres
     board = [u for u in all_users if u.board_title]
     others = [u for u in all_users if not u.board_title]
@@ -854,11 +865,8 @@ def trombinoscope():
 
     board.sort(key=board_key)
     # Statuts pour badges (nouveau: jamais cotisé, ancien: cotisation < année précédente)
-    from datetime import date as _date
-
-    today = _date.today()
-    acad_start = today.year if today.month >= 9 else today.year - 1
-    previous_acad = acad_start - 1
+    allowed = get_allowed_memberships()
+    previous_acad = min(allowed) if allowed else 0
 
     def classify(u):  # noqa: D401 simple helper
         if u.last_membership is None:

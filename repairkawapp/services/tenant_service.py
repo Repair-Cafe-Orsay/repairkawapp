@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import os
 import re
+from datetime import date as _date
 
 from flask import abort, current_app
 from flask_login import current_user
+from sqlalchemy import or_
 
 from .. import db
 from ..models import RepairCafe, User, user_repaircafe
@@ -133,3 +135,24 @@ def get_mail_sender(cafe: RepairCafe | None) -> str:
         )
     except Exception:
         return "noreply@repaircafe.local"
+
+
+def get_allowed_memberships(today: _date | None = None) -> set[int]:
+    """Return academic years allowed for active membership (N or N-1)."""
+    today = today or _date.today()
+    acad_start = today.year if today.month >= 9 else today.year - 1
+    previous_acad = acad_start - 1
+    return {previous_acad, acad_start}
+
+
+def is_membership_allowed(user: User, today: _date | None = None) -> bool:
+    """Return True if user is founder or has an active/previous membership year."""
+    if getattr(user, "founder", False):
+        return True
+    return user.last_membership in get_allowed_memberships(today)
+
+
+def filter_active_membership_or_founder(query, today: _date | None = None):
+    """Filter a User query to active/previous membership or founder."""
+    allowed = list(get_allowed_memberships(today))
+    return query.filter(or_(User.founder.is_(True), User.last_membership.in_(allowed)))

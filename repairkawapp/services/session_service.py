@@ -87,10 +87,21 @@ def open_session(db: SASession, location: str | None = None, tz=None, opened_at=
     if not location or not location.strip():
         raise ValueError("Location obligatoire pour ouvrir une session")
     loc_obj = _get_or_create_location(db, location.strip(), repaircafe=cafe)
+    previous_session = (
+        db.query(Session)
+        .filter(Session.repaircafe_id == cafe.id)
+        .filter(Session.location_id == loc_obj.id)
+        .order_by(Session.opened_at.desc())
+        .first()
+    )
     s = Session(location=loc_obj, owner_id=current_user.id, repaircafe=cafe)
     if opened_at is not None:
         s.opened_at = opened_at
     s.participants.append(current_user)
+    if previous_session:
+        for participant in previous_session.participants:
+            if participant not in s.participants:
+                s.participants.append(participant)
     db.add(s)
     return s
 

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-3">Nouveau fichier</h1>
+<form class="row gy-2" enctype="multipart/form-data" method="POST" action="{{ url_for('admin.file_new') }}">
+  <div class="input-group">
+    <span class="input-group-text bg-secondary col-3">Nom</span>
+    <input name="name" type="text" class="form-control" required>
+  </div>
+  <div class="input-group align-items-center">
+    <span class="input-group-text bg-secondary col-3">Fichier</span>
+    <input type="file" name="file" class="form-control" required>
+  </div>
+  <div class="d-flex justify-content-end gap-2">
+    <a class="btn btn-secondary" href="{{ url_for('admin.file_system') }}">Retour</a>
+    <button class="btn btn-primary" type="submit">Créer</button>
+  </div>
+</form>
+{% endblock %}
