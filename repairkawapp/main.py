@@ -892,6 +892,7 @@ def trombinoscope():
         status_map=status_map,
         photo_map=photo_map,
         active_cafe=active_cafe,
+        active_repaircafe=active_cafe,
         name=current_user.name if current_user.is_authenticated else None,
     )
 
