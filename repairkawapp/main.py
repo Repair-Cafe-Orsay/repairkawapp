@@ -35,6 +35,7 @@ from .models import (
     Note,
     Notification,
     Repair,
+    RepairCafe,
     Session,
     SpareChange,
     SpareStatus,
@@ -47,6 +48,17 @@ from .services.repair_service import (
     create_repair,
     get_or_create_brand,
     update_repair,
+)
+from .services.tenant_service import (
+    ensure_cafe_upload_folder,
+    get_active_repaircafe,
+    get_cafe_upload_folder,
+    get_cafe_upload_relative_path,
+    get_upload_prefix,
+    get_user_cafe_photo,
+    is_cafe_admin,
+    require_active_repaircafe,
+    set_user_cafe_photo,
 )
 
 main = Blueprint("main", __name__)
@@ -162,6 +174,7 @@ def profile():
     last_membership_ok = last_start == current_start
     user_period = (last_start, last_start + 1) if last_start is not None else None
     photo_error = None
+    active_cafe = get_active_repaircafe(current_user)
     if request.method == "POST":
         # Champs simples
         current_user.biography = request.form.get("biography") or None
@@ -180,43 +193,72 @@ def profile():
         current_user.phone = request.form.get("phone") or None
         current_user.visibility_public_trombi = bool(request.form.get("visibility_public_trombi"))
         if "photo" in request.files and request.files["photo"].filename:
+            active_cafe = require_active_repaircafe()
             raw = request.files["photo"].read()
+            upload_dir = ensure_cafe_upload_folder(current_app.config["UPLOAD_FOLDER"], active_cafe)
             filename, err = process_user_photo(
                 raw,
-                current_app.config["UPLOAD_FOLDER"],
+                upload_dir,
                 current_user.id,
                 request.form.get,
             )
             if err:
                 photo_error = err
             else:
-                current_user.photo_filename = filename
+                set_user_cafe_photo(
+                    current_user.id,
+                    active_cafe.id,
+                    get_cafe_upload_relative_path(active_cafe, filename),
+                )
         db.session.commit()
         if not photo_error:
             return redirect(url_for("main.profile"))
+    photo_filename = get_user_cafe_photo(current_user.id, active_cafe.id) if active_cafe else None
     return render_template(
         "profile.html",
         name=current_user.name,
         last_membership_ok=last_membership_ok,
         user_period=user_period,
         biography=current_user.biography,
-        photo_filename=current_user.photo_filename,
+        photo_filename=photo_filename,
         photo_error=photo_error,
     )
+
+
+@main.route("/switch_cafe/<int:cafe_id>")
+@login_required
+def switch_cafe(cafe_id: int):
+    """Switch active RepairCafe for the current user."""
+    if getattr(current_user, "super_admin", False):
+        return redirect(url_for("main.dashboard"))
+    cafes = list(getattr(current_user, "repaircafes", []) or [])
+    target = next((c for c in cafes if c.id == cafe_id), None)
+    if not target:
+        return redirect(url_for("main.dashboard"))
+    current_user.active_repaircafe = target
+    db.session.commit()
+    return redirect(url_for("main.dashboard"))
 
 
 @main.route("/new")
 @login_required
 def new_repair():
     """Formulaire de création d'une nouvelle réparation."""
+    active_cafe = require_active_repaircafe()
     from_id = request.args.get("from_id")
     from_user = {}
     if from_id:
-        r = db.session.query(Repair).filter_by(display_id=from_id).first()
+        r = (
+            db.session.query(Repair)
+            .filter_by(display_id=from_id)
+            .filter(Repair.repaircafe_id == active_cafe.id)
+            .first()
+        )
         from_user = {"name": r.name, "email": r.email, "phone": r.phone, "age": r.age}
     current_session = (
         db.session.query(Session)
         .filter(Session.closed_at.is_(None))
+        .filter(Session.repaircafe_id == active_cafe.id)
         .order_by(Session.opened_at.desc())
         .first()
     )
@@ -236,9 +278,11 @@ def new_repair():
 @login_required
 def edit_repair(repair_id):
     """Formulaire d'édition d'une réparation existante."""
+    active_cafe = require_active_repaircafe()
     current_session = (
         db.session.query(Session)
         .filter(Session.closed_at.is_(None))
+        .filter(Session.repaircafe_id == active_cafe.id)
         .order_by(Session.opened_at.desc())
         .first()
     )
@@ -249,7 +293,12 @@ def edit_repair(repair_id):
         states=State.query.order_by(State.id).all(),
         name=current_user.name,
         from_user={},
-        r=db.session.query(Repair).filter_by(display_id=repair_id).first(),
+        r=(
+            db.session.query(Repair)
+            .filter_by(display_id=repair_id)
+            .filter(Repair.repaircafe_id == active_cafe.id)
+            .first()
+        ),
         current_session=current_session,
     )
 
@@ -270,6 +319,7 @@ def del_repair(repair_id):
 @login_required
 def post_object():
     """Création ou modification d'une réparation (POST)."""
+    active_cafe = require_active_repaircafe()
     rid = request.form.get("rid")
     try:
         category_id = request.form["category"]
@@ -281,16 +331,29 @@ def post_object():
     initial_state = db.session.query(State).filter_by(id=initial_state_id).first()
     brand = get_or_create_brand(db.session, brand_name)
     if not rid:
-        r = create_repair(db.session, request.form, category, initial_state, brand)
+        r = create_repair(
+            db.session,
+            request.form,
+            category,
+            initial_state,
+            brand,
+            repaircafe_id=active_cafe.id,
+        )
     else:
         r = db.session.query(Repair).filter_by(id=rid).first()
         r = update_repair(db.session, r, request.form, category, initial_state, brand)
+    if r and r.repaircafe_id is None:
+        r.repaircafe = active_cafe
     # Attache à la session ouverte (si une session où le réparateur est participant et non close)
     if not rid:
         open_session = (
             db.session.query(Session)
             .join(Session.participants)
-            .filter(User.id == current_user.id, Session.closed_at.is_(None))
+            .filter(
+                User.id == current_user.id,
+                Session.closed_at.is_(None),
+                Session.repaircafe_id == active_cafe.id,
+            )
             .order_by(Session.opened_at.desc())
             .first()
         )
@@ -305,6 +368,7 @@ def post_object():
 @login_required
 def repairs_home():
     """Ancienne page d'accueil listant les fiches (déplacée)."""
+    require_active_repaircafe()
     return render_template(
         "index.html",
         name=current_user.name,
@@ -317,7 +381,8 @@ def repairs_home():
 @login_required
 def repairs_download():
     """Export CSV des réparations (respecte mêmes filtres query si présents)."""
-    repairs = Repair.query
+    active_cafe = require_active_repaircafe()
+    repairs = Repair.query.filter(Repair.repaircafe_id == active_cafe.id)
     status = request.args.get("status")
     if status and status != "all":
         if status == "opened":
@@ -398,13 +463,23 @@ def attach_session(repair_id):
     Confirmation réparateur gérée côté JS (pas ici).
     Si aucune séance ouverte ou déjà rattachée à cette séance -> retour immédiat.
     """
-    repair = db.session.query(Repair).filter_by(display_id=repair_id).first()
+    active_cafe = require_active_repaircafe()
+    repair = (
+        db.session.query(Repair)
+        .filter_by(display_id=repair_id)
+        .filter(Repair.repaircafe_id == active_cafe.id)
+        .first()
+    )
     if not repair:
         return redirect(url_for("main.index"))
     open_session = (
         db.session.query(Session)
         .join(Session.participants)
-        .filter(User.id == current_user.id, Session.closed_at.is_(None))
+        .filter(
+            User.id == current_user.id,
+            Session.closed_at.is_(None),
+            Session.repaircafe_id == active_cafe.id,
+        )
         .order_by(Session.opened_at.desc())
         .first()
     )
@@ -421,6 +496,7 @@ def attach_session(repair_id):
                 if not previous
                 else ("Changement de séance → %s" % open_session.id)
             ),
+            repaircafe_id=repair.repaircafe_id,
         )
     )
     db.session.commit()
@@ -430,7 +506,17 @@ def attach_session(repair_id):
 @main.route("/uploads/<path:filename>")
 def uploaded_file(filename):
     """Servez un fichier uploadé (original ou vignette cache/...)."""
-    return send_from_directory(current_app.config["UPLOAD_FOLDER"], filename)
+    upload_root = current_app.config["UPLOAD_FOLDER"]
+    active_cafe = None
+    try:
+        active_cafe = get_active_repaircafe(current_user)
+    except Exception:
+        active_cafe = None
+    prefix = get_upload_prefix(active_cafe)
+    # Si un préfixe est attendu, on empêche l'accès aux autres cafés.
+    if prefix and not filename.startswith(prefix + "/"):
+        return ("", 404)
+    return send_from_directory(upload_root, filename)
 
 
 # Route legacy conservée (redirection permanente) pour compatibilité anciens liens
@@ -445,7 +531,13 @@ def legacy_media_file(filename):  # pragma: no cover - simple redirection
 @login_required
 def update_object(id):
     r"""post update on an object"""
-    r = db.session.query(Repair).filter_by(display_id=id).first()
+    active_cafe = require_active_repaircafe()
+    r = (
+        db.session.query(Repair)
+        .filter_by(display_id=id)
+        .filter(Repair.repaircafe_id == active_cafe.id)
+        .first()
+    )
     if request.method == "POST":
         if apply_update(db.session, r, request.form):
             db.session.commit()
@@ -456,25 +548,38 @@ def update_object(id):
 @login_required
 def get_update(id):
     r"""update page for an object"""
-    r = db.session.query(Repair).filter_by(display_id=id).first()
+    active_cafe = require_active_repaircafe()
+    r = (
+        db.session.query(Repair)
+        .filter_by(display_id=id)
+        .filter(Repair.repaircafe_id == active_cafe.id)
+        .first()
+    )
     # séance ouverte courante (si existe)
     current_session = (
         db.session.query(Session)
         .filter(Session.closed_at.is_(None))
+        .filter(Session.repaircafe_id == active_cafe.id)
         .order_by(Session.opened_at.desc())
         .first()
     )
     # get image list
-    images = glob.glob(os.path.join(current_app.config["UPLOAD_FOLDER"], id + "_*"))
+    upload_root = current_app.config["UPLOAD_FOLDER"]
+    prefix = get_upload_prefix(active_cafe)
+    cafe_upload_dir = get_cafe_upload_folder(upload_root, active_cafe)
+    images = glob.glob(os.path.join(cafe_upload_dir, id + "_*"))
     images_idx = []
     for p in images:
-        images_idx.append(
-            (
-                len(images_idx),
-                p.split("/")[-1],
-                "cache/" + thumb.get_thumbnail(p.split("/")[-1], "200x200").split("/")[-1],
-            )
-        )
+        base = os.path.basename(p)
+        rel = f"{prefix}/{base}" if prefix else base
+        thumb_url = thumb.get_thumbnail(rel, "200x200")
+        thumb_prefix = current_app.config.get("THUMBNAIL_MEDIA_THUMBNAIL_URL", "/media/cache/")
+        if thumb_url.startswith(thumb_prefix):
+            thumb_rel = thumb_url[len(thumb_prefix) :].lstrip("/")
+            thumb_rel = f"cache/{thumb_rel}"
+        else:
+            thumb_rel = "cache/" + thumb_url.split("/")[-1]
+        images_idx.append((len(images_idx), rel, thumb_rel))
     # Restriction : si la fiche est rattachée à une séance, on limite les réparateurs
     # sélectionnables aux participants de cette séance (participants + owner).
     if r.session_id:
@@ -490,7 +595,14 @@ def get_update(id):
             else []
         )
     else:
-        candidate_users = User.query.order_by(User.name.asc()).all()
+        from .models import user_repaircafe
+
+        candidate_users = (
+            User.query.join(user_repaircafe)
+            .filter(user_repaircafe.c.repaircafe_id == active_cafe.id)
+            .order_by(User.name.asc())
+            .all()
+        )
 
     return render_template(
         "update.html",
@@ -521,7 +633,8 @@ def get_update(id):
 @login_required
 def sessions_page():
     """Page listant les séances récentes avec filtre lieu (param ?lieu=)."""
-    q = db.session.query(Session)
+    active_cafe = require_active_repaircafe()
+    q = db.session.query(Session).filter(Session.repaircafe_id == active_cafe.id)
     lieu = request.args.get("lieu")
     if lieu:
         from .models import Location
@@ -674,8 +787,23 @@ def trombinoscope():
     # - Public (non connecté) : uniquement réparateurs ayant opté pour l'affichage public
     # - Réparateur connecté non admin : idem (respect du choix de visibilité)
     # - Admin : tous les réparateurs (vue complète interne)
+    from .models import RepairCafe, user_repaircafe
+
+    active_cafe = get_active_repaircafe() if current_user.is_authenticated else None
+    if not active_cafe:
+        code = request.environ.get("REPAIRCAFE_CODE")
+        if code:
+            active_cafe = RepairCafe.query.filter_by(code=code).first()
     base_query = db.session.query(User)
-    if current_user.is_authenticated and current_user.admin:
+    if active_cafe:
+        base_query = base_query.join(user_repaircafe).filter(
+            user_repaircafe.c.repaircafe_id == active_cafe.id
+        )
+    if (
+        current_user.is_authenticated
+        and active_cafe
+        and is_cafe_admin(current_user, active_cafe.id)
+    ):
         # Vue complète interne (pas de filtrage cotisation)
         all_users = base_query.all()
     else:
@@ -747,13 +875,32 @@ def trombinoscope():
     # Inclure aussi board dans map statut pour affichage badge éventuel
     status_map = {u.id: classify(u) for u in board}
     status_map.update({u.id: s for u, s in annotated})
+    photo_map = {}
+    if active_cafe and all_users:
+        user_ids = [u.id for u in all_users]
+        rows = (
+            db.session.query(user_repaircafe.c.user_id, user_repaircafe.c.photo_filename)
+            .filter(user_repaircafe.c.repaircafe_id == active_cafe.id)
+            .filter(user_repaircafe.c.user_id.in_(user_ids))
+            .all()
+        )
+        photo_map = {uid: photo for uid, photo in rows if photo}
     return render_template(
         "trombinoscope.html",
         board=board,
         others=others,
         status_map=status_map,
+        photo_map=photo_map,
+        active_cafe=active_cafe,
         name=current_user.name if current_user.is_authenticated else None,
     )
+
+
+@main.route("/repaircafes")
+def repaircafes_public():
+    """Liste publique des Repair Cafés (pour accès au trombinoscope)."""
+    cafes = RepairCafe.query.order_by(RepairCafe.name.asc()).all()
+    return render_template("repaircafes_public.html", cafes=cafes)
 
 
 @main.route("/help")

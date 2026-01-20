@@ -10,3 +10,4 @@ uploads/user_*
 
 # Instance runtime data (Flask SQLite, etc.)
 instance/
+*.pyc

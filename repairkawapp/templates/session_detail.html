@@ -101,7 +101,7 @@
 <ul>
   {% for r in session.repairs %}
     <li>
-      <a href="/update/{{ r.display_id }}">{{ r.display_id }}</a> - {{ r.otype }} ({{ r.brand.name if r.brand }})
+      <a href="{{ url_for('main.get_update', id=r.display_id) }}">{{ r.display_id }}</a> - {{ r.otype }} ({{ r.brand.name if r.brand }})
     </li>
   {% endfor %}
 </ul>
@@ -117,11 +117,11 @@
     });
   </script>
 {% if session.repairs|length > 0 %}
-  <p class="mt-2"><a class="btn btn-sm btn-outline-primary" href="/repairs?session_id={{ session.id }}">Voir ces fiches (filtre séance #{{ session.id }})</a></p>
+  <p class="mt-2"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('main.repairs_home') }}?session_id={{ session.id }}">Voir ces fiches (filtre séance #{{ session.id }})</a></p>
 {% endif %}
 <script>
 function load_locations_detail() {
-  $.getJSON('/api/locations', function(data){
+  $.getJSON(apiUrl('/api/locations'), function(data){
     const sel = $('#detail-location-select');
     const current = sel.val();
     // Retirer anciennes sauf placeholders et new
@@ -147,11 +147,11 @@ $('#session-update').on('submit', function(e){
   let locSel = $('#detail-location-select').val();
   let loc = locSel === '__new__' ? $('#detail-new-location').val().trim() : locSel;
   const payload = {location: loc, comment: $(this).find('[name=comment]').val()};
-  $.ajax({type:'POST', url:'/api/session/update/{{ session.id }}', contentType:'application/json', data: JSON.stringify(payload), success:function(){location.reload();}});
+  $.ajax({type:'POST', url: apiUrl('/api/session/update/{{ session.id }}'), contentType:'application/json', data: JSON.stringify(payload), success:function(){location.reload();}});
 });
 $('#btn-change-owner').on('click', function(){
   const owner_id = $('#new-owner').val();
-  $.ajax({type:'POST', url:'/api/session/owner/{{ session.id }}', contentType:'application/json', data: JSON.stringify({owner_id: owner_id}), success:function(){location.reload();}});
+  $.ajax({type:'POST', url: apiUrl('/api/session/owner/{{ session.id }}'), contentType:'application/json', data: JSON.stringify({owner_id: owner_id}), success:function(){location.reload();}});
 });
 const btnNow = $('#btn-set-now');
 if (btnNow.length){
@@ -168,10 +168,10 @@ $('#btn-close').on('click', function(){
   if (comment.length < 4) { alert('Commentaire requis (au moins 4 caractères)'); return; }
   const payload = {comment: comment};
   if (ct) payload.closed_time = ct;
-  $.ajax({type:'POST', url:'/api/session/close/{{ session.id }}', contentType:'application/json', data: JSON.stringify(payload), success:function(){location.reload();}});
+  $.ajax({type:'POST', url: apiUrl('/api/session/close/{{ session.id }}'), contentType:'application/json', data: JSON.stringify(payload), success:function(){location.reload();}});
 });
 $('#btn-reopen').on('click', function(){
-  $.ajax({type:'POST', url:'/api/session/reopen/{{ session.id }}', success:function(){location.reload();}});
+  $.ajax({type:'POST', url: apiUrl('/api/session/reopen/{{ session.id }}'), success:function(){location.reload();}});
 });
 $('#btn-delete').on('click', function(){
   rkConfirm({
@@ -181,7 +181,7 @@ $('#btn-delete').on('click', function(){
     confirmBtnClass: 'btn-danger'
   }).then(function(ok){
     if(!ok) return;
-    $.ajax({type:'DELETE', url:'/api/session/delete/{{ session.id }}', success:function(){ window.location = '/sessions'; }});
+    $.ajax({type:'DELETE', url: apiUrl('/api/session/delete/{{ session.id }}'), success:function(){ window.location = pageUrl('/sessions'); }});
   });
 });
 // Couleurs lieux (pour pastille dynamique)
@@ -204,7 +204,7 @@ const participantsManager = (function(){
   const currentIds = new Set(JSON.parse('{{ participants | selectattr("id","ne", session.owner_id) | map(attribute="id") | list | tojson | safe }}'));
   const ownerId = {{ session.owner_id | tojson }};
   function loadAllUsers(){
-    fetch('/api/users/simple').then(r=>r.json()).then(list=>{
+    fetch(apiUrl('/api/users/simple')).then(r=>r.json()).then(list=>{
       selectEl.innerHTML='';
       list.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
       list.forEach(u=>{
@@ -247,7 +247,7 @@ const participantsManager = (function(){
   }
   document.getElementById('btn-participants-apply').addEventListener('click', function(){
     const sel = Array.from(selectEl.selectedOptions).map(o=> parseInt(o.value));
-    fetch('/api/session/update/{{ session.id }}', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({participants: sel})})
+    fetch(apiUrl('/api/session/update/{{ session.id }}'), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({participants: sel})})
       .then(r=>{ if(!r.ok) throw new Error('Erreur maj participants'); return r.json(); })
       .then(js=>{
         document.getElementById('participants-status').textContent='Sauvegardé';

@@ -1,16 +1,22 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container-fluid">
-  <h2 class="mb-4">Trombinoscope</h2>
+  <h2 class="mb-2">Trombinoscope</h2>
   <p class="text-muted">Membres bénévoles du Repair Café Orsay</p>
+  {% if active_cafe and active_cafe.website_url %}
+    <p class="mb-4">
+      <a href="{{ active_cafe.website_url }}" target="_blank" rel="noopener">Site web du Repair Café</a>
+    </p>
+  {% endif %}
 
   <div class="trombi-grid mb-5">
     {% for u in board %}
   {% set st = status_map.get(u.id) if status_map is defined else None %}
   <div class="trombi-item trombi-click {% if st=='ancien' %}trombi-ancien{% endif %}" data-name="{{ u.name|e }}" data-role="{{ u.board_title|e }}" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}" data-email="{% if current_user.is_authenticated %}{{ u.email|e }}{% endif %}" data-phone="{% if current_user.is_authenticated %}{{ u.phone or '' }}{% endif %}">
         <div class="trombi-photo-wrapper mb-1 position-relative">
-          {% if u.photo_filename %}
-            <img src="/uploads/{{ u.photo_filename }}" alt="{{ u.name }}" class="trombi-photo">
+          {% set photo = photo_map.get(u.id) if photo_map is defined else None %}
+          {% if photo %}
+            <img src="{{ url_for('main.uploaded_file', filename=photo) }}" alt="{{ u.name }}" class="trombi-photo">
           {% else %}
             <div class="trombi-photo placeholder">{{ (u.name or '?')[:1] }}</div>
           {% endif %}
@@ -30,8 +36,9 @@
   {% set st = status_map.get(u.id) if status_map is defined else None %}
   <div class="trombi-item trombi-click {% if st=='ancien' %}trombi-ancien{% endif %}" data-name="{{ u.name|e }}" data-role="" data-bio="{{ (u.biography or '')|replace('\n','&#10;')|e }}" data-email="{% if current_user.is_authenticated %}{{ u.email|e }}{% endif %}" data-phone="{% if current_user.is_authenticated %}{{ u.phone or '' }}{% endif %}">
         <div class="trombi-photo-wrapper mb-1 position-relative">
-          {% if u.photo_filename %}
-            <img src="/uploads/{{ u.photo_filename }}" alt="{{ u.name }}" class="trombi-photo">
+          {% set photo = photo_map.get(u.id) if photo_map is defined else None %}
+          {% if photo %}
+            <img src="{{ url_for('main.uploaded_file', filename=photo) }}" alt="{{ u.name }}" class="trombi-photo">
           {% else %}
             <div class="trombi-photo placeholder">{{ (u.name or '?')[:1] }}</div>
           {% endif %}

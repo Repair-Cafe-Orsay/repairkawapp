@@ -24,6 +24,7 @@ def client():
         db.session.add_all([u1, u2])
         db.session.commit()
         yield app.test_client()
+        db.session.remove()
         db.drop_all()
 
 

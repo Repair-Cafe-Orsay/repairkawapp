@@ -7,11 +7,13 @@ Auteur principal: Jean Senellart
 Nettoyage global : imports organisés, PEP8, docstrings, harmonisation du style.
 """
 
+import os
 from datetime import date
 
 import pytz
 from flask import Blueprint, Response, current_app, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from sqlalchemy import and_
 from werkzeug.security import generate_password_hash
 
 from . import db
@@ -24,9 +26,20 @@ from .models import (
     ObjectType,
     ObjectVariant,
     Repair,
+    RepairCafe,
     User,
+    user_repaircafe,
 )
 from .services.image_service import process_user_photo
+from .services.tenant_service import (
+    ensure_cafe_upload_folder,
+    get_cafe_upload_relative_path,
+    get_mail_sender,
+    get_user_cafe_photo,
+    is_cafe_admin,
+    require_active_repaircafe,
+    set_user_cafe_photo,
+)
 
 admin = Blueprint("admin", __name__)
 LOCAL_TIMEZONE = pytz.timezone("Europe/Paris")
@@ -36,12 +49,20 @@ LOCAL_TIMEZONE = pytz.timezone("Europe/Paris")
 @login_required
 def user_list():
     """Page principale d'administration (liste des réparateurs)."""
+    _admin_only()
+    cafe = require_active_repaircafe()
     email = request.args.get("email", None)
+    users_q = (
+        User.query.join(user_repaircafe)
+        .filter(user_repaircafe.c.repaircafe_id == cafe.id)
+        .order_by(User.last_membership.desc())
+        .order_by(User.name)
+    )
     return render_template(
         "user_list.html",
         name=current_user.name,
         filter_email=email,
-        users=User.query.order_by(User.last_membership.desc()).order_by(User.name).all(),
+        users=users_q.all(),
     )
 
 
@@ -49,7 +70,13 @@ def user_list():
 @login_required
 def users_download():
     _admin_only()
-    users = User.query.order_by(User.name.asc()).all()
+    cafe = require_active_repaircafe()
+    users = (
+        User.query.join(user_repaircafe)
+        .filter(user_repaircafe.c.repaircafe_id == cafe.id)
+        .order_by(User.name.asc())
+        .all()
+    )
     import csv
     import io
 
@@ -71,7 +98,7 @@ def users_download():
     for u in users:
         last_conn = u.last_connection.isoformat().replace("T", " ") if u.last_connection else ""
         membership = (
-            f"{u.last_membership}-{u.last_membership+1}" if u.last_membership is not None else ""
+            f"{u.last_membership}-{u.last_membership + 1}" if u.last_membership is not None else ""
         )
         writer.writerow(
             [
@@ -98,38 +125,241 @@ def users_download():
 
 
 def _admin_only():
-    if not current_user.admin:
+    cafe = require_active_repaircafe()
+    if not is_cafe_admin(current_user, cafe.id):
         from flask import abort
 
         abort(403)
 
 
+def _super_admin_only():
+    if not getattr(current_user, "super_admin", False):
+        from flask import abort
+
+        abort(403)
+
+
+def _slugify(name: str) -> str:
+    """Create a URL-safe slug from a name."""
+    import re
+    import unicodedata
+
+    value = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
+    value = re.sub(r"[^a-zA-Z0-9]+", "-", value).strip("-").lower()
+    return value or "repaircafe"
+
+
+@admin.route("/admin/repaircafes", methods=["GET", "POST"])
+@login_required
+def repaircafe_list():
+    """Super admin view to manage Repair Cafes."""
+    _super_admin_only()
+    creation_error = None
+    admin_error = None
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "add_admin":
+            cafe_id = request.form.get("cafe_id")
+            admin_email = (request.form.get("admin_email") or "").strip().lower()
+            if not cafe_id or not admin_email:
+                admin_error = "Email admin obligatoire."
+            else:
+                cafe = RepairCafe.query.filter_by(id=int(cafe_id)).first()
+                admin_user = User.query.filter_by(email=admin_email).first()
+                if not cafe or not admin_user:
+                    admin_error = "Réparateur introuvable."
+                else:
+                    update_res = db.session.execute(
+                        user_repaircafe.update()
+                        .where(
+                            and_(
+                                user_repaircafe.c.user_id == admin_user.id,
+                                user_repaircafe.c.repaircafe_id == cafe.id,
+                            )
+                        )
+                        .values(role="admin")
+                    )
+                    if not update_res.rowcount:
+                        db.session.execute(
+                            user_repaircafe.insert().values(
+                                user_id=admin_user.id,
+                                repaircafe_id=cafe.id,
+                                role="admin",
+                            )
+                        )
+                    admin_user.admin = True
+                    if not admin_user.active_repaircafe_id:
+                        admin_user.active_repaircafe_id = cafe.id
+                    db.session.commit()
+                    return redirect(url_for("admin.repaircafe_list"))
+        else:
+            name = (request.form.get("name") or "").strip()
+            slug = (request.form.get("slug") or "").strip()
+            code = (request.form.get("code") or "").strip().lower()
+            email = (request.form.get("email") or "").strip() or None
+            website_url = (request.form.get("website_url") or "").strip() or None
+            if not name or not code:
+                creation_error = "Nom et code obligatoires."
+            else:
+                if not slug:
+                    slug = _slugify(name)
+                exists = RepairCafe.query.filter(
+                    (RepairCafe.name == name)
+                    | (RepairCafe.slug == slug)
+                    | (RepairCafe.code == code)
+                ).first()
+                if exists:
+                    creation_error = "Nom ou slug déjà utilisé."
+                else:
+                    db.session.add(
+                        RepairCafe(
+                            name=name,
+                            slug=slug,
+                            code=code,
+                            email=email,
+                            website_url=website_url,
+                        )
+                    )
+                    db.session.commit()
+                    return redirect(url_for("admin.repaircafe_list"))
+
+    cafes = RepairCafe.query.order_by(RepairCafe.name.asc()).all()
+    from datetime import date as _date
+
+    today = _date.today()
+    start_year = today.year if today.month >= 9 else today.year - 1
+    academic_start = _date(start_year, 9, 1)
+    cafe_rows = []
+    for cafe in cafes:
+        admins = (
+            db.session.query(User)
+            .join(user_repaircafe)
+            .filter(user_repaircafe.c.repaircafe_id == cafe.id)
+            .filter(user_repaircafe.c.role == "admin")
+            .order_by(User.name.asc())
+            .all()
+        )
+        repairer_count = (
+            db.session.query(user_repaircafe.c.user_id)
+            .filter(user_repaircafe.c.repaircafe_id == cafe.id)
+            .count()
+        )
+        total_repairs = db.session.query(Repair).filter(Repair.repaircafe_id == cafe.id).count()
+        academic_repairs = (
+            db.session.query(Repair)
+            .filter(Repair.repaircafe_id == cafe.id)
+            .filter(Repair.created >= academic_start)
+            .count()
+        )
+        cafe_rows.append(
+            {
+                "cafe": cafe,
+                "admins": admins,
+                "repairer_count": repairer_count,
+                "total_repairs": total_repairs,
+                "academic_repairs": academic_repairs,
+            }
+        )
+    return render_template(
+        "admin_repaircafes.html",
+        name=current_user.name,
+        cafes=cafe_rows,
+        creation_error=creation_error,
+        admin_error=admin_error,
+    )
+
+
+@admin.route("/admin/repaircafes/<int:cafe_id>/reset_admin/<int:user_id>", methods=["POST"])
+@login_required
+def repaircafe_reset_admin(cafe_id: int, user_id: int):
+    """Send a password reset email for a cafe admin user."""
+    _super_admin_only()
+    cafe = RepairCafe.query.filter_by(id=cafe_id).first()
+    admin_user = (
+        db.session.query(User)
+        .join(user_repaircafe)
+        .filter(User.id == user_id)
+        .filter(user_repaircafe.c.repaircafe_id == cafe_id)
+        .filter(user_repaircafe.c.role == "admin")
+        .first()
+    )
+    if not admin_user:
+        return redirect(url_for("admin.repaircafe_list"))
+    try:
+        import time
+
+        from flask_mail import Message
+
+        from . import mail, serializer
+
+        data = {"i": str(admin_user.id), "s": admin_user.seqid, "t": int(time.time() / 3600)}
+        token = serializer.dumps(data)
+        reset_url = url_for("auth.init_password", token=token)
+        sender = get_mail_sender(cafe)
+        msg = Message(
+            "Réinitialisation du mot de passe",
+            sender=sender,
+            recipients=[admin_user.email],
+        )
+        msg.body = (
+            "Bonjour,\n\n"
+            "Un super admin a demandé la réinitialisation de votre mot de passe. "
+            "Pour le changer, utilisez ce lien:\n"
+            f"{current_app.config['APP_URL']}{reset_url}\n"
+        )
+        mail.send(msg)
+    except Exception:
+        pass
+    return redirect(url_for("admin.repaircafe_list"))
+
+
 @admin.route("/admin/settings", methods=["GET", "POST"])
 @login_required
 def settings_page():
-    _admin_only()
+    is_super_admin = getattr(current_user, "super_admin", False)
+    if not is_super_admin:
+        _admin_only()
+    cafe = require_active_repaircafe() if not is_super_admin else None
     setting = db.session.get(AppSetting, 1)
     if not setting:
         setting = AppSetting(id=1, maintenance_mode=False)
         db.session.add(setting)
         db.session.commit()
     if request.method == "POST":
-        setting.maintenance_mode = bool(request.form.get("maintenance_mode"))
-        # Parse datetime-local
-        dt_raw = request.form.get("maintenance_until") or ""
-        from datetime import datetime
+        action = request.form.get("action")
+        if action == "maintenance" and is_super_admin:
+            setting.maintenance_mode = bool(request.form.get("maintenance_mode"))
+            # Parse datetime-local
+            dt_raw = request.form.get("maintenance_until") or ""
+            from datetime import datetime
 
-        if dt_raw:
-            try:
-                # Parse browser local datetime (naive) et stocke tel quel.
-                setting.maintenance_until = datetime.strptime(dt_raw, "%Y-%m-%dT%H:%M")
-            except ValueError:
-                pass
-        else:
-            setting.maintenance_until = None
+            if dt_raw:
+                try:
+                    # Parse browser local datetime (naive) et stocke tel quel.
+                    setting.maintenance_until = datetime.strptime(dt_raw, "%Y-%m-%dT%H:%M")
+                except ValueError:
+                    pass
+            else:
+                setting.maintenance_until = None
+        if action == "logo" and cafe and "logo" in request.files and request.files["logo"].filename:
+            from werkzeug.utils import secure_filename
+
+            filename = secure_filename(request.files["logo"].filename)
+            if filename:
+                upload_dir = ensure_cafe_upload_folder(current_app.config["UPLOAD_FOLDER"], cafe)
+                stored_name = get_cafe_upload_relative_path(cafe, filename)
+                dest = os.path.join(upload_dir, filename)
+                request.files["logo"].save(dest)
+                cafe.logo_filename = stored_name
         db.session.commit()
         return redirect(url_for("admin.settings_page"))
-    return render_template("admin_settings.html", setting=setting, name=current_user.name)
+    return render_template(
+        "admin_settings.html",
+        setting=setting,
+        name=current_user.name,
+        active_cafe=cafe,
+        can_manage_maintenance=is_super_admin,
+    )
 
 
 @admin.route("/admin/objecttypes", methods=["GET", "POST"])
@@ -414,7 +644,15 @@ def _subscription_target_start(today: date) -> int:
 @login_required
 def user_edit(user_id):
     """Edition d'un réparateur (admin)."""
-    u = db.session.query(User).filter_by(id=user_id).first()
+    _admin_only()
+    cafe = require_active_repaircafe()
+    u = (
+        db.session.query(User)
+        .join(user_repaircafe)
+        .filter(User.id == user_id)
+        .filter(user_repaircafe.c.repaircafe_id == cafe.id)
+        .first()
+    )
     photo_error = None
     password_error = None
     if request.method == "POST":
@@ -491,16 +729,39 @@ def user_edit(user_id):
         # Upload photo (admin) même logique que profil réparateur
         if "photo" in request.files and request.files["photo"].filename:
             raw = request.files["photo"].read()
-            filename, err = process_user_photo(
-                raw, current_app.config["UPLOAD_FOLDER"], u.id, request.form.get
-            )
+            upload_dir = ensure_cafe_upload_folder(current_app.config["UPLOAD_FOLDER"], cafe)
+            filename, err = process_user_photo(raw, upload_dir, u.id, request.form.get)
             if err:
                 photo_error = err
             else:
-                u.photo_filename = filename
+                set_user_cafe_photo(
+                    u.id,
+                    cafe.id,
+                    get_cafe_upload_relative_path(cafe, filename),
+                )
 
         # Conversion explicite en booléen pour éviter les valeurs '' dans la colonne Boolean
-        u.admin = True if request.form.get("admin") else False
+        is_admin = True if request.form.get("admin") else False
+        u.admin = is_admin
+        # Sync per-cafe admin role
+        update_res = db.session.execute(
+            user_repaircafe.update()
+            .where(
+                and_(
+                    user_repaircafe.c.user_id == u.id,
+                    user_repaircafe.c.repaircafe_id == cafe.id,
+                )
+            )
+            .values(role="admin" if is_admin else None)
+        )
+        if not update_res.rowcount:
+            db.session.execute(
+                user_repaircafe.insert().values(
+                    user_id=u.id,
+                    repaircafe_id=cafe.id,
+                    role="admin" if is_admin else None,
+                )
+            )
         u.visibility_public_trombi = True if request.form.get("visibility_public_trombi") else False
         # Founder: seul un fondateur peut modifier ce flag
         if current_user.founder:
@@ -538,6 +799,7 @@ def user_edit(user_id):
             role_logs=role_logs,
             photo_error=photo_error,
             password_error=password_error,
+            photo_filename=get_user_cafe_photo(u.id, cafe.id),
         )
     else:
         logs = (
@@ -564,6 +826,7 @@ def user_edit(user_id):
         role_logs=role_logs,
         photo_error=photo_error,
         password_error=password_error,
+        photo_filename=get_user_cafe_photo(u.id, cafe.id),
     )
 
 
@@ -571,6 +834,8 @@ def user_edit(user_id):
 @login_required
 def user_new():
     """Création d'un nouveau réparateur (admin)."""
+    _admin_only()
+    cafe = require_active_repaircafe()
     user_exists = (
         request.method == "POST"
         and db.session.query(User).filter_by(email=request.form.get("email")).count() != 0
@@ -585,7 +850,18 @@ def user_new():
                 u.last_membership = int(request.form.get("last_membership"))
             except ValueError:
                 pass
-        u.admin = True if request.form.get("admin") else False
+        is_admin = True if request.form.get("admin") else False
+        u.admin = is_admin
+        db.session.commit()
+        db.session.execute(
+            user_repaircafe.insert().values(
+                user_id=u.id,
+                repaircafe_id=cafe.id,
+                role="admin" if is_admin else None,
+            )
+        )
+        if not u.active_repaircafe_id:
+            u.active_repaircafe_id = cafe.id
         db.session.commit()
         # Redirection sans filtre email pour afficher la liste complète
         return redirect(url_for("admin.user_list"), code=302)

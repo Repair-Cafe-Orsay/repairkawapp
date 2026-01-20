@@ -34,7 +34,7 @@ def get_cached_lists(session: Session, cache_categories: list, cache_status: lis
             cache_status.append(s.label[0])
 
 
-def compute_stats(session: Session, date_from: date, date_to: date):
+def compute_stats(session: Session, date_from: date, date_to: date, repaircafe_id=None):
     repairs_status = (
         session.query(
             func.count(Repair.close_status_id),
@@ -45,6 +45,8 @@ def compute_stats(session: Session, date_from: date, date_to: date):
         .filter(Repair.created >= date_from)
         .filter(Repair.created <= date_to)
     )
+    if repaircafe_id is not None:
+        repairs_status = repairs_status.filter(Repair.repaircafe_id == repaircafe_id)
     all_repairs_close_status = repairs_status.group_by(Repair.close_status_id).all()
 
     repairs_category = (
@@ -53,30 +55,42 @@ def compute_stats(session: Session, date_from: date, date_to: date):
         .filter(Repair.created >= date_from)
         .filter(Repair.created <= date_to)
     )
+    if repaircafe_id is not None:
+        repairs_category = repairs_category.filter(Repair.repaircafe_id == repaircafe_id)
     all_repairs_category = repairs_category.group_by(Category.id).all()
 
-    visitors = (
+    visitors_query = (
         session.query(func.count(distinct(Repair.email)))
         .filter(Repair.created >= date_from)
         .filter(Repair.created <= date_to)
-        .all()[0][0]
     )
+    if repaircafe_id is not None:
+        visitors_query = visitors_query.filter(Repair.repaircafe_id == repaircafe_id)
+    visitors = visitors_query.all()[0][0]
 
     total = sum(count for count, _, _ in all_repairs_close_status)
     # Nombre de séances ouvertes (opened_at) dont l'ouverture dans la période
-    total_sessions = (
+    total_sessions_query = (
         session.query(func.count(RepairSession.id))
         .filter(RepairSession.opened_at >= date_from)
         .filter(RepairSession.opened_at <= date_to)
-        .scalar()
     )
+    if repaircafe_id is not None:
+        total_sessions_query = total_sessions_query.filter(
+            RepairSession.repaircafe_id == repaircafe_id
+        )
+    total_sessions = total_sessions_query.scalar()
     # Top 20 des types d'objet structurés (ignore legacy otype texte)
-    object_types_top = (
+    object_types_query = (
         session.query(ObjectType.name, func.count(Repair.id))
         .join(Repair, Repair.object_type_id == ObjectType.id)
         .filter(Repair.created >= date_from)
         .filter(Repair.created <= date_to)
-        .group_by(ObjectType.id)
+    )
+    if repaircafe_id is not None:
+        object_types_query = object_types_query.filter(Repair.repaircafe_id == repaircafe_id)
+    object_types_top = (
+        object_types_query.group_by(ObjectType.id)
         .order_by(func.count(Repair.id).desc())
         .limit(20)
         .all()

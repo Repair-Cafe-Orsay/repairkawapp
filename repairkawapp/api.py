@@ -45,6 +45,14 @@ from .services.session_service import (
 )
 from .services.spare_service import add_spare, delete_spare
 from .services.stats_service import compute_stats, get_cached_lists, parse_period
+from .services.tenant_service import (
+    ensure_cafe_upload_folder,
+    get_cafe_upload_relative_path,
+    get_mail_sender,
+    get_upload_prefix,
+    is_cafe_admin,
+    require_active_repaircafe,
+)
 
 try:  # mail peut ne pas être configuré en tests
     from flask_mail import Message as MailMessage
@@ -52,6 +60,11 @@ except Exception:  # pragma: no cover
     MailMessage = None  # type: ignore
 
 api = Blueprint("api", __name__)
+
+
+def _active_cafe():
+    """Return the active RepairCafe for request-scoped filtering."""
+    return require_active_repaircafe()
 
 
 def allowed_file(filename):
@@ -126,10 +139,16 @@ def api_brands():
 @login_required
 def del_file(repair_id, path):
     """Suppression d'une image attachée à une réparation."""
-    filename = os.path.join(current_app.config["UPLOAD_FOLDER"], path)
+    active_cafe = _active_cafe()
+    upload_root = current_app.config["UPLOAD_FOLDER"]
+    prefix = get_upload_prefix(active_cafe)
+    rel_path = path
+    if prefix and not path.startswith(prefix + "/"):
+        return jsonify(False), 403
+    filename = os.path.join(upload_root, rel_path)
     if os.path.exists(filename):
         os.remove(filename)
-    fileprefix = ".".join(path.split(".")[:-1])
+    fileprefix = ".".join(rel_path.split(".")[:-1])
     for f in glob.glob(
         os.path.join(current_app.config["THUMBNAIL_MEDIA_THUMBNAIL_ROOT"], fileprefix + "*.*")
     ):
@@ -141,17 +160,17 @@ def del_file(repair_id, path):
 @login_required
 def post_file(repair_id):
     r"""post an image"""
+    active_cafe = _active_cafe()
     file = request.files.get("file")
     if file:
         if allowed_file(file.filename):
-            filename = os.path.join(
-                current_app.config["UPLOAD_FOLDER"],
-                repair_id + "_" + secure_filename(file.filename),
-            )
+            stored_filename = repair_id + "_" + secure_filename(file.filename)
+            upload_dir = ensure_cafe_upload_folder(current_app.config["UPLOAD_FOLDER"], active_cafe)
+            filename = os.path.join(upload_dir, stored_filename)
             if os.path.exists(filename):
                 return jsonify("existing file"), 409
             file.save(filename)
-            return jsonify(filename.split("/")[-1])
+            return jsonify(get_cafe_upload_relative_path(active_cafe, stored_filename))
         else:
             return jsonify("unauthorized file"), 403
     return jsonify(None)
@@ -160,11 +179,15 @@ def post_file(repair_id):
 @api.route("/api/add_todo")
 def add_todo():
     r"""add a notification"""
+    active_cafe = _active_cafe()
     note_id = request.args.get("note_id")
     if not note_id:
         return jsonify(False), 500
     existing_notification = (
-        Notification.query.filter_by(note_id=note_id).filter_by(user_id=current_user.id).count()
+        Notification.query.filter_by(note_id=note_id)
+        .filter_by(user_id=current_user.id)
+        .filter(Notification.repaircafe_id == active_cafe.id)
+        .count()
     )
     if existing_notification:
         return jsonify(False), 500
@@ -172,6 +195,7 @@ def add_todo():
     notification = Notification(
         note_id=note_id,
         user_id=current_user.id,
+        repaircafe_id=active_cafe.id,
         notification_type=NotificationType.todo,
     )
     db.session.add(notification)
@@ -183,8 +207,11 @@ def add_todo():
 @api.route("/api/del_notification")
 def del_notification():
     r"""remove a notification"""
+    active_cafe = _active_cafe()
     notification_id = request.args.get("notification_id")
-    Notification.query.filter_by(id=notification_id).delete()
+    Notification.query.filter_by(id=notification_id).filter(
+        Notification.repaircafe_id == active_cafe.id
+    ).delete()
     db.session.commit()
 
     return jsonify(None)
@@ -197,8 +224,12 @@ def get_notifs():
 
     Nécessaire pour les appels AJAX dans base.html (bouton notifications).
     """
+    active_cafe = _active_cafe()
     notifs = (
-        Notification.query.filter_by(user_id=current_user.id).order_by(Notification.id.desc()).all()
+        Notification.query.filter_by(user_id=current_user.id)
+        .filter(Notification.repaircafe_id == active_cafe.id)
+        .order_by(Notification.id.desc())
+        .all()
     )
     return render_template("notif_list.html", notifs=notifs)
 
@@ -210,8 +241,12 @@ def notifs_debug():
 
     Fournit: count, entries (id, note_id, has_note, has_repair, repair_display_id, content_preview).
     """
+    active_cafe = _active_cafe()
     rows = (
-        Notification.query.filter_by(user_id=current_user.id).order_by(Notification.id.desc()).all()
+        Notification.query.filter_by(user_id=current_user.id)
+        .filter(Notification.repaircafe_id == active_cafe.id)
+        .order_by(Notification.id.desc())
+        .all()
     )
     out = []
     for n in rows:
@@ -267,7 +302,8 @@ def api_messages_list():
     """
     box = request.args.get("box")
     limit = min(int(request.args.get("limit", 100)), 500)
-    q = db.session.query(MessageModel)
+    active_cafe = _active_cafe()
+    q = db.session.query(MessageModel).filter(MessageModel.repaircafe_id == active_cafe.id)
     if box == "out":
         q = q.filter(
             MessageModel.sender_id == current_user.id, MessageModel.deleted_sender.is_(False)
@@ -307,11 +343,21 @@ def api_repair_messages(repair_id: int):
     Sécurité minimale: accès seulement si l'utilisateur peut voir la fiche (actuellement: connecté).
     TODO (éventuel): restreindre aux réparateurs impliqués / staff.
     """
-    repair = db.session.query(Repair).filter_by(id=repair_id).first()
+    active_cafe = _active_cafe()
+    repair = (
+        db.session.query(Repair)
+        .filter_by(id=repair_id)
+        .filter(Repair.repaircafe_id == active_cafe.id)
+        .first()
+    )
     if not repair:
         return jsonify({"error": "repair_not_found"}), 404
     limit = min(int(request.args.get("limit", 200)), 500)
-    q = db.session.query(MessageModel).filter(MessageModel.repair_id == repair_id)
+    q = (
+        db.session.query(MessageModel)
+        .filter(MessageModel.repair_id == repair_id)
+        .filter(MessageModel.repaircafe_id == active_cafe.id)
+    )
     # Exclure les messages que l'utilisateur a « supprimés » de sa vue (soft delete)
     from sqlalchemy import and_, or_
 
@@ -340,11 +386,13 @@ def api_repair_messages(repair_id: int):
 @login_required
 def api_messages_unread():
     """Liste des messages non lus (inbox) limités à 100."""
+    active_cafe = _active_cafe()
     q = (
         db.session.query(MessageModel)
         .filter(MessageModel.recipient_id == current_user.id)
         .filter(MessageModel.deleted_recipient.is_(False))
         .filter(MessageModel.read_at.is_(None))
+        .filter(MessageModel.repaircafe_id == active_cafe.id)
         .order_by(MessageModel.created_at.desc())
         .limit(100)
     )
@@ -354,11 +402,13 @@ def api_messages_unread():
 @api.route("/api/messages/unread_count", methods=["GET"])
 @login_required
 def api_messages_unread_count():
+    active_cafe = _active_cafe()
     count = (
         db.session.query(MessageModel)
         .filter(MessageModel.recipient_id == current_user.id)
         .filter(MessageModel.deleted_recipient.is_(False))
         .filter(MessageModel.read_at.is_(None))
+        .filter(MessageModel.repaircafe_id == active_cafe.id)
         .count()
     )
     return jsonify(count)
@@ -376,6 +426,7 @@ def api_messages_create():
       repair_id / note_id (optionnels contexte)
     Note: l'expéditeur peut être le destinataire (auto-message) – utile pour tests / brouillons.
     """
+    active_cafe = _active_cafe()
     payload = request.get_json(silent=True) or request.form
     try:
         recipient_id = int(payload.get("recipient_id"))
@@ -403,6 +454,15 @@ def api_messages_create():
         note_id = int(note_id) if note_id is not None else None
     except Exception:
         note_id = None
+    if repair_id is not None:
+        repair = (
+            db.session.query(Repair)
+            .filter_by(id=repair_id)
+            .filter(Repair.repaircafe_id == active_cafe.id)
+            .first()
+        )
+        if not repair:
+            return jsonify({"error": "repair_not_found"}), 404
     m = MessageModel(
         sender_id=current_user.id,
         recipient_id=recipient_id,
@@ -411,6 +471,7 @@ def api_messages_create():
         repair_id=repair_id,
         note_id=note_id,
     )
+    m.repaircafe_id = active_cafe.id
     db.session.add(m)
     db.session.commit()
     return jsonify(_serialize_message(m, current_user.id)), 201
@@ -419,7 +480,13 @@ def api_messages_create():
 @api.route("/api/messages/<int:msg_id>", methods=["GET"])
 @login_required
 def api_messages_detail(msg_id: int):
-    m = db.session.query(MessageModel).filter_by(id=msg_id).first()
+    active_cafe = _active_cafe()
+    m = (
+        db.session.query(MessageModel)
+        .filter_by(id=msg_id)
+        .filter(MessageModel.repaircafe_id == active_cafe.id)
+        .first()
+    )
     if not m:
         return jsonify({"error": "not_found"}), 404
     if m.sender_id != current_user.id and m.recipient_id != current_user.id:
@@ -434,7 +501,13 @@ def api_messages_detail(msg_id: int):
 @api.route("/api/messages/<int:msg_id>/read", methods=["POST"])
 @login_required
 def api_messages_mark_read(msg_id: int):
-    m = db.session.query(MessageModel).filter_by(id=msg_id).first()
+    active_cafe = _active_cafe()
+    m = (
+        db.session.query(MessageModel)
+        .filter_by(id=msg_id)
+        .filter(MessageModel.repaircafe_id == active_cafe.id)
+        .first()
+    )
     if not m:
         return jsonify({"error": "not_found"}), 404
     if m.recipient_id != current_user.id:
@@ -448,7 +521,13 @@ def api_messages_mark_read(msg_id: int):
 @api.route("/api/messages/<int:msg_id>", methods=["DELETE"])
 @login_required
 def api_messages_delete(msg_id: int):
-    m = db.session.query(MessageModel).filter_by(id=msg_id).first()
+    active_cafe = _active_cafe()
+    m = (
+        db.session.query(MessageModel)
+        .filter_by(id=msg_id)
+        .filter(MessageModel.repaircafe_id == active_cafe.id)
+        .first()
+    )
     if not m:
         return jsonify({"error": "not_found"}), 404
     if m.sender_id != current_user.id and m.recipient_id != current_user.id:
@@ -470,7 +549,13 @@ def api_messages_toggle_unread(msg_id: int):
     unread=true force read_at=NULL (revient dans le compteur).
     unread=false marque comme lu (si pas déjà lu).
     """
-    m = db.session.query(MessageModel).filter_by(id=msg_id).first()
+    active_cafe = _active_cafe()
+    m = (
+        db.session.query(MessageModel)
+        .filter_by(id=msg_id)
+        .filter(MessageModel.repaircafe_id == active_cafe.id)
+        .first()
+    )
     if not m:
         return jsonify({"error": "not_found"}), 404
     if m.recipient_id != current_user.id:
@@ -495,8 +580,12 @@ def api_users_simple():
 
     Paramètre optionnel q (préfixe insensible) limite 50.
     """
+    active_cafe = _active_cafe()
+    from .models import user_repaircafe
+
     q = (request.args.get("q") or "").strip()
-    query = db.session.query(User)
+    query = db.session.query(User).join(user_repaircafe)
+    query = query.filter(user_repaircafe.c.repaircafe_id == active_cafe.id)
     if q:
         like = f"{q}%"
         query = query.filter(User.name.like(like))
@@ -511,17 +600,23 @@ def get_notifcount():
 
     Utilisé par le JS pour afficher/masquer le badge de notification.
     """
-    count = Notification.query.filter_by(user_id=current_user.id).count()
+    active_cafe = _active_cafe()
+    count = (
+        Notification.query.filter_by(user_id=current_user.id)
+        .filter(Notification.repaircafe_id == active_cafe.id)
+        .count()
+    )
     return jsonify(count)
 
 
 @api.route("/api/repairsearch")
 def repairsearch():
     r"""Recherche paginée des réparations."""
+    active_cafe = _active_cafe()
     length = request.args.get("length", current_app.config.get("PAGE_SIZE", 25), type=int)
     page = (request.args.get("start", 0, type=int) / length) + 1
     searchValue = request.args.get("search[value]")
-    repairs = Repair.query
+    repairs = Repair.query.filter(Repair.repaircafe_id == active_cafe.id)
     status = request.args.get("status")
     if status != "all":
         if status == "opened":
@@ -586,7 +681,9 @@ def repairsearch():
                 for r in repairs.items
             ],
             "draw": request.args.get("draw", 1, type=int),
-            "recordsTotal": db.session.query(Repair).count(),
+            "recordsTotal": db.session.query(Repair)
+            .filter(Repair.repaircafe_id == active_cafe.id)
+            .count(),
             "recordsFiltered": nbFiltered,
             "has_next": repairs.has_next,
             "has_prev": repairs.has_prev,
@@ -605,12 +702,13 @@ all_status = []
 @api.route("/api/stats")
 def stats():
     r"""API stats refactorisée via service."""
+    active_cafe = _active_cafe()
     date_from, date_to = parse_period(request.args.get("from"), request.args.get("to"))
     if not date_from:
         return {}
     global all_categories, all_status
     get_cached_lists(db.session, all_categories, all_status)
-    stats_raw = compute_stats(db.session, date_from, date_to)
+    stats_raw = compute_stats(db.session, date_from, date_to, repaircafe_id=active_cafe.id)
     return jsonify(
         {
             "from": date_from,
@@ -639,10 +737,13 @@ def stats():
 def sendmail():
     if not MailMessage:
         return jsonify({"error": "mail_not_configured"}), 503
+    active_cafe = _active_cafe()
+    sender = get_mail_sender(active_cafe)
+    recipients = [active_cafe.email] if active_cafe and active_cafe.email else [sender]
     msg = MailMessage(
         "Hello",
-        sender="app@repaircafe-orsay.org",
-        recipients=["jean@repaircafe-orsay.org"],
+        sender=sender,
+        recipients=recipients,
     )
     msg.body = "Hello Flask message sent from Flask-Mail"
     mail.send(msg)
@@ -656,6 +757,7 @@ def sendmail():
 @login_required
 def api_session_open():
     # Tout réparateur authentifié peut ouvrir une séance (owner = current_user)
+    active_cafe = _active_cafe()
     payload = request.get_json(silent=True) or {}
     location = payload.get("location") or request.form.get("location")
     opened_time = payload.get("opened_time") or request.form.get("opened_time")  # HH:MM locale
@@ -679,7 +781,12 @@ def api_session_open():
                 return jsonify({"error": "invalid opened_time"}), 400
         # Réutilisation rapide (contourne bug constaté dans service) : même lieu, ouverte, même jour
         if location and location.strip():
-            loc_obj = db.session.query(Location).filter_by(name=location.strip()).first()
+            loc_obj = (
+                db.session.query(Location)
+                .filter_by(name=location.strip())
+                .filter(Location.repaircafe_id == active_cafe.id)
+                .first()
+            )
             if loc_obj:
                 from .models import Session as SessionModel
 
@@ -687,6 +794,7 @@ def api_session_open():
                     db.session.query(SessionModel)
                     .filter(SessionModel.closed_at.is_(None))
                     .filter(SessionModel.location_id == loc_obj.id)
+                    .filter(SessionModel.repaircafe_id == active_cafe.id)
                     .order_by(SessionModel.opened_at.asc())
                     .first()
                 )
@@ -728,9 +836,11 @@ def api_session_past_create():
     if not getattr(current_user, "admin", False):
         return jsonify({"error": "forbidden"}), 403
     # Y a-t-il une séance ouverte ?
+    active_cafe = _active_cafe()
     opened = (
         db.session.query(SessionModel)
         .filter(SessionModel.closed_at.is_(None))
+        .filter(SessionModel.repaircafe_id == active_cafe.id)
         .order_by(SessionModel.opened_at.asc())
         .first()
     )
@@ -766,12 +876,19 @@ def api_session_past_create():
     # Création manuelle sans réutilisation logique open_session
     from .models import Location as Loc, Session as Sess
 
-    loc = db.session.query(Loc).filter_by(name=location).first()
+    active_cafe = _active_cafe()
+    loc = (
+        db.session.query(Loc)
+        .filter_by(name=location)
+        .filter(Loc.repaircafe_id == active_cafe.id)
+        .first()
+    )
     if not loc:
         loc = Loc(name=location)
+        loc.repaircafe = active_cafe
         db.session.add(loc)
         db.session.flush()
-    s = Sess(location=loc, owner_id=current_user.id, opened_at=opened_at)
+    s = Sess(location=loc, owner_id=current_user.id, opened_at=opened_at, repaircafe=active_cafe)
     s.participants.append(current_user)
     db.session.add(s)
     db.session.commit()
@@ -812,7 +929,8 @@ def api_session_close(session_id):
     if s.closed_at:
         current_app.logger.debug("close_session %s refused: already closed", session_id)
         return jsonify({"error": "already closed"}), 400
-    if current_user.id != s.owner_id and not current_user.admin:
+    active_cafe = _active_cafe()
+    if current_user.id != s.owner_id and not is_cafe_admin(current_user, active_cafe.id):
         current_app.logger.debug(
             "close_session %s forbidden user=%s owner=%s",
             session_id,
@@ -882,7 +1000,8 @@ def api_session_reopen(session_id):
         return jsonify(False), 404
     if not s.closed_at:
         return jsonify({"error": "not closed"}), 400
-    if current_user.id != s.owner_id and not current_user.admin:
+    active_cafe = _active_cafe()
+    if current_user.id != s.owner_id and not is_cafe_admin(current_user, active_cafe.id):
         return jsonify({"error": "forbidden"}), 403
     s = reopen_session(db.session, session_id)
     db.session.commit()
@@ -899,6 +1018,9 @@ def api_session_change_owner(session_id):
     s = db.session.query(SessionModel).filter_by(id=session_id).first()
     if not s:
         return jsonify(False), 404
+    active_cafe = _active_cafe()
+    if current_user.id != s.owner_id and not is_cafe_admin(current_user, active_cafe.id):
+        return jsonify({"error": "forbidden"}, 403)
     # seuls participants peuvent prendre la main
     s = change_session_owner(db.session, session_id, int(new_owner_id))
     if not s:
@@ -911,7 +1033,13 @@ def api_session_change_owner(session_id):
 @login_required
 def api_session_update(session_id):
     payload = request.get_json(silent=True) or request.form
-    s = db.session.query(SessionModel).filter_by(id=session_id).first()
+    active_cafe = _active_cafe()
+    s = (
+        db.session.query(SessionModel)
+        .filter_by(id=session_id)
+        .filter(SessionModel.repaircafe_id == active_cafe.id)
+        .first()
+    )
     if not s:
         return jsonify(False), 404
     if current_user.id != s.owner_id and not current_user.admin:
@@ -951,10 +1079,11 @@ def api_session_delete(session_id):
 @api.route("/api/sessions", methods=["GET"])
 @login_required
 def api_sessions_list():
+    active_cafe = _active_cafe()
     opened_only = request.args.get("opened") == "1"
     from .models import Session as SessionModel  # import tardif pour éviter cycle
 
-    sessions_q = db.session.query(SessionModel)
+    sessions_q = db.session.query(SessionModel).filter(SessionModel.repaircafe_id == active_cafe.id)
     if opened_only:
         sessions_q = sessions_q.filter(SessionModel.closed_at.is_(None))
     sessions = sessions_q.order_by(SessionModel.opened_at.desc()).limit(100).all()
@@ -978,8 +1107,9 @@ def api_sessions_list():
 @login_required
 def api_locations():
     """Liste (option filtrée) des lieux existants pour autocomplétion."""
+    active_cafe = _active_cafe()
     q = request.args.get("q")
-    query = db.session.query(Location)
+    query = db.session.query(Location).filter(Location.repaircafe_id == active_cafe.id)
     if q:
         like = f"{q}%"
         query = query.filter(Location.name.like(like))

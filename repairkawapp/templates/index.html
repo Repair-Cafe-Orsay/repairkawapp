@@ -52,7 +52,7 @@
     </table>
     <script>
       function ensureSessionFirstConfirm(callback) {
-        $.getJSON('/api/sessions?opened=1', function(data){
+        $.getJSON(apiUrl('/api/sessions?opened=1'), function(data){
           if (data.length === 0) {
             rkConfirm({
               title: 'Créer hors séance',
@@ -66,7 +66,7 @@
         });
       }
       $('#btn-new-repair').on('click', function(){
-        ensureSessionFirstConfirm(function(){ window.location = '/new'; });
+        ensureSessionFirstConfirm(function(){ window.location = pageUrl('/new'); });
       });
       $('#search-button').click(function(event){
         // Prevent redirection with AJAX for contact form
@@ -132,7 +132,7 @@
                                                          { data: 'name'}]});
             $('#search_result_id tbody').on( 'click', 'button', function () {
                   var data = search_table.row( $(this).parents('tr') ).data();
-                  window.location.href="/update/"+data.id;
+                  window.location.href=pageUrl("/update/"+data.id);
             })
             $('#search_user').change(function () {
                   search_table.ajax.reload()

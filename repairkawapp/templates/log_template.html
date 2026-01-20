@@ -8,7 +8,7 @@
                 {%- if p.lower().startswith('séance') and loop.index < parts|length -%}
                     {{ p }}
                 {%- elif p.startswith('#') and p[1:]|int(0) > 0 -%}
-                    <a href="/sessions/{{ p[1:]|int }}">{{ p }}</a>
+                    <a href="{{ url_for('main.session_detail', session_id=p[1:]|int) }}">{{ p }}</a>
                 {%- else -%}
                     {{ p }}
                 {%- endif -%}

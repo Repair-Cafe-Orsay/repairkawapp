@@ -3,7 +3,7 @@
 from flask_login import current_user
 from sqlalchemy.orm import Session
 
-from ..models import Log, SpareChange
+from ..models import Log, Repair, SpareChange
 
 
 def add_spare(
@@ -17,18 +17,21 @@ def add_spare(
 ):
     """Crée une pièce détachée et enregistre le log associé.
     Retourne (SpareChange, Log)."""
+    repair = session.query(Repair).filter_by(id=repair_id).first()
     sp = SpareChange(
         item=item,
         spare_status_id=status_id,
         source=source,
         note=note,
         repair_id=repair_id,
+        repaircafe_id=repair.repaircafe_id if repair else None,
     )
     session.add(sp)
     log = Log(
         user_id=current_user.id,
         content="Ajout d'une pièce détachée",
         repair_id=repair_id,
+        repaircafe_id=repair.repaircafe_id if repair else None,
     )
     session.add(log)
     return sp, log

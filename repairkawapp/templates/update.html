@@ -19,7 +19,7 @@
         <span class="badge bg-success">Séance actuelle</span>
       {% else %}
         Séance du {{ s.opened_at|local_dt }}{% if s.location %} @ {{ s.location.name }}{% endif %}
-        <a href="/sessions/{{ s.id }}" class="ms-2">(détail)</a>
+        <a href="{{ url_for('main.session_detail', session_id=s.id) }}" class="ms-2">(détail)</a>
       {% endif %}
     {% else %}
       <em>Créée hors séance</em>
@@ -366,7 +366,7 @@
   let usersCache = [];
   function loadRepairUsers(){
     if(usersCache.length) return Promise.resolve(usersCache);
-    return $.getJSON('/api/users/simple').then(function(data){ usersCache = data; return data; });
+    return $.getJSON(apiUrl('/api/users/simple')).then(function(data){ usersCache = data; return data; });
   }
   function fmtDate(iso){
     if(!iso) return '';
@@ -375,7 +375,7 @@
   }
   function refreshRepairMessages(){
     if(!repairInternalId || isNaN(repairInternalId)){ console.error('repairInternalId invalide', repairInternalId); return; }
-    $.getJSON('/api/repairs/'+repairInternalId+'/messages', function(rows){
+    $.getJSON(apiUrl('/api/repairs/'+repairInternalId+'/messages'), function(rows){
       const list = $('#repair-messages-list').empty();
   if(!rows.length){ list.append('<div class="text-muted">Aucun message.</div>'); $('#repair-msg-count').addClass('d-none').text(''); return; }
   const total = rows.length;
@@ -398,19 +398,19 @@
         if(isRecipient){
           if(unread){
             const btnLu = $('<button type="button" class="btn btn-sm btn-outline-primary">Lu</button>').on('click', function(){
-              $.post('/api/messages/'+m.id+'/read', function(){ refreshRepairMessages(); refresh_unread_messages_count && refresh_unread_messages_count(); });
+              $.post(apiUrl('/api/messages/'+m.id+'/read'), function(){ refreshRepairMessages(); refresh_unread_messages_count && refresh_unread_messages_count(); });
             });
             actions.append(btnLu);
           } else {
             const btnActif = $('<button type="button" class="btn btn-sm btn-outline-secondary">Actif</button>').on('click', function(){
-              $.ajax({type:'POST', url:'/api/messages/'+m.id+'/unread', contentType:'application/json', data: JSON.stringify({unread:true}), success:function(){ refreshRepairMessages(); refresh_unread_messages_count && refresh_unread_messages_count(); }});
+              $.ajax({type:'POST', url: apiUrl('/api/messages/'+m.id+'/unread'), contentType:'application/json', data: JSON.stringify({unread:true}), success:function(){ refreshRepairMessages(); refresh_unread_messages_count && refresh_unread_messages_count(); }});
             });
             actions.append(btnActif);
           }
         }
         if(isRecipient || isSender){
           const btnDel = $('<button type="button" class="btn btn-sm btn-outline-danger">Remove</button>').on('click', function(){
-            $.ajax({type:'DELETE', url:'/api/messages/'+m.id, success:function(){ refreshRepairMessages(); refresh_unread_messages_count && refresh_unread_messages_count(); }});
+            $.ajax({type:'DELETE', url: apiUrl('/api/messages/'+m.id), success:function(){ refreshRepairMessages(); refresh_unread_messages_count && refresh_unread_messages_count(); }});
           });
           actions.append(btnDel);
         }
@@ -449,7 +449,7 @@
        repair_id: repairInternalId
      };
      $('#repair_msg_error').hide();
-     $.ajax({type:'POST', url:'/api/messages', contentType:'application/json', data: JSON.stringify(payload), success:function(){
+    $.ajax({type:'POST', url: apiUrl('/api/messages'), contentType:'application/json', data: JSON.stringify(payload), success:function(){
         $('#repair_msg_subject').val(''); $('#repair_msg_body').val(''); $('#repair_msg_body_counter').text('0/250'); $('#repair-message-form').addClass('d-none'); refreshRepairMessages();
      }, error:function(xhr){ const js = xhr.responseJSON||{}; $('#repair_msg_error').text(js.error||'Erreur').show(); }});
   });

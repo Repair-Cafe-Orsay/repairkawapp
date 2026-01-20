@@ -4,7 +4,7 @@ import pytest
 from werkzeug.security import generate_password_hash
 
 from repairkawapp import create_app, db
-from repairkawapp.models import AppSetting, User
+from repairkawapp.models import AppSetting, RepairCafe, User, user_repaircafe
 
 
 @pytest.fixture
@@ -22,6 +22,7 @@ def app():
     with app.app_context():
         db.create_all()
         yield app
+        db.session.remove()
         db.drop_all()
 
 
@@ -33,9 +34,22 @@ def client(app):
 @pytest.fixture
 def admin_user(app):
     with app.app_context():
-        u = User(email="admin@example.org", name="Admin User", admin=True)
+        u = User(email="admin@example.org", name="Admin User", admin=True, super_admin=True)
         u.password = generate_password_hash("password")
         db.session.add(u)
+        cafe = RepairCafe.query.first()
+        if not cafe:
+            cafe = RepairCafe(name="Repair Café Orsay", slug="repaircafe-orsay", code="rco")
+            db.session.add(cafe)
+            db.session.commit()
+        db.session.execute(
+            user_repaircafe.insert().values(
+                user_id=u.id,
+                repaircafe_id=cafe.id,
+                role="admin",
+            )
+        )
+        u.active_repaircafe_id = cafe.id
         db.session.commit()
         # On retourne l'ID pour éviter objet détaché
         return u.id
@@ -66,6 +80,7 @@ def test_settings_page_toggle_maintenance(client, admin_user, app):
     resp3 = client.post(
         "/admin/settings",
         data={
+            "action": "maintenance",
             "maintenance_mode": "1",
             "maintenance_until": future_local,
         },
@@ -105,7 +120,24 @@ def test_settings_page_toggle_maintenance(client, admin_user, app):
 
 def test_settings_link_in_menu(client, admin_user, app):
     with app.app_context():
-        admin_email = db.session.get(User, admin_user).email
+        local_admin = User(email="local-admin@example.org", name="Local Admin", admin=True)
+        local_admin.password = generate_password_hash("password")
+        db.session.add(local_admin)
+        cafe = RepairCafe.query.first()
+        if not cafe:
+            cafe = RepairCafe(name="Repair Café Orsay", slug="repaircafe-orsay", code="rco")
+            db.session.add(cafe)
+            db.session.commit()
+        db.session.execute(
+            user_repaircafe.insert().values(
+                user_id=local_admin.id,
+                repaircafe_id=cafe.id,
+                role="admin",
+            )
+        )
+        local_admin.active_repaircafe_id = cafe.id
+        db.session.commit()
+        admin_email = local_admin.email
     login(client, admin_email, "password")
     resp = client.get("/")
     assert resp.status_code == 200

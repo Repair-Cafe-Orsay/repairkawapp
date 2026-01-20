@@ -305,7 +305,7 @@
       }
   function resetSubtypes(){ subtypeSel.prop('disabled', true).removeAttr('required').val('').html('<option value="">—</option>'); updateHelp(); }
       function loadSubtypes(ot_id){
-        $.getJSON('/api/objecttype/'+ot_id, function(data){
+        $.getJSON(apiUrl('/api/objecttype/'+ot_id), function(data){
           var list = data.subtypes||[];
           var opts = '<option value="">—</option>';
           list.forEach(function(st){ opts += '<option value="'+st.id+'">'+st.name+'</option>'; });
@@ -323,7 +323,7 @@
         debounceTimer = setTimeout(function(){
           if(q.length<2){ clearResults(); return; }
           if(pendingReq) pendingReq.abort();
-          pendingReq = $.ajax({url:'/api/objecttypes', data:{q:q}, dataType:'json'})
+          pendingReq = $.ajax({url: apiUrl('/api/objecttypes'), data:{q:q}, dataType:'json'})
             .done(function(list){
               results.empty();
               if(!list.length){ clearResults(); return; }
@@ -550,7 +550,7 @@
       // Si création (pas edit) et aucune séance ouverte -> confirmation supplémentaire
       if(!isEdit){
         return new Promise(function(resolve){
-          $.getJSON('/api/sessions?opened=1', function(data){
+          $.getJSON(apiUrl('/api/sessions?opened=1'), function(data){
             if(data.length===0){
               rkConfirm({
                 title: 'Créer hors séance',
@@ -614,7 +614,7 @@
     }
     function load(filter){
       var q = (filter||'').trim();
-      $.getJSON('/api/brands'+(q?('?q='+encodeURIComponent(q)):'') , function(data){
+      $.getJSON(apiUrl('/api/brands'+(q?('?q='+encodeURIComponent(q)):'') ), function(data){
         var upper = data.map(function(n){ return n.toUpperCase(); });
         cache = Array.from(new Set(cache.concat(upper))).sort();
         render(cache, q);

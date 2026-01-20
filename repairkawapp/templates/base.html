@@ -21,6 +21,12 @@
     <script src="https://d3js.org/d3.v4.min.js"></script>
     <script src="https://d3js.org/d3-scale-chromatic.v0.3.min.js"></script>
     <script src="/static/js/misc.js" ></script>
+    <script>
+      const BASE_URL = "{{ request.script_root }}";
+      const API_BASE = BASE_URL;
+      function apiUrl(path){ return API_BASE + path; }
+      function pageUrl(path){ return BASE_URL + path; }
+    </script>
     <style>
       /* Ajustements UI barre de navigation */
       nav .nav-items-wrapper{display:flex;align-items:center;gap:0.75rem;}
@@ -76,13 +82,23 @@
   </symbol>
 </svg>
 
+{% set default_logo = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='50' height='50'><rect width='50' height='50' rx='8' fill='%23e9ecef'/><text x='50%25' y='55%25' text-anchor='middle' font-family='Arial' font-size='16' fill='%236c757d'>RC</text></svg>" %}
+{% set super_logo = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='50' height='50'><rect width='50' height='50' rx='8' fill='%231f2937'/><text x='50%25' y='55%25' text-anchor='middle' font-family='Arial' font-size='16' fill='%23f9fafb'>SA</text></svg>" %}
 <div class="container py-3">
     <header>
         <div class="pb-2 mb-3 border-bottom">
           <div class="d-flex flex-column flex-md-row">
-            <a href="/" class="align-items-center text-dark text-decoration-none col-4" style="display:flex; align-items:center">
-              <img width="50" height="50" src="/static/img/RC-LogoButton-Orsay.png" style="margin-right:10px">
-              <span class="fs-4">Repair Café Orsay</span>
+            <a href="{{ url_for('main.dashboard') }}" class="align-items-center text-dark text-decoration-none col-4" style="display:flex; align-items:center">
+              {% if current_user.is_authenticated and current_user.super_admin %}
+                <img width="50" height="50" src="{{ super_logo }}" style="margin-right:10px">
+                <span class="fs-4">Super Admin</span>
+              {% elif active_repaircafe and active_repaircafe.logo_filename %}
+                <img width="50" height="50" src="{{ url_for('main.uploaded_file', filename=active_repaircafe.logo_filename) }}" style="margin-right:10px">
+                <span class="fs-4">{{ active_repaircafe.name }}</span>
+              {% else %}
+                <img width="50" height="50" src="{{ default_logo }}" style="margin-right:10px">
+                <span class="fs-4">{{ active_repaircafe and active_repaircafe.name or 'Repair Café' }}</span>
+              {% endif %}
             </a>
             {% if not to_print %}
             <!-- Bouton burger mobile -->
@@ -94,13 +110,13 @@
                 <a class="py-2 link-primary text-decoration-underline fw-semibold" href="{{ url_for('auth.login') }}">Connexion (réparateurs seulement)</a>
               {% else %}
                 <div class="nav-primary-mobile d-flex align-items-center gap-3 mb-1 mb-md-0">
-                  <a class="me-1 py-2" href="/" aria-label="Accueil" title="Accueil" style="display:inline-flex;align-items:center">
+                  <a class="me-1 py-2" href="{{ url_for('main.dashboard') }}" aria-label="Accueil" title="Accueil" style="display:inline-flex;align-items:center">
                     <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="#0d6efd" viewBox="0 0 16 16" role="img" aria-label="Accueil">
                       <path d="M8 .5l6.5 6.188V15a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1v-3H7v3a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1V6.688L8 .5z" stroke="#0d6efd" stroke-width="0.5" />
                     </svg>
                   </a>
-                  <a class="py-2 link-primary" href="/repairs">Fiches</a>
-                  <a class="py-2 link-primary" href="/sessions">Séances</a>
+                  <a class="py-2 link-primary" href="{{ url_for('main.repairs_home') }}">Fiches</a>
+                  <a class="py-2 link-primary" href="{{ url_for('main.sessions_page') }}">Séances</a>
                 </div>
                 {% if current_user.is_authenticated %}
                 <div class="d-flex align-items-center flex-nowrap nav-group mx-md-0 mx-auto" style="max-width:100%;">
@@ -172,14 +188,31 @@
           <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
             <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">Profil</a></li>
             <li><a class="dropdown-item" href="{{ url_for('docs.guide') }}">Documentation</a></li>
+                    {% if current_user.is_authenticated and not current_user.super_admin and current_user.repaircafes|length > 1 %}
+                      <li><hr class="dropdown-divider"></li>
+                      <li class="dropdown-header">Repair Café</li>
+                      {% for cafe in current_user.repaircafes %}
+                        {% if not active_repaircafe or cafe.id != active_repaircafe.id %}
+                          <li><a class="dropdown-item" href="{{ url_for('main.switch_cafe', cafe_id=cafe.id) }}">Basculer vers {{ cafe.name }}</a></li>
+                        {% else %}
+                          <li><span class="dropdown-item-text">✓ {{ cafe.name }}</span></li>
+                        {% endif %}
+                      {% endfor %}
+                    {% endif %}
             <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Déconnexion</a></li>
           </ul>
-          {% if current_user.admin %}
+          {% if is_cafe_admin %}
                   <button type="button" class="btn btn-warning dropdown-toggle btn-admin-menu" data-bs-toggle="dropdown" style="white-space:nowrap">Admin</button>
           <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
             <li><a class="dropdown-item" href="{{ url_for('admin.user_list') }}">Gestion Réparateurs</a></li>
             <li><a class="dropdown-item" href="{{ url_for('admin.objecttypes_admin_list') }}">Types & Variantes</a></li>
             <li><a class="dropdown-item" href="{{ url_for('admin.settings_page') }}">Paramètres site</a></li>
+          </ul>
+    {% endif %}
+          {% if current_user.super_admin %}
+                  <button type="button" class="btn btn-dark dropdown-toggle btn-admin-menu" data-bs-toggle="dropdown" style="white-space:nowrap">Super Admin</button>
+          <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+            <li><a class="dropdown-item" href="{{ url_for('admin.repaircafe_list') }}">Repair Cafés</a></li>
           </ul>
     {% endif %}
       </div>
@@ -260,7 +293,7 @@
           <span class="text-muted">v{{ APP_VERSION }}</span>
         </div>
         <div class="d-flex flex-column flex-sm-row align-items-center gap-3">
-          <a href="/trombinoscope" class="link-secondary">Trombinoscope</a>
+          <a href="{{ url_for('main.trombinoscope') }}" class="link-secondary">Trombinoscope</a>
           <a href="https://repaircafe-orsay.org" target="_blank" rel="noopener" class="text-decoration-none">Site web</a>
         </div>
       </div>
@@ -467,7 +500,7 @@
     if(count>0){ b.removeClass('collapse'); } else { b.addClass('collapse'); }
   }
   function refresh_unread_messages_count(){
-    $.getJSON('/api/messages/unread_count', function(c){ set_msg_badge(c); });
+    $.getJSON(apiUrl('/api/messages/unread_count'), function(c){ set_msg_badge(c); });
   }
   function open_messages_dropdown(){
     refresh_messages();
@@ -476,7 +509,7 @@
   function refresh_messages(){
     const wrap = $('#messages-wrapper');
     wrap.html('<div class="small text-muted">Chargement…</div>');
-  $.getJSON('/api/messages?limit=50', function(list){
+  $.getJSON(apiUrl('/api/messages?limit=50'), function(list){
       if(!Array.isArray(list) || list.length===0){ wrap.html('<em class="text-muted">Aucun message</em>'); return; }
       const ul = $('<ul class="list-unstyled mb-0"></ul>');
       list.forEach(function(m,idx){
@@ -495,8 +528,8 @@
           else { btnToggle.removeClass('btn-primary').addClass('btn-outline-primary').text('Garder'); }
         }
         syncToggle();
-        btnToggle.on('click', function(e){ e.stopPropagation(); const makeUnread = !!m.read_at; $.ajax({type:'POST', url:'/api/messages/'+m.id+'/unread', contentType:'application/json', data: JSON.stringify({unread: makeUnread}), success:function(r){ m.read_at = r.read_at; syncToggle(); refresh_unread_messages_count(); }}); });
-        const btnDel = $('<button class="btn btn-sm btn-outline-danger py-0">Effacer</button>').on('click', function(e){ e.stopPropagation(); $.ajax({type:'DELETE', url:'/api/messages/'+m.id, success:function(){ li.remove(); refresh_unread_messages_count(); }}); });
+        btnToggle.on('click', function(e){ e.stopPropagation(); const makeUnread = !!m.read_at; $.ajax({type:'POST', url: apiUrl('/api/messages/'+m.id+'/unread'), contentType:'application/json', data: JSON.stringify({unread: makeUnread}), success:function(r){ m.read_at = r.read_at; syncToggle(); refresh_unread_messages_count(); }}); });
+        const btnDel = $('<button class="btn btn-sm btn-outline-danger py-0">Effacer</button>').on('click', function(e){ e.stopPropagation(); $.ajax({type:'DELETE', url: apiUrl('/api/messages/'+m.id), success:function(){ li.remove(); refresh_unread_messages_count(); }}); });
         actions.append(btnView, btnToggle, btnDel);
   const ficheIcon = (m.repair_display_id || m.repair_id) ? '<span class="ms-1 text-primary" title="Fiche associée">🗂️</span>' : '';
   li.append('<div class="d-flex justify-content-between '+unreadClass+'"><span>'+unreadDot+subj.prop('outerHTML')+ficheIcon+'</span><small class="text-muted ms-2">'+(m.created_at ? m.created_at.substring(11,16) : '')+'</small></div>');
@@ -515,7 +548,7 @@
   let _msg_users_loaded = false;
   function load_message_users(){
     if(_msg_users_loaded) return;
-    $.getJSON('/api/users/simple', function(list){
+    $.getJSON(apiUrl('/api/users/simple'), function(list){
       const sel = $('#msg_recipient');
       list.forEach(function(u){ sel.append('<option value="'+u.id+'">'+(u.name||u.id)+'</option>'); });
       _msg_users_loaded = true;
@@ -540,7 +573,7 @@
     const ctxRepair = $('#message-compose input[name="repair_id"]').val();
     if(ctxRepair){ payload.repair_id = parseInt(ctxRepair,10); }
     $.ajax({
-      type:'POST', url:'/api/messages', contentType:'application/json', data: JSON.stringify(payload),
+      type:'POST', url: apiUrl('/api/messages'), contentType:'application/json', data: JSON.stringify(payload),
       success:function(m){
         toggle_compose(false);
         $('#msg_subject').val(''); $('#msg_body').val(''); $('#msg_body_counter').text('0/250');
@@ -553,7 +586,7 @@
     return false;
   }
   function view_message(id){
-    $.getJSON('/api/messages/'+id, function(m){
+    $.getJSON(apiUrl('/api/messages/'+id), function(m){
       const subj = m.subject || '(Sans sujet)';
       const sender = m.sender_name ? m.sender_name : ('#'+m.sender_id);
       const bodyEsc = $('<div/>').text(m.body).html();
@@ -595,10 +628,10 @@
       }
       let repairLink = '';
       if(m.repair_display_id){
-        repairLink = ' · <a href="/update/'+m.repair_display_id+'" class="text-decoration-none">🗂️ Fiche '+m.repair_display_id+'</a>';
+        repairLink = ' · <a href="'+pageUrl('/update/'+m.repair_display_id)+'" class="text-decoration-none">🗂️ Fiche '+m.repair_display_id+'</a>';
       } else if(m.repair_id){
         // Fallback si display_id non sérialisé (affiche l'id interne)
-        repairLink = ' · <a href="/update/'+m.repair_id+'" class="text-decoration-none">🗂️ Fiche '+m.repair_id+'</a>';
+        repairLink = ' · <a href="'+pageUrl('/update/'+m.repair_id)+'" class="text-decoration-none">🗂️ Fiche '+m.repair_id+'</a>';
       }
       const metaLine = '<div class="small mb-2 text-muted">De '+sender+(sentLabel? ' · '+sentLabel:'')+repairLink+'</div>';
       const bodyHtml = '<div class="text-start">'
@@ -615,10 +648,10 @@
       syncKeepButton();
       modal.find('.btn-keep').off('click').on('click', function(){
         const makeUnread = !!m.read_at; // si lu -> remettre unread
-        $.ajax({type:'POST', url:'/api/messages/'+m.id+'/unread', contentType:'application/json', data: JSON.stringify({unread: makeUnread}), success:function(r){ m.read_at = r.read_at; syncKeepButton(); refresh_unread_messages_count(); refresh_messages(); }});
+        $.ajax({type:'POST', url: apiUrl('/api/messages/'+m.id+'/unread'), contentType:'application/json', data: JSON.stringify({unread: makeUnread}), success:function(r){ m.read_at = r.read_at; syncKeepButton(); refresh_unread_messages_count(); refresh_messages(); }});
       });
       modal.find('.btn-remove').off('click').on('click', function(){
-        $.ajax({type:'DELETE', url:'/api/messages/'+m.id, success:function(){
+        $.ajax({type:'DELETE', url: apiUrl('/api/messages/'+m.id), success:function(){
           const inst = bootstrap.Modal.getInstance(modal[0]); if(inst) inst.hide(); refresh_messages(); refresh_unread_messages_count();
         }});
       });
@@ -662,7 +695,7 @@
         }
         if(!_msg_users_loaded){
           $.when($.Deferred(function(def){
-            $.getJSON('/api/users/simple', function(list){
+            $.getJSON(apiUrl('/api/users/simple'), function(list){
               const sel = $('#msg_recipient').empty().append('<option value="" disabled selected>Choisir...</option>');
               list.forEach(function(u){ sel.append('<option value="'+u.id+'">'+(u.name||u.id)+'</option>'); });
               _msg_users_loaded=true; def.resolve();
@@ -693,7 +726,7 @@
 
   // ---- Session UI ----
   function refresh_session_ui() {
-    $.getJSON('/api/sessions?opened=1', function(data){
+    $.getJSON(apiUrl('/api/sessions?opened=1'), function(data){
       if (!Array.isArray(data) || data.length === 0) {
         $('#session-active').hide();
         $('#session-none').show();
@@ -741,7 +774,7 @@
   }
   // Chargement et gestion dropdown lieux
   function load_locations_dropdown() {
-    $.getJSON('/api/locations', function(data){
+    $.getJSON(apiUrl('/api/locations'), function(data){
       const sel = $('#session-location-select');
       const current = sel.val();
       sel.find('option').not('[value=""],[value="__new__"]').remove();
@@ -779,7 +812,7 @@
     const mm = String(now.getMinutes()).padStart(2,'0');
     $.ajax({
       type: 'POST',
-      url: '/api/session/open',
+      url: apiUrl('/api/session/open'),
       contentType: 'application/json',
       data: JSON.stringify({location: loc, opened_time: hh+':'+mm}),
       success: function(){
@@ -817,7 +850,7 @@
     const hh = String(now.getHours()).padStart(2,'0');
     const mm = String(now.getMinutes()).padStart(2,'0');
     $.ajax({
-      type:'POST', url:'/api/session/open', contentType:'application/json', data: JSON.stringify({location: loc, opened_time: hh+':'+mm}),
+      type:'POST', url: apiUrl('/api/session/open'), contentType:'application/json', data: JSON.stringify({location: loc, opened_time: hh+':'+mm}),
       success:function(){ refresh_session_ui(); load_locations_dropdown(); if(window.location.pathname.startsWith('/sessions')) window.location.reload(); }
     });
   });

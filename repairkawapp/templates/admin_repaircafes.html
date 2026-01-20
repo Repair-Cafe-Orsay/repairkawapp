@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Repair Cafés</h2>
+
+<div class="card mb-3">
+  <div class="card-header">Créer un Repair Café</div>
+  <div class="card-body">
+    {% if creation_error %}
+      <div class="alert alert-danger">{{ creation_error }}</div>
+    {% endif %}
+    {% if admin_error %}
+      <div class="alert alert-danger">{{ admin_error }}</div>
+    {% endif %}
+    <form method="POST" action="{{ url_for('admin.repaircafe_list') }}" class="row g-2">
+      <div class="col-md-4">
+        <label class="form-label">Nom</label>
+        <input name="name" class="form-control" required />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Slug</label>
+        <input name="slug" class="form-control" placeholder="repaircafe-xxx" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Code</label>
+        <input name="code" class="form-control" placeholder="rco" required />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Email</label>
+        <input name="email" class="form-control" type="email" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Site web</label>
+        <input name="website_url" class="form-control" type="url" placeholder="https://" />
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-primary w-100" type="submit">Créer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Nom</th>
+      <th>Code</th>
+      <th>Slug</th>
+      <th>Email</th>
+      <th>Site web</th>
+      <th>Réparateurs</th>
+      <th>Réparations (total)</th>
+      <th>Réparations (année en cours)</th>
+      <th>Admins</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in cafes %}
+      <tr>
+        <td>{{ row.cafe.name }}</td>
+        <td>{{ row.cafe.code }}</td>
+        <td>{{ row.cafe.slug }}</td>
+        <td>{{ row.cafe.email or '' }}</td>
+        <td>
+          {% if row.cafe.website_url %}
+            <a href="{{ row.cafe.website_url }}" target="_blank" rel="noopener">{{ row.cafe.website_url }}</a>
+          {% endif %}
+        </td>
+        <td>{{ row.repairer_count }}</td>
+        <td>{{ row.total_repairs }}</td>
+        <td>{{ row.academic_repairs }}</td>
+        <td>
+          {% if row.admins %}
+            <ul class="list-unstyled mb-0">
+              {% for admin in row.admins %}
+                <li class="d-flex align-items-center justify-content-between">
+                  <span>{{ admin.name or admin.email }}</span>
+                  <form method="POST" action="{{ url_for('admin.repaircafe_reset_admin', cafe_id=row.cafe.id, user_id=admin.id) }}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">Réinitialiser</button>
+                  </form>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <span class="text-muted">Aucun</span>
+          {% endif %}
+          <form method="POST" action="{{ url_for('admin.repaircafe_list') }}" class="mt-2 d-flex gap-2">
+            <input type="hidden" name="action" value="add_admin" />
+            <input type="hidden" name="cafe_id" value="{{ row.cafe.id }}" />
+            <input name="admin_email" type="email" class="form-control form-control-sm" placeholder="email admin" required />
+            <button type="submit" class="btn btn-sm btn-outline-primary">Ajouter</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

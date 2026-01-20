@@ -13,12 +13,20 @@ from sqlalchemy.orm import Session as SASession
 
 from .. import mail
 from ..models import Location, Repair, Session, User
+from .tenant_service import get_active_repaircafe, get_mail_sender, require_active_repaircafe
 
 
-def _get_or_create_location(db: SASession, name: str) -> Location:
-    loc = db.query(Location).filter_by(name=name).first()
+def _get_or_create_location(db: SASession, name: str, repaircafe=None) -> Location:
+    loc_query = db.query(Location).filter_by(name=name)
+    if repaircafe is not None:
+        loc_query = loc_query.filter(Location.repaircafe_id == repaircafe.id)
+    else:
+        loc_query = loc_query.filter(Location.repaircafe_id.is_(None))
+    loc = loc_query.first()
     if not loc:
         loc = Location(name=name)
+        if repaircafe is not None:
+            loc.repaircafe = repaircafe
         db.add(loc)
     return loc
 
@@ -35,17 +43,24 @@ def open_session(db: SASession, location: str | None = None, tz=None, opened_at=
         today_local = date.today()
     else:
         today_local = datetime.now(tz).date()
-    # 1. Réutilisation par lieu (si location fourni)
+    # 1. Reuse by location (if provided)
+    cafe = require_active_repaircafe()
     if location and location.strip():
         loc_name = location.strip()
         # Cherche une location existante (sans créer) pour récupérer son id
-        loc_existing = db.query(Location).filter_by(name=loc_name).first()
+        loc_existing = (
+            db.query(Location)
+            .filter_by(name=loc_name)
+            .filter(Location.repaircafe_id == cafe.id)
+            .first()
+        )
         if loc_existing:
             existing_same_loc = (
                 db.query(Session)
                 .filter(Session.closed_at.is_(None))
                 .filter(Session.opened_at >= datetime.combine(today_local, datetime.min.time()))
                 .filter(Session.location_id == loc_existing.id)
+                .filter(Session.repaircafe_id == cafe.id)
                 .order_by(Session.opened_at.asc())
                 .first()
             )
@@ -56,7 +71,11 @@ def open_session(db: SASession, location: str | None = None, tz=None, opened_at=
     # 2. Réutilisation session personnelle ouverte aujourd'hui
     existing_user = (
         db.query(Session)
-        .filter(Session.owner_id == current_user.id, Session.closed_at.is_(None))
+        .filter(
+            Session.owner_id == current_user.id,
+            Session.closed_at.is_(None),
+            Session.repaircafe_id == cafe.id,
+        )
         .order_by(Session.opened_at.desc())
         .first()
     )
@@ -67,8 +86,8 @@ def open_session(db: SASession, location: str | None = None, tz=None, opened_at=
     # 3. Création
     if not location or not location.strip():
         raise ValueError("Location obligatoire pour ouvrir une session")
-    loc_obj = _get_or_create_location(db, location.strip())
-    s = Session(location=loc_obj, owner_id=current_user.id)
+    loc_obj = _get_or_create_location(db, location.strip(), repaircafe=cafe)
+    s = Session(location=loc_obj, owner_id=current_user.id, repaircafe=cafe)
     if opened_at is not None:
         s.opened_at = opened_at
     s.participants.append(current_user)
@@ -80,6 +99,9 @@ def join_session(db: SASession, session_id: int) -> Session | None:
     s = db.query(Session).filter_by(id=session_id).first()
     if not s or s.closed_at:
         return None
+    cafe = get_active_repaircafe()
+    if cafe and s.repaircafe_id != cafe.id:
+        return None
     if current_user not in s.participants:
         s.participants.append(current_user)
     return s
@@ -88,6 +110,9 @@ def join_session(db: SASession, session_id: int) -> Session | None:
 def leave_session(db: SASession, session_id: int) -> Session | None:
     s = db.query(Session).filter_by(id=session_id).first()
     if not s or s.closed_at:
+        return None
+    cafe = get_active_repaircafe()
+    if cafe and s.repaircafe_id != cafe.id:
         return None
     if current_user in s.participants:
         s.participants.remove(current_user)
@@ -103,6 +128,9 @@ def close_session(
     s = db.query(Session).filter_by(id=session_id).first()
     if not s or s.closed_at:
         return None
+    cafe = get_active_repaircafe()
+    if cafe and s.repaircafe_id != cafe.id:
+        return None
     # Seul owner ou admin
     if current_user.id != s.owner_id and not getattr(current_user, "admin", False):
         return None
@@ -116,6 +144,9 @@ def reopen_session(db: SASession, session_id: int) -> Session | None:
     s = db.query(Session).filter_by(id=session_id).first()
     if not s or not s.closed_at:
         return None
+    cafe = get_active_repaircafe()
+    if cafe and s.repaircafe_id != cafe.id:
+        return None
     # propriétaire ou admin
     if current_user.id != s.owner_id and not getattr(current_user, "admin", False):
         return None
@@ -126,6 +157,9 @@ def reopen_session(db: SASession, session_id: int) -> Session | None:
 def change_session_owner(db: SASession, session_id: int, new_owner_id: int) -> Session | None:
     s = db.query(Session).filter_by(id=session_id).first()
     if not s:
+        return None
+    cafe = get_active_repaircafe()
+    if cafe and s.repaircafe_id != cafe.id:
         return None
     # Tout participant peut prendre la main
     if current_user not in s.participants:
@@ -152,12 +186,15 @@ def update_session_details(
     s = db.query(Session).filter_by(id=session_id).first()
     if not s:
         return None
+    cafe = get_active_repaircafe()
+    if cafe and s.repaircafe_id != cafe.id:
+        return None
     # Seul owner ou admin pour ces changements
     if current_user.id != s.owner_id and not getattr(current_user, "admin", False):
         return None
     if location is not None:
         if location.strip():
-            s.location = _get_or_create_location(db, location.strip())
+            s.location = _get_or_create_location(db, location.strip(), repaircafe=cafe)
         else:
             # ne pas autoriser location vide; ignorer
             pass
@@ -193,6 +230,9 @@ def delete_session(db: SASession, session_id: int) -> bool:
     s = db.query(Session).filter_by(id=session_id).first()
     if not s:
         return False
+    cafe = get_active_repaircafe()
+    if cafe and s.repaircafe_id != cafe.id:
+        return False
     if len(s.repairs) > 0:
         return False
     if current_user.id != s.owner_id and not getattr(current_user, "admin", False):
@@ -204,6 +244,9 @@ def delete_session(db: SASession, session_id: int) -> bool:
 def session_stats(db: SASession, session_id: int) -> dict | None:
     s = db.query(Session).filter_by(id=session_id).first()
     if not s:
+        return None
+    cafe = get_active_repaircafe()
+    if cafe and s.repaircafe_id != cafe.id:
         return None
     # Nombre de repairs
     nb_repairs = len(s.repairs)
@@ -227,7 +270,11 @@ def collect_sessions_needing_reminder(
     """Liste les sessions ouvertes (non fermées) dont la date n'est pas aujourd'hui (expirées)."""
     if reference_date is None:
         reference_date = date.today()
-    sessions = db.query(Session).filter(Session.closed_at.is_(None)).all()
+    cafe = get_active_repaircafe()
+    sessions_q = db.query(Session).filter(Session.closed_at.is_(None))
+    if cafe:
+        sessions_q = sessions_q.filter(Session.repaircafe_id == cafe.id)
+    sessions = sessions_q.all()
     return [s for s in sessions if s.opened_at.date() != reference_date]
 
 
@@ -242,10 +289,11 @@ def send_session_reminders(db: SASession, reference_date: date | None = None) ->
         owner = db.query(User).filter_by(id=s.owner_id).first()
         if not owner or not owner.email:
             continue
+        sender = get_mail_sender(getattr(s, "repaircafe", None))
         msg = Message(
             "Rappel: fermer la session %d" % s.id,
             recipients=[owner.email],
-            sender="app@repaircafe-orsay.org",
+            sender=sender,
         )
         msg.body = (
             "Bonjour,\n\nLa session #%d (%s) ouverte le %s n'est pas fermée. "

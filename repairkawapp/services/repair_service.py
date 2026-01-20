@@ -50,6 +50,7 @@ def generate_display_id(
     created_date: date,
     manual_id: str | None,
     existing_id: str | None = None,
+    repaircafe_id: int | None = None,
 ) -> str:
     prefix = f"{created_date.year - 2000:02d}{created_date.month:02d}{created_date.day:02d}-"
     if manual_id:
@@ -62,11 +63,18 @@ def generate_display_id(
             full_id = prefix + manual_id
             if full_id == existing_id:
                 return full_id
-            while session.query(Repair).filter_by(display_id=full_id).first():
+            while True:
+                query = session.query(Repair).filter_by(display_id=full_id)
+                if repaircafe_id is not None:
+                    query = query.filter(Repair.repaircafe_id == repaircafe_id)
+                if not query.first():
+                    break
                 full_id = prefix + manual_id + chr(ord("a") + incid)
                 incid += 1
         return full_id
     day_repairs = session.query(Repair).filter(Repair.display_id.like(prefix + "%"))
+    if repaircafe_id is not None:
+        day_repairs = day_repairs.filter(Repair.repaircafe_id == repaircafe_id)
     return prefix + f"{day_repairs.count() + 1:03d}"
 
 
@@ -89,12 +97,24 @@ def _extract_object_refs(session: Session, form) -> tuple[ObjectType | None, Obj
     return ot, st
 
 
-def create_repair(session: Session, form, category: Category, state: State, brand: Brand) -> Repair:
+def create_repair(
+    session: Session,
+    form,
+    category: Category,
+    state: State,
+    brand: Brand,
+    repaircafe_id: int | None = None,
+) -> Repair:
     created_date = datetime.strptime(form["date"], "%Y-%m-%d") if form.get("date") else date.today()
     # Champs optionnels accédés via get() pour éviter BadRequestKeyError si absents du formulaire
     object_type, object_subtype = _extract_object_refs(session, form)
     r = Repair(
-        display_id=generate_display_id(session, created_date, form.get("manual_id")),
+        display_id=generate_display_id(
+            session,
+            created_date,
+            form.get("manual_id"),
+            repaircafe_id=repaircafe_id,
+        ),
         created=created_date,
         age=form.get("age") and int(form["age"]) or None,
         name=form["name"],  # requis (attribut required dans le formulaire)
@@ -116,9 +136,17 @@ def create_repair(session: Session, form, category: Category, state: State, bran
         validated=form.get("validated") != "",
         object_type=object_type,
         object_subtype=object_subtype,
+        repaircafe_id=repaircafe_id,
     )
     session.add(r)
-    session.add(Log(user_id=current_user.id, content="Création de la fiche", repair=r))
+    session.add(
+        Log(
+            user_id=current_user.id,
+            content="Création de la fiche",
+            repair=r,
+            repaircafe_id=r.repaircafe_id,
+        )
+    )
     return r
 
 
@@ -132,7 +160,11 @@ def update_repair(
 ) -> Repair:
     created_date = repair.created
     repair.display_id = generate_display_id(
-        session, created_date, form.get("manual_id"), repair.display_id
+        session,
+        created_date,
+        form.get("manual_id"),
+        repair.display_id,
+        repair.repaircafe_id,
     )
     repair.age = form.get("age") and int(form["age"]) or None
     repair.name = form["name"]
@@ -160,7 +192,14 @@ def update_repair(
     repair.weight = form.get("weight") and int(form["weight"]) or None
     repair.description = form["description"]
     repair.validated = form.get("validated") != ""
-    session.add(Log(user_id=current_user.id, content="Modification de la fiche", repair=repair))
+    session.add(
+        Log(
+            user_id=current_user.id,
+            content="Modification de la fiche",
+            repair=repair,
+            repaircafe_id=repair.repaircafe_id,
+        )
+    )
     return repair
 
 
@@ -188,12 +227,20 @@ def apply_update(session: Session, repair: Repair, form) -> bool:
                 user_id=current_user.id,
                 repair=repair,
                 content="Fermeture fiche (%s)" % new_close_status.label,
+                repaircafe_id=repair.repaircafe_id,
             )
         )
         repair.close_status = new_close_status
         change = True
     elif closeChoice == 1:
-        session.add(Log(user_id=current_user.id, repair=repair, content="Réouverture fiche"))
+        session.add(
+            Log(
+                user_id=current_user.id,
+                repair=repair,
+                content="Réouverture fiche",
+                repaircafe_id=repair.repaircafe_id,
+            )
+        )
         repair.close_status = session.query(CloseStatus).filter_by(id=closeChoice).first()
         change = True
 
@@ -204,6 +251,7 @@ def apply_update(session: Session, repair: Repair, form) -> bool:
                 user_id=current_user.id,
                 repair=repair,
                 content="Réparateurs changés (→ %s)" % ", ".join([u.name for u in repair.users]),
+                repaircafe_id=repair.repaircafe_id,
             )
         )
         change = True
@@ -215,6 +263,7 @@ def apply_update(session: Session, repair: Repair, form) -> bool:
                 user_id=current_user.id,
                 repair=repair,
                 content="Etat changé (→ %s)" % repair.current_state.label,
+                repaircafe_id=repair.repaircafe_id,
             )
         )
         change = True
@@ -226,12 +275,18 @@ def apply_update(session: Session, repair: Repair, form) -> bool:
                 user_id=current_user.id,
                 repair=repair,
                 content="Localisation changée (→ '%s')" % current_location,
+                repaircafe_id=repair.repaircafe_id,
             )
         )
         change = True
 
     if note_content:
-        n = Note(user_id=current_user.id, content=note_content, repair=repair)
+        n = Note(
+            user_id=current_user.id,
+            content=note_content,
+            repair=repair,
+            repaircafe_id=repair.repaircafe_id,
+        )
         session.add(n)
         change = True
 

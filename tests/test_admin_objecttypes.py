@@ -56,6 +56,7 @@ def app():
         db.session.add(Brand(name="Sony"))
         db.session.commit()
         yield app
+        db.session.remove()
         db.drop_all()
 
 

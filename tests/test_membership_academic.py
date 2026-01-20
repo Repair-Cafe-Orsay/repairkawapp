@@ -4,7 +4,7 @@ from datetime import date
 from werkzeug.security import generate_password_hash
 
 from repairkawapp import create_app, db
-from repairkawapp.models import User
+from repairkawapp.models import RepairCafe, User, user_repaircafe
 
 
 def _expected_academic_start(d: date) -> int:
@@ -31,6 +31,8 @@ def test_admin_set_current_membership():
     app = setup_app()
     with app.app_context():
         db.create_all()
+        cafe = RepairCafe(name="Repair Café Orsay", slug="repaircafe-orsay", code="rco")
+        db.session.add(cafe)
         # user without membership
         u = User(email="membre@example.org", name="Membre Test")
         u.password = generate_password_hash("pass")
@@ -39,6 +41,16 @@ def test_admin_set_current_membership():
         admin = User(email="admin@example.org", name="Admin", admin=True)
         admin.password = generate_password_hash("admin")
         db.session.add(admin)
+        db.session.commit()
+        for user in (u, admin):
+            db.session.execute(
+                user_repaircafe.insert().values(
+                    user_id=user.id,
+                    repaircafe_id=cafe.id,
+                    role="admin" if user.admin else None,
+                )
+            )
+            user.active_repaircafe_id = cafe.id
         db.session.commit()
         uid = u.id
     client = app.test_client()

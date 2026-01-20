@@ -38,6 +38,7 @@ def app():
         db.session.add_all([cat, br, st, st2])
         db.session.commit()
         yield app
+        db.session.remove()
         db.drop_all()
 
 

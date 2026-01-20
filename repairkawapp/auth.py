@@ -26,6 +26,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from . import db, mail
 from .models import AppSetting, User
+from .services.tenant_service import get_mail_sender
 
 
 def _s():
@@ -133,6 +134,8 @@ def login_post():
         db.session.commit()
     except Exception:
         db.session.rollback()
+    if getattr(user, "super_admin", False) and not next_url:
+        return redirect(url_for("admin.repaircafe_list"))
     return redirect(next_url or url_for("main.dashboard"))
 
 
@@ -154,7 +157,8 @@ def change_password():
     data = {"i": str(user.id), "s": user.seqid, "t": int(time.time() / 3600)}
     token = _s().dumps(data)
 
-    msg = Message("Mot de passe oublié", sender="app@repaircafe-orsay.org", recipients=[email])
+    sender = get_mail_sender(getattr(user, "active_repaircafe", None))
+    msg = Message("Mot de passe oublié", sender=sender, recipients=[email])
     msg.body = """Hello,
 
 Vous recevez cet email car quelqu'un a demandé une réinitalisation de votre password

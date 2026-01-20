@@ -4,7 +4,7 @@ import pytest
 from werkzeug.security import generate_password_hash
 
 from repairkawapp import create_app, db
-from repairkawapp.models import User
+from repairkawapp.models import RepairCafe, User, user_repaircafe
 
 
 @pytest.fixture
@@ -25,6 +25,7 @@ def app():
     with app.app_context():
         db.create_all()
         yield app
+        db.session.remove()
         db.drop_all()
 
 
@@ -147,6 +148,21 @@ def test_founder_flag_edit_restricted(client, app):
         candidate = User(email="candidate@example.org", name="Candidate Admin", admin=True)
         candidate.password = generate_password_hash("candipass")
         db.session.add_all([other, candidate])
+        db.session.commit()
+        cafe = RepairCafe.query.first()
+        if not cafe:
+            cafe = RepairCafe(name="Repair Café Orsay", slug="repaircafe-orsay", code="rco")
+            db.session.add(cafe)
+            db.session.commit()
+        for user in (other, candidate):
+            db.session.execute(
+                user_repaircafe.insert().values(
+                    user_id=user.id,
+                    repaircafe_id=cafe.id,
+                    role="admin",
+                )
+            )
+            user.active_repaircafe_id = cafe.id
         db.session.commit()
         candidate_id = candidate.id
     # Login en tant que other et tentative de promotion du candidat

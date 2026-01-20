@@ -64,6 +64,7 @@ def app():
         db.session.add(user)
         db.session.commit()
         yield app
+        db.session.remove()
         db.drop_all()
 
 

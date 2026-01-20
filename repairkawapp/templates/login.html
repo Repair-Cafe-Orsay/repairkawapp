@@ -13,6 +13,9 @@
   </div>
   {% endif %}
 
+  <div class="text-center mb-3">
+    <img src="{{ url_for('static', filename='img/repairkawap.png') }}" alt="RepairKawapp" style="max-width:200px; height:auto;" />
+  </div>
   <form class="form-signin" method="POST" action="{{url_for('auth.login_post')}}">
   <h1 class="h3 mb-3 fw-normal">Connectez-vous</h1>
 

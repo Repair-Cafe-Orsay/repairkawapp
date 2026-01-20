@@ -19,6 +19,9 @@ def app():
         _db.session.add(u)
         _db.session.commit()
     yield app
+    with app.app_context():
+        _db.session.remove()
+        _db.drop_all()
 
 
 @pytest.fixture()

@@ -54,7 +54,7 @@
   .cal-legend-popup .dot { width:12px; height:12px; border-radius:50%; border:1px solid rgba(0,0,0,.5); flex-shrink:0; }
   .cal-legend-close { background:transparent; border:none; font-size:16px; line-height:1; padding:0 4px; cursor:pointer; }
 </style>
-<form class="row gy-3 gx-4 align-items-start mb-3" method="get" action="/sessions" id="sessions-filters">
+<form class="row gy-3 gx-4 align-items-start mb-3" method="get" action="{{ url_for('main.sessions_page') }}" id="sessions-filters">
   <div class="col-md-3 col-sm-6 d-flex flex-column">
     <label for="lieu-select" class="fw-semibold mb-1">Lieu</label>
     <div class="d-flex align-items-center">
@@ -65,7 +65,7 @@
         {% endfor %}
       </select>
       {% if lieu_actif %}
-        <a href="/sessions" class="btn btn-sm btn-outline-secondary ms-2" title="Réinitialiser le lieu">✕</a>
+        <a href="{{ url_for('main.sessions_page') }}" class="btn btn-sm btn-outline-secondary ms-2" title="Réinitialiser le lieu">✕</a>
       {% endif %}
     </div>
   </div>
@@ -86,7 +86,7 @@
   <tbody>
   {% for s in sessions %}
     <tr class="{% if not s.closed_at %}table-warning{% endif %}">
-    <td class="text-nowrap"><a href="/sessions/{{ s.id }}" class="btn btn-sm btn-outline-primary">Voir</a></td>
+    <td class="text-nowrap"><a href="{{ url_for('main.session_detail', session_id=s.id) }}" class="btn btn-sm btn-outline-primary">Voir</a></td>
     <td>{{ s.id }} {% if not s.closed_at %}<span class="badge bg-warning text-dark">Ouverte</span>{% else %}<span class="badge bg-secondary">Fermée</span>{% endif %}</td>
   <td>
     {% if s.location %}
@@ -101,7 +101,7 @@
       <td>{{ s.participants|length }}</td>
       <td>
         {% if s.repairs|length > 0 %}
-          <a href="/repairs?session_id={{ s.id }}" title="Filtrer les fiches sur cette séance">{{ s.repairs|length }}</a>
+          <a href="{{ url_for('main.repairs_home') }}?session_id={{ s.id }}" title="Filtrer les fiches sur cette séance">{{ s.repairs|length }}</a>
         {% else %}
           0
         {% endif %}
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', function(){
   // Vérifier séance ouverte pour activer/désactiver création séance passée
   if(IS_ADMIN){
     (function checkOpen(){
-      $.getJSON('/api/sessions?opened=1', function(data){
+      $.getJSON(apiUrl('/api/sessions?opened=1'), function(data){
         const hasOpen = data.length>0;
         const form = $('#form-create-past-session');
         if(hasOpen){
@@ -143,10 +143,10 @@ document.addEventListener('DOMContentLoaded', function(){
   const payload = { date: fd.get('date'), time: fd.get('time'), location: loc };
       $.ajax({
         type:'POST',
-        url:'/api/session/past',
+        url: apiUrl('/api/session/past'),
         contentType:'application/json',
         data: JSON.stringify(payload),
-        success:function(js){ window.location = '/sessions/'+js.id; },
+        success:function(js){ window.location = pageUrl('/sessions/'+js.id); },
         error:function(xhr){
           const data = xhr.responseJSON || {}; let msg='Erreur';
           if(data.error==='open_session_exists') msg='Séance ouverte existante: fermez-la d\'abord (#'+data.session_id+').';
@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   // Chargement des lieux (réutilisation logique entête)
   (function loadPastLocations(){
-    $.getJSON('/api/locations', function(data){
+    $.getJSON(apiUrl('/api/locations'), function(data){
       const sel = $('#past-location-select');
       const current = sel.val();
       sel.find('option').not('[value=""],[value="__new__"]').remove();

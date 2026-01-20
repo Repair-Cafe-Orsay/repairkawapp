@@ -1,7 +1,7 @@
 from werkzeug.security import generate_password_hash
 
 from repairkawapp import create_app, db
-from repairkawapp.models import User
+from repairkawapp.models import RepairCafe, User, user_repaircafe
 
 
 def test_founder_badge_and_restricted_edit():
@@ -17,6 +17,8 @@ def test_founder_badge_and_restricted_edit():
     )
     with app.app_context():
         db.create_all()
+        cafe = RepairCafe(name="Repair Café Orsay", slug="repaircafe-orsay", code="rco")
+        db.session.add(cafe)
         founder = User(email="founder@example.org", name="Found One", founder=True, admin=True)
         founder.password = generate_password_hash("pwdpwd")
         target = User(email="target@example.org", name="Target", admin=True)
@@ -24,6 +26,16 @@ def test_founder_badge_and_restricted_edit():
         outsider = User(email="outsider@example.org", name="Out", admin=True)
         outsider.password = generate_password_hash("pwdpwd")
         db.session.add_all([founder, target, outsider])
+        db.session.commit()
+        for user in (founder, target, outsider):
+            db.session.execute(
+                user_repaircafe.insert().values(
+                    user_id=user.id,
+                    repaircafe_id=cafe.id,
+                    role="admin",
+                )
+            )
+            user.active_repaircafe_id = cafe.id
         db.session.commit()
         target_id = target.id
     client = app.test_client()

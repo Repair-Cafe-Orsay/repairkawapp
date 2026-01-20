@@ -4,7 +4,7 @@ import pytest
 from werkzeug.security import generate_password_hash
 
 from repairkawapp import create_app, db
-from repairkawapp.models import User
+from repairkawapp.models import RepairCafe, User, user_repaircafe
 
 
 @pytest.fixture
@@ -29,6 +29,7 @@ def app():
         db.session.add(admin)
         db.session.commit()
         yield app
+        db.session.remove()
         db.drop_all()
 
 
@@ -69,6 +70,16 @@ def test_update_member_membership_year(login_admin):
         u = User(email="update@example.org", name="Update Test")
         db.session.add(u)
         db.session.commit()
+        cafe = RepairCafe.query.first()
+        db.session.execute(
+            user_repaircafe.insert().values(
+                user_id=u.id,
+                repaircafe_id=cafe.id,
+                role=None,
+            )
+        )
+        u.active_repaircafe_id = cafe.id
+        db.session.commit()
         uid = u.id
     # update membership year
     # membership n'est plus modifiable directement : utiliser action rapide
@@ -90,6 +101,16 @@ def test_clear_membership_year(login_admin):
     with login_admin.application.app_context():
         u = User(email="clear@example.org", name="Clear Test", last_membership=2023)
         db.session.add(u)
+        db.session.commit()
+        cafe = RepairCafe.query.first()
+        db.session.execute(
+            user_repaircafe.insert().values(
+                user_id=u.id,
+                repaircafe_id=cafe.id,
+                role=None,
+            )
+        )
+        u.active_repaircafe_id = cafe.id
         db.session.commit()
         uid = u.id
     # clear membership by sending empty string

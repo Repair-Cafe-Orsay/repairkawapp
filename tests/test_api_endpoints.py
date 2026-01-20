@@ -58,6 +58,7 @@ def app():
         db.session.add_all([Brand(name="Sony"), Brand(name="Sagem"), Brand(name="Philips")])
         db.session.commit()
         yield app
+        db.session.remove()
         db.drop_all()
 
 

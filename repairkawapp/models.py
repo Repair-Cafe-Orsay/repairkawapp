@@ -11,6 +11,16 @@ from sqlalchemy.sql import func
 
 from . import db
 
+# many2many association between a user (repairer) and a RepairCafe
+user_repaircafe = db.Table(
+    "association_user_repaircafe",
+    db.Model.metadata,
+    db.Column("user_id", db.ForeignKey("user.id")),
+    db.Column("repaircafe_id", db.ForeignKey("repaircafe.id")),
+    db.Column("role", db.String(30)),
+    db.Column("photo_filename", db.String(200)),
+)
+
 
 class User(UserMixin, db.Model):
     """Définition du modèle réparateur (hérite de UserMixin pour l'authentification)."""
@@ -32,7 +42,7 @@ class User(UserMixin, db.Model):
     board_title = db.Column(db.String(30))
     # biographie / description courte modifiable par le réparateur
     biography = db.Column(db.Text)
-    # photo de profil (nom de fichier stocké dans UPLOAD_FOLDER)
+    # photo de profil (legacy, remplacée par association_user_repaircafe.photo_filename)
     photo_filename = db.Column(db.String(200))
     # visibilité dans le trombinoscope public (colonne legacy public_trombi)
     visibility_public_trombi = db.Column(
@@ -44,6 +54,28 @@ class User(UserMixin, db.Model):
     founder = db.Column(db.Boolean, nullable=False, server_default="0")
     # dernière connexion réussie (mise à jour à chaque login)
     last_connection = db.Column(db.DateTime(timezone=True))
+    # super admin (global) with no RepairCafe membership required
+    super_admin = db.Column(db.Boolean, nullable=False, server_default="0")
+    # active RepairCafe for scoping (nullable for super admin)
+    active_repaircafe_id = db.Column(
+        db.Integer, db.ForeignKey("repaircafe.id"), nullable=True, index=True
+    )
+    active_repaircafe = db.relationship("RepairCafe", foreign_keys=[active_repaircafe_id])
+    repaircafes = db.relationship("RepairCafe", secondary=user_repaircafe, backref="users")
+
+
+class RepairCafe(db.Model):
+    """Repair Café tenant (organization)."""
+
+    __tablename__ = "repaircafe"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    slug = db.Column(db.String(50), nullable=False, unique=True)
+    code = db.Column(db.String(10), nullable=False, unique=True)
+    email = db.Column(db.String(100))
+    website_url = db.Column(db.String(200))
+    logo_filename = db.Column(db.String(200))
+    timezone = db.Column(db.String(50), default="Europe/Paris")
 
 
 class Category(db.Model):
@@ -157,8 +189,14 @@ class Repair(db.Model):
     # the main repair form
     __tablename__ = "repair"
     id = db.Column(db.Integer, primary_key=True)
+    # tenant scope
+    repaircafe_id = db.Column(db.Integer, db.ForeignKey("repaircafe.id"), nullable=True)
+    repaircafe = db.relationship("RepairCafe", foreign_keys=[repaircafe_id])
     # is generated with date and incremental ID
-    display_id = db.Column(db.String(11), unique=True)
+    display_id = db.Column(db.String(11))
+    __table_args__ = (
+        UniqueConstraint("repaircafe_id", "display_id", name="uix_repair_display_id_cafe"),
+    )
     # creation date
     created = db.Column(db.Date(), nullable=False)
     # register date
@@ -221,6 +259,9 @@ class Session(db.Model):
 
     __tablename__ = "session"
     id = db.Column(db.Integer, primary_key=True)
+    # tenant scope
+    repaircafe_id = db.Column(db.Integer, db.ForeignKey("repaircafe.id"), nullable=True)
+    repaircafe = db.relationship("RepairCafe", foreign_keys=[repaircafe_id])
     # Localisation normalisée via table Location (migration remplace ancien champ string).
     location_id = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=True)
     location = db.relationship("Location", foreign_keys=[location_id])
@@ -238,7 +279,12 @@ class Location(db.Model):
 
     __tablename__ = "location"
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    # tenant scope
+    repaircafe_id = db.Column(db.Integer, db.ForeignKey("repaircafe.id"), nullable=True)
+    repaircafe = db.relationship("RepairCafe", foreign_keys=[repaircafe_id])
+    name = db.Column(db.String(100), nullable=False)
+
+    __table_args__ = (UniqueConstraint("repaircafe_id", "name", name="uix_location_cafe"),)
 
 
 class Note(db.Model):
@@ -246,6 +292,9 @@ class Note(db.Model):
 
     __tablename__ = "note"
     id = db.Column(db.Integer, primary_key=True)
+    # tenant scope
+    repaircafe_id = db.Column(db.Integer, db.ForeignKey("repaircafe.id"), nullable=True)
+    repaircafe = db.relationship("RepairCafe", foreign_keys=[repaircafe_id])
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     user = db.relationship("User")
     date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
@@ -261,6 +310,9 @@ class Log(db.Model):
 
     __tablename__ = "log"
     id = db.Column(db.Integer, primary_key=True)
+    # tenant scope
+    repaircafe_id = db.Column(db.Integer, db.ForeignKey("repaircafe.id"), nullable=True)
+    repaircafe = db.relationship("RepairCafe", foreign_keys=[repaircafe_id])
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     user = db.relationship("User")
     date = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
@@ -281,6 +333,9 @@ class Notification(db.Model):
 
     __tablename__ = "notification"
     id = db.Column(db.Integer, primary_key=True)
+    # tenant scope
+    repaircafe_id = db.Column(db.Integer, db.ForeignKey("repaircafe.id"), nullable=True)
+    repaircafe = db.relationship("RepairCafe", foreign_keys=[repaircafe_id])
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     user = db.relationship("User")
     deadline = db.Column(db.DateTime(timezone=True))
@@ -334,6 +389,9 @@ class SpareChange(db.Model):
 
     __tablename__ = "sparechange"
     id = db.Column(db.Integer, primary_key=True)
+    # tenant scope
+    repaircafe_id = db.Column(db.Integer, db.ForeignKey("repaircafe.id"), nullable=True)
+    repaircafe = db.relationship("RepairCafe", foreign_keys=[repaircafe_id])
     item = db.Column(db.String(100), nullable=False)
     source = db.Column(db.String(200))
     note = db.Column(db.Text, default="")
@@ -373,6 +431,9 @@ class Message(db.Model):
 
     __tablename__ = "message"
     id = db.Column(db.Integer, primary_key=True)
+    # tenant scope
+    repaircafe_id = db.Column(db.Integer, db.ForeignKey("repaircafe.id"), nullable=True)
+    repaircafe = db.relationship("RepairCafe", foreign_keys=[repaircafe_id])
     sender_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     sender = db.relationship("User", foreign_keys=[sender_id])
     recipient_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
