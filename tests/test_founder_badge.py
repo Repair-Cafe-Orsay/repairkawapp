@@ -2,6 +2,7 @@ from werkzeug.security import generate_password_hash
 
 from repairkawapp import create_app, db
 from repairkawapp.models import RepairCafe, User, user_repaircafe
+from repairkawapp.services.tenant_service import get_user_cafe_founder, set_user_cafe_founder
 
 
 def test_founder_badge_and_restricted_edit():
@@ -37,6 +38,8 @@ def test_founder_badge_and_restricted_edit():
             )
             user.active_repaircafe_id = cafe.id
         db.session.commit()
+        set_user_cafe_founder(founder.id, cafe.id, True)
+        db.session.commit()
         target_id = target.id
     client = app.test_client()
     # Founder se connecte et active founder sur target (ok)
@@ -47,7 +50,8 @@ def test_founder_badge_and_restricted_edit():
     )
     assert r.status_code in (200, 302)
     with app.app_context():
-        assert db.session.get(User, target_id).founder is True
+        cafe = RepairCafe.query.first()
+        assert get_user_cafe_founder(target_id, cafe.id) is True
     client.get("/logout")
     # Outsider (non founder) ne peut pas activer founder sur un autre user
     client.post("/login", data={"email": "outsider@example.org", "password": "pwdpwd"})
@@ -57,4 +61,5 @@ def test_founder_badge_and_restricted_edit():
     )
     assert r2.status_code in (200, 302)
     with app.app_context():
-        assert db.session.get(User, target_id).founder is True  # inchangé
+        cafe = RepairCafe.query.first()
+        assert get_user_cafe_founder(target_id, cafe.id) is True  # inchangé

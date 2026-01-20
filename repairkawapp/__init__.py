@@ -191,8 +191,17 @@ def create_app(config_override=None):
 
                 if cu.is_authenticated:
                     today = _date.today()
-                    current_start = _current_academic_start(today)
-                    ok = cu.last_membership in {current_start, current_start + 1}
+                    from .services.tenant_service import (
+                        get_active_repaircafe,
+                        get_allowed_memberships,
+                        get_user_cafe_membership,
+                    )
+
+                    cafe = get_active_repaircafe(cu)
+                    if not cafe:
+                        return {"membership_up_to_date": True}
+                    last = get_user_cafe_membership(cu.id, cafe.id)
+                    ok = last in get_allowed_memberships(today)
                     return {"membership_up_to_date": ok}
             except Exception:
                 pass

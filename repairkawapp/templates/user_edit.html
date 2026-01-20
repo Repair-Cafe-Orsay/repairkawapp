@@ -20,18 +20,18 @@
   </div>
   <div class="input-group align-items-center">
     <span class="input-group-text bg-secondary col-4">Dernière cotisation</span>
-    {% if u['last_membership'] %}
-      <input type="text" class="form-control" value="1er sept {{ u['last_membership'] }} – 31 août {{ u['last_membership'] + 1 }}" readonly>
+    {% if membership_value %}
+      <input type="text" class="form-control" value="1er sept {{ membership_value }} – 31 août {{ membership_value + 1 }}" readonly>
     {% else %}
       <input type="text" class="form-control" value="(aucune)" readonly>
     {% endif %}
     {# Bouton régularisation année précédente #}
     {% set previous_target = subscription_target - 1 %}
-    {% if (u['last_membership'] is none) or (u['last_membership'] < previous_target) %}
+    {% if (membership_value is none) or (membership_value < previous_target) %}
   <button type="button" name="action" value="set_previous_membership" class="btn btn-sm btn-outline-primary ms-2" id="btn-subscribe-prev" title="Régulariser sur {{ previous_target }}-{{ previous_target + 1 }}">Régulariser {{ previous_target }}-{{ previous_target + 1 }}</button>
     {% endif %}
     {# Bouton souscription cible #}
-    {% if u['last_membership'] == subscription_target %}
+    {% if membership_value == subscription_target %}
       <button type="button" class="btn btn-sm btn-secondary ms-2" disabled title="Déjà souscrit">Souscription {{ subscription_target }}-{{ subscription_target + 1 }}</button>
     {% else %}
   <button type="button" name="action" value="set_current_membership" class="btn btn-sm btn-primary ms-2" id="btn-subscribe" title="Souscrire à la période cible">Souscription {{ subscription_target }}-{{ subscription_target + 1 }}</button>
@@ -47,7 +47,7 @@
   </div>
   <div class="input-group">
     <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="founder" value="1" id="founderUser" {{ u['founder'] and 'checked' or '' }} {% if not current_user.founder %}disabled title="Seul un fondateur peut modifier ce statut"{% endif %}>
+      <input class="form-check-input" type="checkbox" name="founder" value="1" id="founderUser" {{ founder_value and 'checked' or '' }} {% if not current_user_founder %}disabled title="Seul un fondateur peut modifier ce statut"{% endif %}>
       <label class="form-check-label" for="founderUser">Fondateur</label>
     </div>
   </div>
@@ -60,9 +60,9 @@
   <div class="input-group">
     <span class="input-group-text bg-secondary col-3">Rôle bureau</span>
     <select name="board_title" class="form-select">
-      <option value="" {{ not u['board_title'] and 'selected' or '' }}>—</option>
+      <option value="" {{ not board_title_value and 'selected' or '' }}>—</option>
       {% for role in ['président','vice-président','trésorier','secrétaire'] %}
-        <option value="{{role}}" {{ u['board_title']==role and 'selected' or '' }}>{{role}}</option>
+        <option value="{{role}}" {{ board_title_value==role and 'selected' or '' }}>{{role}}</option>
       {% endfor %}
     </select>
   </div>

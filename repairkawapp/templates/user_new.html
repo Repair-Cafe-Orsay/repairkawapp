@@ -7,12 +7,14 @@
   Un réparateur avec ce courriel existe déjà.
   </div>
   {% endif %}
+  {% if name_required %}
+  <div class="alert alert-warning" role="alert">
+  Nom obligatoire pour créer un nouveau réparateur.
+  </div>
+  {% endif %}
   <div class="input-group">
     <span class="input-group-text bg-secondary col-3">Nom</span>
-    <input name="name" type="string" class="form-control" required>
-    <div class="invalid-feedback">
-      Nom obligatoire !
-    </div>
+    <input name="name" type="string" class="form-control" placeholder="(optionnel si déjà existant)">
   </div>
   <div class="input-group">
     <span class="input-group-text bg-secondary col-3">Courriel</span>

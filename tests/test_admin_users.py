@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash
 
 from repairkawapp import create_app, db
 from repairkawapp.models import RepairCafe, User, user_repaircafe
+from repairkawapp.services.tenant_service import get_user_cafe_membership
 
 
 @pytest.fixture
@@ -60,7 +61,8 @@ def test_create_member_with_membership_year(login_admin):
     with login_admin.application.app_context():
         u = User.query.filter_by(email="membre@example.org").first()
         assert u is not None
-        assert u.last_membership == 2025
+        cafe = RepairCafe.query.first()
+        assert get_user_cafe_membership(u.id, cafe.id) == 2025
         assert u.admin is False
 
 
@@ -93,7 +95,8 @@ def test_update_member_membership_year(login_admin):
         # si période juillet/août on anticipe année suivante
         if date.today().month in (7, 8):
             expected += 1
-        assert u.last_membership == expected
+        cafe = RepairCafe.query.first()
+        assert get_user_cafe_membership(u.id, cafe.id) == expected
 
 
 def test_clear_membership_year(login_admin):
@@ -108,6 +111,7 @@ def test_clear_membership_year(login_admin):
                 user_id=u.id,
                 repaircafe_id=cafe.id,
                 role=None,
+                last_membership=2023,
             )
         )
         u.active_repaircafe_id = cafe.id
@@ -121,7 +125,8 @@ def test_clear_membership_year(login_admin):
     assert resp.status_code == 302
     with login_admin.application.app_context():
         u = User.query.filter_by(id=uid).first()
-        assert u.last_membership == 2023
+        cafe = RepairCafe.query.first()
+        assert get_user_cafe_membership(u.id, cafe.id) == 2023
 
 
 def test_get_new_user_form(login_admin):
@@ -189,4 +194,5 @@ def test_invalid_membership_year_ignored(login_admin):
     assert resp.status_code == 302
     with login_admin.application.app_context():
         u = User.query.filter_by(email="badyear@example.org").first()
-        assert u.last_membership is None
+        cafe = RepairCafe.query.first()
+        assert get_user_cafe_membership(u.id, cafe.id) is None

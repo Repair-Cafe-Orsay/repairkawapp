@@ -47,9 +47,15 @@ from .services.tenant_service import (
     ensure_cafe_upload_folder,
     get_cafe_upload_relative_path,
     get_mail_sender,
+    get_user_cafe_board_title,
+    get_user_cafe_founder,
+    get_user_cafe_membership,
     get_user_cafe_photo,
     is_cafe_admin,
     require_active_repaircafe,
+    set_user_cafe_board_title,
+    set_user_cafe_founder,
+    set_user_cafe_membership,
     set_user_cafe_photo,
 )
 
@@ -92,14 +98,27 @@ def user_list():
     users_q = (
         User.query.join(user_repaircafe)
         .filter(user_repaircafe.c.repaircafe_id == cafe.id)
-        .order_by(User.last_membership.desc())
+        .order_by(user_repaircafe.c.last_membership.desc())
         .order_by(User.name)
     )
+    membership_rows = (
+        db.session.query(
+            user_repaircafe.c.user_id,
+            user_repaircafe.c.last_membership,
+            user_repaircafe.c.board_title,
+        )
+        .filter(user_repaircafe.c.repaircafe_id == cafe.id)
+        .all()
+    )
+    membership_map = {uid: val for uid, val, _ in membership_rows}
+    board_title_map = {uid: title for uid, _, title in membership_rows}
     return render_template(
         "user_list.html",
         name=current_user.name,
         filter_email=email,
         users=users_q.all(),
+        membership_map=membership_map,
+        board_title_map=board_title_map,
     )
 
 
@@ -218,6 +237,17 @@ def users_download():
         .order_by(User.name.asc())
         .all()
     )
+    membership_rows = (
+        db.session.query(
+            user_repaircafe.c.user_id,
+            user_repaircafe.c.last_membership,
+            user_repaircafe.c.board_title,
+        )
+        .filter(user_repaircafe.c.repaircafe_id == cafe.id)
+        .all()
+    )
+    membership_map = {uid: val for uid, val, _ in membership_rows}
+    board_title_map = {uid: title for uid, _, title in membership_rows}
     import csv
     import io
 
@@ -238,9 +268,8 @@ def users_download():
     )
     for u in users:
         last_conn = u.last_connection.isoformat().replace("T", " ") if u.last_connection else ""
-        membership = (
-            f"{u.last_membership}-{u.last_membership + 1}" if u.last_membership is not None else ""
-        )
+        member_val = membership_map.get(u.id)
+        membership = f"{member_val}-{member_val + 1}" if member_val is not None else ""
         writer.writerow(
             [
                 u.id,
@@ -249,7 +278,7 @@ def users_download():
                 u.phone or "",
                 "Oui" if u.visibility_public_trombi else "Non",
                 "Oui" if u.admin else "Non",
-                u.board_title or "",
+                board_title_map.get(u.id) or "",
                 membership,
                 last_conn,
             ]
@@ -794,20 +823,22 @@ def user_edit(user_id):
         .filter(user_repaircafe.c.repaircafe_id == cafe.id)
         .first()
     )
+    membership_value = get_user_cafe_membership(u.id, cafe.id)
     photo_error = None
     password_error = None
     if request.method == "POST":
         # Bouton d'action rapide "set_current_membership"
         if request.form.get("action") == "set_previous_membership":
-            old = u.last_membership
+            old = get_user_cafe_membership(u.id, cafe.id)
             prev_val = _subscription_target_start(date.today()) - 1
             # On n'applique que si pas déjà positionné ou plus ancien
             if old != prev_val and (old is None or old < prev_val):
-                u.last_membership = prev_val
+                set_user_cafe_membership(u.id, cafe.id, prev_val)
                 db.session.add(
                     MembershipLog(
                         admin_id=current_user.id,
                         user_id=u.id,
+                        repaircafe_id=cafe.id,
                         old_value=old,
                         new_value=prev_val,
                     )
@@ -815,14 +846,15 @@ def user_edit(user_id):
                 db.session.commit()
             return redirect(url_for("admin.user_edit", user_id=user_id), code=302)
         if request.form.get("action") == "set_current_membership":
-            old = u.last_membership
+            old = get_user_cafe_membership(u.id, cafe.id)
             new_val = _subscription_target_start(date.today())
             if old != new_val:
-                u.last_membership = new_val
+                set_user_cafe_membership(u.id, cafe.id, new_val)
                 db.session.add(
                     MembershipLog(
                         admin_id=current_user.id,
                         user_id=u.id,
+                        repaircafe_id=cafe.id,
                         old_value=old,
                         new_value=new_val,
                     )
@@ -836,13 +868,14 @@ def user_edit(user_id):
 
         # Rôle de bureau (admin only) + log si changement
         new_role = request.form.get("board_title") or None
-        if new_role != u.board_title:
-            old_role = u.board_title
-            u.board_title = new_role
+        old_role = get_user_cafe_board_title(u.id, cafe.id)
+        if new_role != old_role:
+            set_user_cafe_board_title(u.id, cafe.id, new_role)
             db.session.add(
                 BoardRoleLog(
                     admin_id=current_user.id,
                     user_id=u.id,
+                    repaircafe_id=cafe.id,
                     old_role=old_role,
                     new_role=new_role,
                 )
@@ -904,9 +937,10 @@ def user_edit(user_id):
                 )
             )
         u.visibility_public_trombi = True if request.form.get("visibility_public_trombi") else False
-        # Founder: seul un fondateur peut modifier ce flag
-        if current_user.founder:
-            u.founder = True if request.form.get("founder") else False
+        # Founder: seul un fondateur peut modifier ce flag (par RC)
+        current_user_founder = get_user_cafe_founder(current_user.id, cafe.id)
+        if current_user_founder:
+            set_user_cafe_founder(u.id, cafe.id, True if request.form.get("founder") else False)
         # si non fondateur, founder reste inchangé (lecture seule côté template)
 
         # Commit seulement si pas d'erreur photo ou password -> redirection liste
@@ -918,14 +952,20 @@ def user_edit(user_id):
         db.session.commit()
         logs = (
             db.session.query(MembershipLog)
-            .filter_by(user_id=u.id)
+            .filter(MembershipLog.user_id == u.id)
+            .filter(
+                (MembershipLog.repaircafe_id == cafe.id) | (MembershipLog.repaircafe_id.is_(None))
+            )
             .order_by(MembershipLog.date.desc())
             .limit(20)
             .all()
         )
         role_logs = (
             db.session.query(BoardRoleLog)
-            .filter_by(user_id=u.id)
+            .filter(BoardRoleLog.user_id == u.id)
+            .filter(
+                (BoardRoleLog.repaircafe_id == cafe.id) | (BoardRoleLog.repaircafe_id.is_(None))
+            )
             .order_by(BoardRoleLog.date.desc())
             .limit(20)
             .all()
@@ -934,6 +974,9 @@ def user_edit(user_id):
             "user_edit.html",
             name=current_user.name,
             u=u,
+            board_title_value=get_user_cafe_board_title(u.id, cafe.id),
+            founder_value=get_user_cafe_founder(u.id, cafe.id),
+            current_user_founder=current_user_founder,
             current_academic_start=_current_academic_start(date.today()),
             subscription_target=_subscription_target_start(date.today()),
             membership_logs=logs,
@@ -952,7 +995,10 @@ def user_edit(user_id):
         )
         role_logs = (
             db.session.query(BoardRoleLog)
-            .filter_by(user_id=u.id)
+            .filter(BoardRoleLog.user_id == u.id)
+            .filter(
+                (BoardRoleLog.repaircafe_id == cafe.id) | (BoardRoleLog.repaircafe_id.is_(None))
+            )
             .order_by(BoardRoleLog.date.desc())
             .limit(20)
             .all()
@@ -961,6 +1007,10 @@ def user_edit(user_id):
         "user_edit.html",
         name=current_user.name,
         u=u,
+        membership_value=membership_value,
+        board_title_value=get_user_cafe_board_title(u.id, cafe.id),
+        founder_value=get_user_cafe_founder(u.id, cafe.id),
+        current_user_founder=get_user_cafe_founder(current_user.id, cafe.id),
         current_academic_start=_current_academic_start(date.today()),
         subscription_target=_subscription_target_start(date.today()),
         membership_logs=logs,
@@ -977,34 +1027,86 @@ def user_new():
     """Création d'un nouveau réparateur (admin)."""
     _admin_only()
     cafe = require_active_repaircafe()
-    user_exists = (
-        request.method == "POST"
-        and db.session.query(User).filter_by(email=request.form.get("email")).count() != 0
-    )
-    if request.method == "POST" and not user_exists:
-        u = User()
-        db.session.add(u)
-        u.name = request.form.get("name")
-        u.email = request.form.get("email")
-        if request.form.get("last_membership"):
-            try:
-                u.last_membership = int(request.form.get("last_membership"))
-            except ValueError:
-                pass
-        is_admin = True if request.form.get("admin") else False
-        u.admin = is_admin
-        db.session.commit()
-        db.session.execute(
-            user_repaircafe.insert().values(
-                user_id=u.id,
-                repaircafe_id=cafe.id,
-                role="admin" if is_admin else None,
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip()
+        name = (request.form.get("name") or "").strip()
+        existing_user = db.session.query(User).filter_by(email=email).first()
+        if existing_user:
+            existing_link = (
+                db.session.query(user_repaircafe)
+                .filter(user_repaircafe.c.user_id == existing_user.id)
+                .filter(user_repaircafe.c.repaircafe_id == cafe.id)
+                .first()
             )
-        )
-        if not u.active_repaircafe_id:
-            u.active_repaircafe_id = cafe.id
-        db.session.commit()
-        # Redirection sans filtre email pour afficher la liste complète
-        return redirect(url_for("admin.user_list"), code=302)
-    else:
-        return render_template("user_new.html", already_exists=user_exists, name=current_user.name)
+            if existing_link:
+                return render_template(
+                    "user_new.html",
+                    already_exists=True,
+                    current_year=date.today().year,
+                    name=current_user.name,
+                )
+            else:
+                membership_value = None
+                if request.form.get("last_membership"):
+                    try:
+                        membership_value = int(request.form.get("last_membership"))
+                    except ValueError:
+                        membership_value = None
+                is_admin = True if request.form.get("admin") else False
+                existing_user.admin = is_admin
+                db.session.execute(
+                    user_repaircafe.insert().values(
+                        user_id=existing_user.id,
+                        repaircafe_id=cafe.id,
+                        role="admin" if is_admin else None,
+                    )
+                )
+                if membership_value is not None:
+                    set_user_cafe_membership(existing_user.id, cafe.id, membership_value)
+                if not existing_user.active_repaircafe_id:
+                    existing_user.active_repaircafe_id = cafe.id
+                db.session.commit()
+                return redirect(url_for("admin.user_edit", user_id=existing_user.id), code=302)
+        else:
+            if not name:
+                return render_template(
+                    "user_new.html",
+                    already_exists=False,
+                    name_required=True,
+                    current_year=date.today().year,
+                    name=current_user.name,
+                )
+            u = User()
+            db.session.add(u)
+            u.name = name
+            u.email = email
+            membership_value = None
+            if request.form.get("last_membership"):
+                try:
+                    membership_value = int(request.form.get("last_membership"))
+                except ValueError:
+                    membership_value = None
+            is_admin = True if request.form.get("admin") else False
+            u.admin = is_admin
+            db.session.commit()
+            db.session.execute(
+                user_repaircafe.insert().values(
+                    user_id=u.id,
+                    repaircafe_id=cafe.id,
+                    role="admin" if is_admin else None,
+                )
+            )
+            if membership_value is not None:
+                set_user_cafe_membership(u.id, cafe.id, membership_value)
+            if not u.active_repaircafe_id:
+                u.active_repaircafe_id = cafe.id
+            db.session.commit()
+            # Redirection sans filtre email pour afficher la liste complète
+            return redirect(url_for("admin.user_list"), code=302)
+    return render_template(
+        "user_new.html",
+        already_exists=False,
+        name_required=False,
+        current_year=date.today().year,
+        name=current_user.name,
+    )

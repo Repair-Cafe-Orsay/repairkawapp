@@ -30,10 +30,13 @@
             <td>{{ user.phone or '' }}</td>
             <td>{% if user.visibility_public_trombi %}<span class="badge bg-success">Oui</span>{% else %}<span class="badge bg-secondary">Non</span>{% endif %}</td>
             <td>{{ 'Oui' if user.admin else '' }}</td>
-            <td>{{ user.board_title or '' }}</td>
+            <td>{{ board_title_map.get(user.id) or '' }}</td>
             <td>
-                {% if user.last_membership is not none %}
-                    {{ user.last_membership }}-{{ user.last_membership + 1 }}
+                {% set membership = membership_map.get(user.id) %}
+                {% if membership is not none %}
+                    {{ membership }}-{{ membership + 1 }}
+                {% else %}
+                    -
                 {% endif %}
             </td>
             <td>

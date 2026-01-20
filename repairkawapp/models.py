@@ -19,6 +19,9 @@ user_repaircafe = db.Table(
     db.Column("repaircafe_id", db.ForeignKey("repaircafe.id")),
     db.Column("role", db.String(30)),
     db.Column("photo_filename", db.String(200)),
+    db.Column("last_membership", db.Integer, nullable=True),
+    db.Column("founder", db.Boolean, nullable=False, server_default="0"),
+    db.Column("board_title", db.String(30)),
 )
 
 
@@ -357,6 +360,8 @@ class MembershipLog(db.Model):
     admin = db.relationship("User", foreign_keys=[admin_id])
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     user = db.relationship("User", foreign_keys=[user_id])
+    repaircafe_id = db.Column(db.Integer, db.ForeignKey("repaircafe.id"), nullable=True)
+    repaircafe = db.relationship("RepairCafe", foreign_keys=[repaircafe_id])
     old_value = db.Column(db.Integer)
     new_value = db.Column(db.Integer)
     note = db.Column(db.String(200), default="")
@@ -372,6 +377,8 @@ class BoardRoleLog(db.Model):
     admin = db.relationship("User", foreign_keys=[admin_id])
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     user = db.relationship("User", foreign_keys=[user_id])
+    repaircafe_id = db.Column(db.Integer, db.ForeignKey("repaircafe.id"), nullable=True)
+    repaircafe = db.relationship("RepairCafe", foreign_keys=[repaircafe_id])
     old_role = db.Column(db.String(30))
     new_role = db.Column(db.String(30))
 

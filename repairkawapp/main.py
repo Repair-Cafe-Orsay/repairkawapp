@@ -57,6 +57,7 @@ from .services.tenant_service import (
     get_cafe_upload_folder,
     get_cafe_upload_relative_path,
     get_upload_prefix,
+    get_user_cafe_membership,
     get_user_cafe_photo,
     is_cafe_admin,
     is_membership_allowed,
@@ -146,9 +147,9 @@ def dashboard():
     """Dashboard d'accueil avec message de bienvenue et statistiques."""
     # Informations cotisation pour affichage rapide
     today = date.today()
-    current_start = _current_academic_start(today)
-    last_start = current_user.last_membership
-    last_membership_ok = last_start == current_start
+    active_cafe = get_active_repaircafe(current_user)
+    last_start = get_user_cafe_membership(current_user.id, active_cafe.id) if active_cafe else None
+    last_membership_ok = last_start in get_allowed_memberships(today)
     user_period = (last_start, last_start + 1) if last_start is not None else None
     return render_template(
         "dashboard.html",
@@ -172,12 +173,11 @@ def _current_academic_start(today: date) -> int:
 def profile():
     """Page profil réparateur (dashboard + cotisation + présentation)."""
     today = date.today()
-    current_start = _current_academic_start(today)
-    last_start = current_user.last_membership
-    last_membership_ok = last_start == current_start
+    active_cafe = get_active_repaircafe(current_user)
+    last_start = get_user_cafe_membership(current_user.id, active_cafe.id) if active_cafe else None
+    last_membership_ok = last_start in get_allowed_memberships(today)
     user_period = (last_start, last_start + 1) if last_start is not None else None
     photo_error = None
-    active_cafe = get_active_repaircafe(current_user)
     if request.method == "POST":
         # Champs simples
         current_user.biography = request.form.get("biography") or None
@@ -600,7 +600,7 @@ def get_update(id):
                 db.session.query(User.id)
                 .join(user_repaircafe)
                 .filter(user_repaircafe.c.repaircafe_id == active_cafe.id)
-                .filter(User.founder.is_(True))
+                .filter(user_repaircafe.c.founder.is_(True))
                 .all()
             )
             allowed_ids.update({row[0] for row in founder_ids})
@@ -608,20 +608,19 @@ def get_update(id):
         # Les réparateurs déjà associés (r.users) restent listés même s'ils ne
         # sont plus participants : on peut les retirer mais pas les réajouter.
         candidate_users = (
-            filter_active_membership_or_founder(User.query.filter(User.id.in_(allowed_ids)))
+            filter_active_membership_or_founder(
+                User.query.filter(User.id.in_(allowed_ids)), active_cafe.id
+            )
             .order_by(User.name.asc())
             .all()
             if allowed_ids
             else []
         )
     else:
-        from .models import user_repaircafe
-
-        base_users = User.query.join(user_repaircafe).filter(
-            user_repaircafe.c.repaircafe_id == active_cafe.id
-        )
         candidate_users = (
-            filter_active_membership_or_founder(base_users).order_by(User.name.asc()).all()
+            filter_active_membership_or_founder(User.query, active_cafe.id)
+            .order_by(User.name.asc())
+            .all()
         )
 
     return render_template(
@@ -829,12 +828,31 @@ def trombinoscope():
     else:
         # Filtrer visibilité publique (fondateurs inclus même sans visibilité)
         visibility_query = base_query.filter(
-            (User.visibility_public_trombi.is_(True)) | (User.founder.is_(True))
+            (User.visibility_public_trombi.is_(True)) | (user_repaircafe.c.founder.is_(True))
         )
         all_users = visibility_query.all()
 
     # Filtrer cotisation (active ou N-1) pour tous sauf fondateurs
     all_users = [u for u in all_users if is_membership_allowed(u)]
+    board_title_map = {}
+    founder_map = {}
+    if active_cafe and all_users:
+        rows = (
+            db.session.query(
+                user_repaircafe.c.user_id,
+                user_repaircafe.c.board_title,
+                user_repaircafe.c.founder,
+            )
+            .filter(user_repaircafe.c.repaircafe_id == active_cafe.id)
+            .filter(user_repaircafe.c.user_id.in_([u.id for u in all_users]))
+            .all()
+        )
+        board_title_map = {uid: title for uid, title, _ in rows}
+        founder_map = {uid: bool(founder) for uid, _, founder in rows}
+        for u in all_users:
+            u.board_title = board_title_map.get(u.id)
+            u.founder = founder_map.get(u.id, False)
+
     # Sépare bureau / autres
     board = [u for u in all_users if u.board_title]
     others = [u for u in all_users if not u.board_title]
@@ -867,11 +885,21 @@ def trombinoscope():
     # Statuts pour badges (nouveau: jamais cotisé, ancien: cotisation < année précédente)
     allowed = get_allowed_memberships()
     previous_acad = min(allowed) if allowed else 0
+    membership_map = {}
+    if active_cafe and all_users:
+        rows = (
+            db.session.query(user_repaircafe.c.user_id, user_repaircafe.c.last_membership)
+            .filter(user_repaircafe.c.repaircafe_id == active_cafe.id)
+            .filter(user_repaircafe.c.user_id.in_([u.id for u in all_users]))
+            .all()
+        )
+        membership_map = {uid: val for uid, val in rows}
 
     def classify(u):  # noqa: D401 simple helper
-        if u.last_membership is None:
+        last = membership_map.get(u.id)
+        if last is None:
             return "nouveau"
-        if u.last_membership < previous_acad:
+        if last < previous_acad:
             return "ancien"
         return "normal"
 

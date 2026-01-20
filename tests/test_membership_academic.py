@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash
 
 from repairkawapp import create_app, db
 from repairkawapp.models import RepairCafe, User, user_repaircafe
+from repairkawapp.services.tenant_service import get_user_cafe_membership
 
 
 def _expected_academic_start(d: date) -> int:
@@ -53,6 +54,7 @@ def test_admin_set_current_membership():
             user.active_repaircafe_id = cafe.id
         db.session.commit()
         uid = u.id
+        cafe_id = cafe.id
     client = app.test_client()
     # login as admin
     resp = client.post("/login", data={"email": "admin@example.org", "password": "admin"})
@@ -69,4 +71,4 @@ def test_admin_set_current_membership():
             if today.month in (7, 8)
             else _expected_academic_start(today)
         )
-        assert u.last_membership == expected
+        assert get_user_cafe_membership(u.id, cafe_id) == expected

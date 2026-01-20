@@ -145,14 +145,86 @@ def get_allowed_memberships(today: _date | None = None) -> set[int]:
     return {previous_acad, acad_start}
 
 
-def is_membership_allowed(user: User, today: _date | None = None) -> bool:
-    """Return True if user is founder or has an active/previous membership year."""
-    if getattr(user, "founder", False):
+def get_user_cafe_membership(user_id: int, cafe_id: int) -> int | None:
+    """Return the per-cafe last membership year for a user."""
+    row = (
+        db.session.query(user_repaircafe.c.last_membership)
+        .filter(user_repaircafe.c.user_id == user_id)
+        .filter(user_repaircafe.c.repaircafe_id == cafe_id)
+        .first()
+    )
+    return row[0] if row else None
+
+
+def set_user_cafe_membership(user_id: int, cafe_id: int, value: int | None) -> None:
+    """Set the per-cafe last membership year for a user."""
+    db.session.execute(
+        user_repaircafe.update()
+        .where(user_repaircafe.c.user_id == user_id)
+        .where(user_repaircafe.c.repaircafe_id == cafe_id)
+        .values(last_membership=value)
+    )
+
+
+def get_user_cafe_founder(user_id: int, cafe_id: int) -> bool:
+    """Return the per-cafe founder flag for a user."""
+    row = (
+        db.session.query(user_repaircafe.c.founder)
+        .filter(user_repaircafe.c.user_id == user_id)
+        .filter(user_repaircafe.c.repaircafe_id == cafe_id)
+        .first()
+    )
+    return bool(row[0]) if row else False
+
+
+def set_user_cafe_founder(user_id: int, cafe_id: int, value: bool) -> None:
+    """Set the per-cafe founder flag for a user."""
+    db.session.execute(
+        user_repaircafe.update()
+        .where(user_repaircafe.c.user_id == user_id)
+        .where(user_repaircafe.c.repaircafe_id == cafe_id)
+        .values(founder=bool(value))
+    )
+
+
+def get_user_cafe_board_title(user_id: int, cafe_id: int) -> str | None:
+    """Return the per-cafe board title for a user."""
+    row = (
+        db.session.query(user_repaircafe.c.board_title)
+        .filter(user_repaircafe.c.user_id == user_id)
+        .filter(user_repaircafe.c.repaircafe_id == cafe_id)
+        .first()
+    )
+    return row[0] if row else None
+
+
+def set_user_cafe_board_title(user_id: int, cafe_id: int, value: str | None) -> None:
+    """Set the per-cafe board title for a user."""
+    db.session.execute(
+        user_repaircafe.update()
+        .where(user_repaircafe.c.user_id == user_id)
+        .where(user_repaircafe.c.repaircafe_id == cafe_id)
+        .values(board_title=value)
+    )
+
+
+def is_membership_allowed(
+    user: User, cafe: RepairCafe | None = None, today: _date | None = None
+) -> bool:
+    """Return True if user is founder or has an active/previous membership year for cafe."""
+    cafe = cafe or get_active_repaircafe(user)
+    if not cafe:
         return True
-    return user.last_membership in get_allowed_memberships(today)
+    if get_user_cafe_founder(user.id, cafe.id):
+        return True
+    last = get_user_cafe_membership(user.id, cafe.id)
+    return last in get_allowed_memberships(today)
 
 
-def filter_active_membership_or_founder(query, today: _date | None = None):
-    """Filter a User query to active/previous membership or founder."""
+def filter_active_membership_or_founder(query, cafe_id: int, today: _date | None = None):
+    """Filter a User query to active/previous membership or founder for a cafe."""
     allowed = list(get_allowed_memberships(today))
-    return query.filter(or_(User.founder.is_(True), User.last_membership.in_(allowed)))
+    query = query.join(user_repaircafe).filter(user_repaircafe.c.repaircafe_id == cafe_id)
+    return query.filter(
+        or_(user_repaircafe.c.founder.is_(True), user_repaircafe.c.last_membership.in_(allowed))
+    )

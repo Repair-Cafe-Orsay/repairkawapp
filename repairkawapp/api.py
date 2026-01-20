@@ -592,15 +592,20 @@ def api_users_simple():
     except Exception:
         limit = 50
     limit = max(1, min(limit, 500))
-    base_query = db.session.query(User).join(user_repaircafe)
-    base_query = base_query.filter(user_repaircafe.c.repaircafe_id == active_cafe.id)
-    query = filter_active_membership_or_founder(base_query)
+    base_query = db.session.query(User)
+    query = filter_active_membership_or_founder(base_query, active_cafe.id)
     if q:
         like = f"{q}%"
         query = query.filter(User.name.like(like))
     users = query.order_by(User.name.asc()).limit(limit).all()
     # Assurer présence des fondateurs même si limite atteinte
-    founder_users = base_query.filter(User.founder.is_(True)).all()
+    founder_users = (
+        db.session.query(User)
+        .join(user_repaircafe)
+        .filter(user_repaircafe.c.repaircafe_id == active_cafe.id)
+        .filter(user_repaircafe.c.founder.is_(True))
+        .all()
+    )
     existing_ids = {u.id for u in users}
     for u in founder_users:
         if u.id not in existing_ids:
