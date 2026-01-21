@@ -25,14 +25,6 @@
         <label class="form-label">Code</label>
         <input name="code" class="form-control" placeholder="rco" required />
       </div>
-      <div class="col-md-3">
-        <label class="form-label">Email</label>
-        <input name="email" class="form-control" type="email" />
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Site web</label>
-        <input name="website_url" class="form-control" type="url" placeholder="https://" />
-      </div>
       <div class="col-md-2 d-flex align-items-end">
         <button class="btn btn-primary w-100" type="submit">Créer</button>
       </div>
@@ -46,8 +38,6 @@
       <th>Nom</th>
       <th>Code</th>
       <th>Slug</th>
-      <th>Email</th>
-      <th>Site web</th>
       <th>Réparateurs</th>
       <th>Réparations (total)</th>
       <th>Réparations (année en cours)</th>
@@ -60,12 +50,6 @@
         <td>{{ row.cafe.name }}</td>
         <td>{{ row.cafe.code }}</td>
         <td>{{ row.cafe.slug }}</td>
-        <td>{{ row.cafe.email or '' }}</td>
-        <td>
-          {% if row.cafe.website_url %}
-            <a href="{{ row.cafe.website_url }}" target="_blank" rel="noopener">{{ row.cafe.website_url }}</a>
-          {% endif %}
-        </td>
         <td>{{ row.repairer_count }}</td>
         <td>{{ row.total_repairs }}</td>
         <td>{{ row.academic_repairs }}</td>

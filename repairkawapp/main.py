@@ -31,6 +31,7 @@ from .models import (
     Brand,
     Category,
     CloseStatus,
+    Location,
     Log,
     Note,
     Notification,
@@ -794,9 +795,9 @@ def session_detail(session_id):
     )
 
 
-@main.route("/trombinoscope")
-def trombinoscope():
-    """Page publique listant les réparateurs (trombinoscope).
+@main.route("/infos")
+def info_page():
+    """Page publique d'information incluant le trombinoscope.
 
     Première ligne : membres du bureau (ordre défini) avec titre et nom séparés.
     Lignes suivantes : autres membres (réparateurs sans rôle de bureau).
@@ -813,6 +814,15 @@ def trombinoscope():
         code = request.environ.get("REPAIRCAFE_CODE")
         if code:
             active_cafe = RepairCafe.query.filter_by(code=code).first()
+    recurring_locations = []
+    if active_cafe:
+        recurring_locations = (
+            db.session.query(Location)
+            .filter(Location.repaircafe_id == active_cafe.id)
+            .filter(Location.is_recurring.is_(True))
+            .order_by(Location.name.asc())
+            .all()
+        )
     base_query = db.session.query(User)
     if active_cafe:
         base_query = base_query.join(user_repaircafe).filter(
@@ -922,20 +932,27 @@ def trombinoscope():
         )
         photo_map = {uid: photo for uid, photo in rows if photo}
     return render_template(
-        "trombinoscope.html",
+        "info.html",
         board=board,
         others=others,
         status_map=status_map,
         photo_map=photo_map,
+        recurring_locations=recurring_locations,
         active_cafe=active_cafe,
         active_repaircafe=active_cafe,
         name=current_user.name if current_user.is_authenticated else None,
     )
 
 
+@main.route("/trombinoscope")
+def trombinoscope_redirect():
+    """Compat: redirect trombinoscope to info page."""
+    return redirect(url_for("main.info_page"))
+
+
 @main.route("/repaircafes")
 def repaircafes_public():
-    """Liste publique des Repair Cafés (pour accès au trombinoscope)."""
+    """Liste publique des Repair Cafés (pour accès à la page d'information)."""
     cafes = RepairCafe.query.order_by(RepairCafe.name.asc()).all()
     return render_template("repaircafes_public.html", cafes=cafes)
 

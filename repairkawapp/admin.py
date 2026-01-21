@@ -33,12 +33,14 @@ from .models import (
     BoardRoleLog,
     CafeFile,
     Category,
+    Location,
     MembershipLog,
     ObjectSubtype,
     ObjectType,
     ObjectVariant,
     Repair,
     RepairCafe,
+    Session,
     User,
     user_repaircafe,
 )
@@ -366,8 +368,6 @@ def repaircafe_list():
             name = (request.form.get("name") or "").strip()
             slug = (request.form.get("slug") or "").strip()
             code = (request.form.get("code") or "").strip().lower()
-            email = (request.form.get("email") or "").strip() or None
-            website_url = (request.form.get("website_url") or "").strip() or None
             if not name or not code:
                 creation_error = "Nom et code obligatoires."
             else:
@@ -386,8 +386,6 @@ def repaircafe_list():
                             name=name,
                             slug=slug,
                             code=code,
-                            email=email,
-                            website_url=website_url,
                         )
                     )
                     db.session.commit()
@@ -483,6 +481,108 @@ def repaircafe_reset_admin(cafe_id: int, user_id: int):
     return redirect(url_for("admin.repaircafe_list"))
 
 
+@admin.route("/admin/locations", methods=["GET", "POST"])
+@login_required
+def admin_locations():
+    """Gestion des lieux de séance (admin)."""
+    _admin_only()
+    cafe = require_active_repaircafe()
+    error = None
+    if request.method == "POST":
+        action = request.form.get("action") or "add"
+        if action == "delete":
+            loc_id = request.form.get("location_id")
+            loc = (
+                db.session.query(Location)
+                .filter(Location.id == int(loc_id))
+                .filter(Location.repaircafe_id == cafe.id)
+                .first()
+                if loc_id
+                else None
+            )
+            if not loc:
+                error = "Lieu introuvable."
+            else:
+                used = db.session.query(Session).filter(Session.location_id == loc.id).count()
+                if used:
+                    error = "Impossible de supprimer : lieu utilisé dans une séance."
+                else:
+                    db.session.delete(loc)
+                    db.session.commit()
+                    return redirect(url_for("admin.admin_locations"))
+        elif action == "update":
+            loc_id = request.form.get("location_id")
+            loc = (
+                db.session.query(Location)
+                .filter(Location.id == int(loc_id))
+                .filter(Location.repaircafe_id == cafe.id)
+                .first()
+                if loc_id
+                else None
+            )
+            if not loc:
+                error = "Lieu introuvable."
+            else:
+                name = (request.form.get("name") or "").strip()
+                full_name = (request.form.get("full_name") or "").strip() or None
+                address = (request.form.get("address") or "").strip() or None
+                osm_url = (request.form.get("osm_url") or "").strip() or None
+                is_recurring = bool(request.form.get("is_recurring"))
+                if not name:
+                    error = "Nom court obligatoire."
+                else:
+                    loc.name = name
+                    loc.full_name = full_name
+                    loc.address = address
+                    loc.osm_url = osm_url
+                    loc.is_recurring = is_recurring
+                    db.session.commit()
+                    return redirect(url_for("admin.admin_locations"))
+        else:
+            name = (request.form.get("name") or "").strip()
+            full_name = (request.form.get("full_name") or "").strip() or None
+            address = (request.form.get("address") or "").strip() or None
+            osm_url = (request.form.get("osm_url") or "").strip() or None
+            is_recurring = bool(request.form.get("is_recurring"))
+            if not name:
+                error = "Nom court obligatoire."
+            else:
+                exists = (
+                    db.session.query(Location)
+                    .filter(Location.repaircafe_id == cafe.id)
+                    .filter(Location.name == name)
+                    .first()
+                )
+                if exists:
+                    error = "Nom déjà utilisé."
+                else:
+                    db.session.add(
+                        Location(
+                            name=name,
+                            full_name=full_name,
+                            address=address,
+                            osm_url=osm_url,
+                            is_recurring=is_recurring,
+                            repaircafe=cafe,
+                        )
+                    )
+                    db.session.commit()
+                    return redirect(url_for("admin.admin_locations"))
+
+    locations = (
+        db.session.query(Location)
+        .filter(Location.repaircafe_id == cafe.id)
+        .order_by(Location.name.asc())
+        .all()
+    )
+    return render_template(
+        "admin_locations.html",
+        name=current_user.name,
+        locations=locations,
+        error=error,
+    )
+
+
 @admin.route("/admin/settings", methods=["GET", "POST"])
 @login_required
 def settings_page():
@@ -511,6 +611,10 @@ def settings_page():
                     pass
             else:
                 setting.maintenance_until = None
+        if action == "contact" and cafe:
+            cafe.email = (request.form.get("email") or "").strip() or None
+            cafe.phone = (request.form.get("phone") or "").strip() or None
+            cafe.website_url = (request.form.get("website_url") or "").strip() or None
         if action == "logo" and cafe and "logo" in request.files and request.files["logo"].filename:
             from werkzeug.utils import secure_filename
 

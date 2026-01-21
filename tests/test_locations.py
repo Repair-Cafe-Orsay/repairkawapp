@@ -49,7 +49,9 @@ def test_open_session_with_new_location(client, app):
     resp = client.post("/api/session/open", json={"location": "Maison des Assos"})
     assert resp.status_code == 200
     with app.app_context():
-        assert db.session.query(Location).filter_by(name="Maison des Assos").count() == 1
+        loc = db.session.query(Location).filter_by(name="Maison des Assos").first()
+        assert loc is not None
+        assert loc.is_recurring is False
         # réouverture le même jour doit réutiliser la session
         resp2 = client.post("/api/session/open", json={"location": "Maison des Assos"})
         assert resp2.status_code == 200

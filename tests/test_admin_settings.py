@@ -143,3 +143,43 @@ def test_settings_link_in_menu(client, admin_user, app):
     assert resp.status_code == 200
     # Lien vers Paramètres site présent
     assert b"Param\xc3\xa8tres site" in resp.data
+
+
+def test_settings_update_contact(client, app):
+    with app.app_context():
+        local_admin = User(email="local-contact@example.org", name="Local Contact", admin=True)
+        local_admin.password = generate_password_hash("password")
+        db.session.add(local_admin)
+        cafe = RepairCafe.query.first()
+        if not cafe:
+            cafe = RepairCafe(name="Repair Café Orsay", slug="repaircafe-orsay", code="rco")
+            db.session.add(cafe)
+            db.session.commit()
+        db.session.execute(
+            user_repaircafe.insert().values(
+                user_id=local_admin.id,
+                repaircafe_id=cafe.id,
+                role="admin",
+            )
+        )
+        local_admin.active_repaircafe_id = cafe.id
+        db.session.commit()
+        admin_email = local_admin.email
+        cafe_id = cafe.id
+    login(client, admin_email, "password")
+    resp = client.post(
+        "/admin/settings",
+        data={
+            "action": "contact",
+            "email": "contact@repaircafe.org",
+            "phone": "0102030405",
+            "website_url": "https://example.org",
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code in (302, 303)
+    with app.app_context():
+        cafe = db.session.get(RepairCafe, cafe_id)
+        assert cafe.email == "contact@repaircafe.org"
+        assert cafe.phone == "0102030405"
+        assert cafe.website_url == "https://example.org"

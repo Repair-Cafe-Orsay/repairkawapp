@@ -23,7 +23,7 @@
   <select class="form-select" name="location_select" id="detail-location-select">
         <option value="" disabled {% if not session.location %}selected{% endif %}>Choisir un lieu...</option>
         {% if session.location %}<option value="{{ session.location.name }}" selected>{{ session.location.name }}</option>{% endif %}
-        <option value="__new__">➕ Nouveau lieu...</option>
+        <option value="__new__">Nouveau lieu...</option>
       </select>
       <input type="text" class="form-control mt-1" name="new_location" id="detail-new-location" placeholder="Nouveau lieu" style="display:none;" />
     </div>
@@ -84,21 +84,19 @@
 <script id="current-participants-emails" type="application/json">{{ participants | selectattr('id','ne', session.owner_id) | map(attribute='email') | list | tojson | safe }}</script>
 <script id="session-owner-info" type="application/json">{{ {"id": session.owner_id, "name": session.owner.name if session.owner else None, "email": session.owner.email if session.owner else None} | tojson | safe }}</script>
 <div class="mb-2" id="participants-manager">
-  <div class="d-flex flex-wrap align-items-end gap-2">
+  <div class="small mb-2">
+    <span id="participants-current-badges" class="d-inline-flex flex-wrap gap-1 align-items-center"></span>
+  </div>
+  <div class="d-flex flex-wrap align-items-start gap-2">
     <div>
-      <label class="form-label small mb-1">Ajouter / Retirer</label>
       <select multiple size="6" class="form-select" id="all-users-select" style="min-width:240px"></select>
       <div class="form-text small">Ctrl/Cmd+clic pour sélectionner plusieurs réparateurs.</div>
     </div>
-    <div class="d-flex flex-column gap-2">
-      <button type="button" class="btn btn-sm btn-outline-primary" id="btn-participants-apply">Sauvegarder participants</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-participants-reset">Réinitialiser</button>
+    <div class="d-flex align-items-start gap-2">
+      <button type="button" class="btn btn-sm btn-primary" id="btn-participants-apply">Ajouter des participants</button>
+      <button type="button" class="btn btn-sm btn-danger" id="btn-participants-reset">Réinitialiser</button>
     </div>
     <div class="ms-auto small text-muted" id="participants-status"></div>
-  </div>
-  <div class="small mt-2">
-    <strong>Actuels:</strong>
-    <span id="participants-current-badges" class="d-inline-flex flex-wrap gap-1 align-items-center"></span>
   </div>
 </div>
 <noscript><ul>{% for u in participants if u.id != session.owner_id %}<li>{{ u.name }} ({{ u.email }})</li>{% endfor %}</ul></noscript>

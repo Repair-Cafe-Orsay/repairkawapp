@@ -1,18 +1,56 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container-fluid">
-  {% if active_cafe and active_cafe.logo_filename %}
-    <div class="text-center mb-3">
-      <img src="{{ url_for('main.uploaded_file', filename=active_cafe.logo_filename) }}" alt="Logo" style="max-width:220px; height:auto;" />
+  <h1 class="mb-3">Informations</h1>
+  <div class="row align-items-center mb-4">
+    <div class="col-md-4 text-center text-md-start">
+      {% if active_cafe and active_cafe.logo_filename %}
+        <img src="{{ url_for('main.uploaded_file', filename=active_cafe.logo_filename) }}" alt="Logo" style="max-width:260px; height:auto;" />
+      {% endif %}
+    </div>
+    <div class="col-md-8">
+      <div class="h4 mb-2">{{ active_cafe and active_cafe.name or 'Repair Café' }}</div>
+      {% if active_cafe and active_cafe.email %}
+        <div>
+          Contact&nbsp;: <a href="mailto:{{ active_cafe.email }}">{{ active_cafe.email }}</a>
+        </div>
+      {% endif %}
+      {% if active_cafe and active_cafe.phone %}
+        <div>Téléphone&nbsp;: {{ active_cafe.phone }}</div>
+      {% endif %}
+      {% if active_cafe and active_cafe.website_url %}
+        <div>
+          <a href="{{ active_cafe.website_url }}" target="_blank" rel="noopener">Site web du Repair Café</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if recurring_locations %}
+    <h2 class="h4 mb-3">Lieux récurrents</h2>
+    <div class="row g-3 mb-4">
+      {% for loc in recurring_locations %}
+        <div class="col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body">
+              <div class="fw-semibold">{{ loc.full_name or loc.name }}</div>
+              {% if loc.address %}
+                <div class="text-muted mt-1">
+                  {% if loc.osm_url %}
+                    <a href="{{ loc.osm_url }}" target="_blank" rel="noopener">{{ loc.address }}</a>
+                  {% else %}
+                    {{ loc.address }}
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
     </div>
   {% endif %}
-  <h2 class="mb-2">Trombinoscope</h2>
-  <p class="text-muted">Membres bénévoles du Repair Café Orsay</p>
-  {% if active_cafe and active_cafe.website_url %}
-    <p class="mb-4">
-      <a href="{{ active_cafe.website_url }}" target="_blank" rel="noopener">Site web du Repair Café</a>
-    </p>
-  {% endif %}
+
+  <h2 class="h4 mb-3">Trombinoscope</h2>
 
   <div class="trombi-grid mb-5">
     {% for u in board %}

@@ -33,6 +33,29 @@
     </form>
   </div>
 </div>
+{% if active_cafe %}
+<div class="card mt-4" style="max-width:32rem">
+  <div class="card-header">Contact Repair Café</div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('admin.settings_page') }}">
+      <input type="hidden" name="action" value="contact">
+      <div class="mb-2">
+        <label for="contact_email" class="form-label">Email</label>
+        <input type="email" class="form-control" id="contact_email" name="email" value="{{ active_cafe.email or '' }}">
+      </div>
+      <div class="mb-2">
+        <label for="contact_phone" class="form-label">Téléphone</label>
+        <input type="tel" class="form-control" id="contact_phone" name="phone" value="{{ active_cafe.phone or '' }}">
+      </div>
+      <div class="mb-3">
+        <label for="contact_website" class="form-label">Site web</label>
+        <input type="url" class="form-control" id="contact_website" name="website_url" value="{{ active_cafe.website_url or '' }}" placeholder="https://">
+      </div>
+      <button class="btn btn-primary" type="submit">Enregistrer</button>
+    </form>
+  </div>
+</div>
+{% endif %}
 {% if MAINTENANCE_MODE %}
 <div class="alert alert-warning mt-4 mb-0 small">Le mode maintenance est actif{% if MAINTENANCE_UNTIL %} jusqu'à {{ MAINTENANCE_UNTIL|local_dt }}{% endif %}.</div>
 {% endif %}

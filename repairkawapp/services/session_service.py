@@ -24,7 +24,7 @@ def _get_or_create_location(db: SASession, name: str, repaircafe=None) -> Locati
         loc_query = loc_query.filter(Location.repaircafe_id.is_(None))
     loc = loc_query.first()
     if not loc:
-        loc = Location(name=name)
+        loc = Location(name=name, is_recurring=False)
         if repaircafe is not None:
             loc.repaircafe = repaircafe
         db.add(loc)

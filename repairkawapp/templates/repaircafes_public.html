@@ -2,7 +2,7 @@
 
 {% block content %}
   <h1 class="h3 mb-3 fw-normal">Repair Cafés</h1>
-  <p class="text-muted mb-2">Choisissez un Repair Café pour accéder au trombinoscope.</p>
+  <p class="text-muted mb-2">Choisissez un Repair Café pour accéder à la page d'information.</p>
   <p class="mb-4"><a href="/login">Retour à la connexion</a></p>
 
   <div class="d-grid gap-3" style="max-height:70vh; overflow-y:auto; padding-right:4px;">
@@ -23,11 +23,11 @@
               <div class="small"><a href="{{ cafe.website_url }}" target="_blank" rel="noopener">Site web</a></div>
             {% endif %}
           </div>
-          {% set trombi_url = url_for('main.trombinoscope') %}
-          {% if cafe.code and not trombi_url.startswith('/' ~ cafe.code ~ '/') %}
-            {% set trombi_url = '/' ~ cafe.code ~ trombi_url %}
+          {% set info_url = url_for('main.info_page') %}
+          {% if cafe.code and not info_url.startswith('/' ~ cafe.code ~ '/') %}
+            {% set info_url = '/' ~ cafe.code ~ info_url %}
           {% endif %}
-          <a class="btn btn-sm btn-outline-primary" href="{{ trombi_url }}">Voir le trombinoscope</a>
+          <a class="btn btn-sm btn-outline-primary" href="{{ info_url }}">Voir la page d'information</a>
         </div>
       </div>
     {% else %}

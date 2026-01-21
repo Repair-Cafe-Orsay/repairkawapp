@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Lieux</h2>
+
+<div class="card mb-3">
+  <div class="card-header">Ajouter un lieu</div>
+  <div class="card-body">
+    {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="POST" action="{{ url_for('admin.admin_locations') }}" class="row g-2">
+      <input type="hidden" name="action" value="add" />
+      <div class="col-md-3">
+        <label class="form-label">Nom court</label>
+        <input name="name" class="form-control" required />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Nom complet</label>
+        <input name="full_name" class="form-control" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Adresse</label>
+        <input name="address" class="form-control" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Lien OpenStreetMap</label>
+        <input name="osm_url" type="url" class="form-control" placeholder="https://www.openstreetmap.org/..." />
+      </div>
+      <div class="col-12">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="is_recurring" id="loc-recurring" checked>
+          <label class="form-check-label" for="loc-recurring">Récurrent</label>
+        </div>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-primary w-100" type="submit">Ajouter</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% for loc in locations %}
+  <div class="card mb-2">
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('admin.admin_locations') }}" class="row g-2 align-items-end">
+        <input type="hidden" name="location_id" value="{{ loc.id }}" />
+        <div class="col-md-3">
+          <label class="form-label">Nom court</label>
+          <input name="name" class="form-control" value="{{ loc.name }}" required />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Nom complet</label>
+          <input name="full_name" class="form-control" value="{{ loc.full_name or '' }}" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Adresse</label>
+          <input name="address" class="form-control" value="{{ loc.address or '' }}" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Lien OpenStreetMap</label>
+          <input name="osm_url" type="url" class="form-control" value="{{ loc.osm_url or '' }}" />
+        </div>
+        <div class="col-12">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="is_recurring" id="rec-{{ loc.id }}" {% if loc.is_recurring %}checked{% endif %}>
+            <label class="form-check-label" for="rec-{{ loc.id }}">Récurrent</label>
+          </div>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+          <button class="btn btn-sm btn-outline-primary" type="submit" name="action" value="update">Enregistrer</button>
+          <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="delete">Supprimer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}

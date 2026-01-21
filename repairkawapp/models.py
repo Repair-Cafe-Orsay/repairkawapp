@@ -76,6 +76,7 @@ class RepairCafe(db.Model):
     slug = db.Column(db.String(50), nullable=False, unique=True)
     code = db.Column(db.String(10), nullable=False, unique=True)
     email = db.Column(db.String(100))
+    phone = db.Column(db.String(30))
     website_url = db.Column(db.String(200))
     logo_filename = db.Column(db.String(200))
     timezone = db.Column(db.String(50), default="Europe/Paris")
@@ -285,7 +286,12 @@ class Location(db.Model):
     # tenant scope
     repaircafe_id = db.Column(db.Integer, db.ForeignKey("repaircafe.id"), nullable=True)
     repaircafe = db.relationship("RepairCafe", foreign_keys=[repaircafe_id])
+    # nom court (ancien champ name)
     name = db.Column(db.String(100), nullable=False)
+    full_name = db.Column(db.String(200))
+    address = db.Column(db.String(200))
+    osm_url = db.Column(db.String(300))
+    is_recurring = db.Column(db.Boolean, nullable=False, server_default="1")
 
     __table_args__ = (UniqueConstraint("repaircafe_id", "name", name="uix_location_cafe"),)
 
