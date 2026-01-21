@@ -12,13 +12,18 @@ from ..models import (
     Category,
     CloseStatus,
     Log,
+    Message,
     Note,
+    Notification,
     ObjectSubtype,
     ObjectType,
     Repair,
+    SpareChange,
     State,
     User,
+    repair_user,
 )
+from ..services.tenant_service import get_active_repaircafe, is_cafe_admin
 
 
 def normalize_brand(raw: str) -> str:
@@ -291,3 +296,29 @@ def apply_update(session: Session, repair: Repair, form) -> bool:
         change = True
 
     return change
+
+
+def delete_repair(session: Session, repair: Repair) -> bool:
+    """Supprime complètement une fiche (admin seulement)."""
+    cafe = get_active_repaircafe()
+    if cafe and repair.repaircafe_id != cafe.id:
+        return False
+    if not is_cafe_admin(current_user, repair.repaircafe_id):
+        return False
+    note_ids = [row[0] for row in session.query(Note.id).filter(Note.repair_id == repair.id)]
+    if note_ids:
+        session.query(Notification).filter(Notification.note_id.in_(note_ids)).delete(
+            synchronize_session=False
+        )
+        session.query(Message).filter(Message.note_id.in_(note_ids)).delete(
+            synchronize_session=False
+        )
+    session.query(Message).filter(Message.repair_id == repair.id).delete(synchronize_session=False)
+    session.query(SpareChange).filter(SpareChange.repair_id == repair.id).delete(
+        synchronize_session=False
+    )
+    session.query(Log).filter(Log.repair_id == repair.id).delete(synchronize_session=False)
+    session.query(Note).filter(Note.repair_id == repair.id).delete(synchronize_session=False)
+    session.execute(repair_user.delete().where(repair_user.c.repair_id == repair.id))
+    session.delete(repair)
+    return True

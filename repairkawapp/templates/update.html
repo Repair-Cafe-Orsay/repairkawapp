@@ -6,8 +6,13 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-start">
+<div class="d-flex justify-content-between align-items-center">
   <a href="{{ url_for('main.repairs_home') }}" id="btn-back" class="btn btn-sm btn-outline-secondary mb-3">← Retour</a>
+  {% if can_delete %}
+    <form method="POST" action="{{ url_for('main.delete_object', id=r.display_id) }}" class="mb-3" onsubmit="return confirm('Supprimer définitivement cette fiche ?');">
+      <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer la fiche</button>
+    </form>
+  {% endif %}
 </div>
 
 <h1 class="fw-light text-center text-lg-start mt-4 mb-0">Fiche {{ r.display_id }} - {{ r.close_status.label }}</h1>

@@ -47,6 +47,7 @@ from .services.image_service import process_user_photo
 from .services.repair_service import (
     apply_update,
     create_repair,
+    delete_repair,
     get_or_create_brand,
     update_repair,
 )
@@ -625,6 +626,7 @@ def get_update(id):
             .all()
         )
 
+    can_delete = is_cafe_admin(current_user, active_cafe.id)
     return render_template(
         "update.html",
         name=current_user.name,
@@ -647,7 +649,26 @@ def get_update(id):
         images=images_idx,
         splist=SpareChange.query.filter_by(repair=r).order_by(SpareChange.id.asc()),
         spare_statuses=SpareStatus.query.order_by(SpareStatus.id).all(),
+        can_delete=can_delete,
     )
+
+
+@main.route("/update/<string:id>/delete", methods=["POST"])
+@login_required
+def delete_object(id):
+    active_cafe = require_active_repaircafe()
+    r = (
+        db.session.query(Repair)
+        .filter_by(display_id=id)
+        .filter(Repair.repaircafe_id == active_cafe.id)
+        .first()
+    )
+    if not r:
+        return redirect(url_for("main.repairs_home"))
+    if delete_repair(db.session, r):
+        db.session.commit()
+        return redirect(url_for("main.repairs_home"))
+    return redirect(url_for("main.get_update", id=r.display_id))
 
 
 @main.route("/sessions")
