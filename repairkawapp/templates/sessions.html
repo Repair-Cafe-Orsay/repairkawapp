@@ -32,7 +32,7 @@
   </div>
 {% endif %}
 <div class="d-flex align-items-center mb-2">
-  <h2 class="mb-0 flex-grow-1">Séances récentes</h2>
+  <h2 class="mb-0 flex-grow-1">Séances récentes et futures</h2>
   <a href="{{ url_for('main.sessions_download', lieu=lieu_actif) }}" class="btn btn-sm btn-outline-primary" title="Exporter CSV">⇩ CSV</a>
 </div>
 <!-- Données templating exposées de façon neutre pour le JS -->
@@ -53,6 +53,7 @@
   .cal-legend-popup li { display:flex; align-items:center; gap:6px; padding:2px 4px; border-radius:3px; }
   .cal-legend-popup .dot { width:12px; height:12px; border-radius:50%; border:1px solid rgba(0,0,0,.5); flex-shrink:0; }
   .cal-legend-close { background:transparent; border:none; font-size:16px; line-height:1; padding:0 4px; cursor:pointer; }
+  .planned-dot { display:inline-block; width:10px; height:10px; border-radius:50%; border:1px solid #0d6efd; background:transparent; vertical-align:middle; }
 </style>
 <form class="row gy-3 gx-4 align-items-start mb-3" method="get" action="{{ url_for('main.sessions_page') }}" id="sessions-filters">
   <div class="col-md-3 col-sm-6 d-flex flex-column">
@@ -81,33 +82,70 @@
     </div>
   </div>
 </form>
+<div class="form-check mb-3">
+  <input class="form-check-input" type="checkbox" value="1" id="show-future" name="show_future" form="sessions-filters" {% if show_future %}checked{% endif %} onchange="document.getElementById('sessions-filters').submit()">
+  <label class="form-check-label" for="show-future">Afficher les séances futures</label>
+</div>
 <table id="sessions-table" class="table table-sm table-striped align-middle">
   <thead><tr><th></th><th>ID</th><th>Lieu</th><th>Ouverture</th><th>Responsable</th><th>Participants</th><th>Fiches</th><th>Commentaire</th></tr></thead>
   <tbody>
-  {% for s in sessions %}
-    <tr class="{% if not s.closed_at %}table-warning{% endif %}">
-    <td class="text-nowrap"><a href="{{ url_for('main.session_detail', session_id=s.id) }}" class="btn btn-sm btn-outline-primary">Voir</a></td>
-    <td>{{ s.id }} {% if not s.closed_at %}<span class="badge bg-warning text-dark">Ouverte</span>{% else %}<span class="badge bg-secondary">Fermée</span>{% endif %}</td>
-  <td>
-    {% if s.location %}
-      <span class="location-badge" data-loc="{{ s.location.name }}">
-        <span class="loc-dot"></span>
-        {{ s.location.name }}
-      </span>
+  {% for row in session_rows %}
+    {% set s = row.session %}
+    {% if row.kind == 'planned' %}
+      <tr class="table-info">
+        <td class="text-nowrap">
+          {% set is_today = (today_local and s.scheduled_at and (s.scheduled_at|local_dt('%Y-%m-%d') == today_local)) %}
+          {% if is_today %}
+            <button type="button" class="btn btn-sm btn-outline-primary btn-open-planned" data-id="{{ s.id }}">Ouvrir</button>
+          {% else %}
+            <span class="planned-dot" title="Planifiée"></span>
+          {% endif %}
+        </td>
+        <td>{{ s.id }} <span class="badge bg-info text-dark">Planifiée</span></td>
+        <td>
+          {% if s.location %}
+            <span class="location-badge" data-loc="{{ s.location.name }}">
+              <span class="loc-dot"></span>
+              {{ s.location.name }}
+            </span>
+          {% endif %}
+        </td>
+        <td{% if s.scheduled_at %} data-order="{{ s.scheduled_at.strftime('%Y-%m-%d %H:%M:%S') }}"{% endif %}>
+          {% if s.scheduled_at %}
+            {{ s.scheduled_at|local_dt }}
+            {% if s.scheduled_end_at %}– {{ s.scheduled_end_at|local_dt('%H:%M') }}{% endif %}
+          {% endif %}
+        </td>
+        <td>{{ s.owner.name if s.owner else '' }}</td>
+        <td>{{ s.participants|length }}</td>
+        <td>0</td>
+        <td></td>
+      </tr>
+    {% else %}
+      <tr class="{% if not s.closed_at %}table-warning{% endif %}">
+      <td class="text-nowrap"><a href="{{ url_for('main.session_detail', session_id=s.id) }}" class="btn btn-sm btn-outline-primary">Voir</a></td>
+      <td>{{ s.id }} {% if not s.closed_at %}<span class="badge bg-warning text-dark">Ouverte</span>{% else %}<span class="badge bg-secondary">Fermée</span>{% endif %}</td>
+    <td>
+      {% if s.location %}
+        <span class="location-badge" data-loc="{{ s.location.name }}">
+          <span class="loc-dot"></span>
+          {{ s.location.name }}
+        </span>
+      {% endif %}
+    </td>
+    <td{% if s.opened_at %} data-order="{{ s.opened_at.strftime('%Y-%m-%d %H:%M:%S') }}"{% endif %}>{{ s.opened_at|local_dt }}</td>
+    <td>{{ s.owner.name if s.owner else '' }}</td>
+        <td>{{ s.participants|length }}</td>
+        <td>
+          {% if s.repairs|length > 0 %}
+            <a href="{{ url_for('main.repairs_home') }}?session_id={{ s.id }}" title="Filtrer les fiches sur cette séance">{{ s.repairs|length }}</a>
+          {% else %}
+            0
+          {% endif %}
+        </td>
+    <td style="max-width:240px;">{% if s.comment %}{{ s.comment[:80] }}{% if s.comment|length>80 %}…{% endif %}{% endif %}</td>
+      </tr>
     {% endif %}
-  </td>
-  <td>{{ s.opened_at|local_dt }}</td>
-  <td>{{ s.owner.name if s.owner else '' }}</td>
-      <td>{{ s.participants|length }}</td>
-      <td>
-        {% if s.repairs|length > 0 %}
-          <a href="{{ url_for('main.repairs_home') }}?session_id={{ s.id }}" title="Filtrer les fiches sur cette séance">{{ s.repairs|length }}</a>
-        {% else %}
-          0
-        {% endif %}
-      </td>
-  <td style="max-width:240px;">{% if s.comment %}{{ s.comment[:80] }}{% if s.comment|length>80 %}…{% endif %}{% endif %}</td>
-    </tr>
   {% endfor %}
   </tbody>
 </table>
@@ -385,6 +423,15 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     syncClearBtn();
   }
+  $(document).on('click', '.btn-open-planned', function(){
+    const id = $(this).data('id');
+    $.ajax({
+      type:'POST',
+      url: apiUrl('/api/session/open_planned/' + id),
+      success:function(){ window.location = pageUrl('/sessions/' + id); },
+      error:function(){ alert('Impossible d\'ouvrir la séance planifiée.'); }
+    });
+  });
   // Pastilles couleur pour les lieux dans la table
   (function(){
     let locColors = {};

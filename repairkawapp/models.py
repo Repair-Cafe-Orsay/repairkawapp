@@ -271,6 +271,9 @@ class Session(db.Model):
     location = db.relationship("Location", foreign_keys=[location_id])
     opened_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
     closed_at = db.Column(db.DateTime(timezone=True))
+    scheduled_at = db.Column(db.DateTime(timezone=True))
+    scheduled_end_at = db.Column(db.DateTime(timezone=True))
+    status = db.Column(db.String(20), nullable=False, server_default="open")
     owner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     owner = db.relationship("User", foreign_keys=[owner_id])
     comment = db.Column(db.Text)
@@ -292,6 +295,9 @@ class Location(db.Model):
     address = db.Column(db.String(200))
     osm_url = db.Column(db.String(300))
     is_recurring = db.Column(db.Boolean, nullable=False, server_default="1")
+    standard_day = db.Column(db.String(50))
+    standard_open_time = db.Column(db.String(10))
+    standard_close_time = db.Column(db.String(10))
 
     __table_args__ = (UniqueConstraint("repaircafe_id", "name", name="uix_location_cafe"),)
 

@@ -527,6 +527,11 @@ def admin_locations():
                 full_name = (request.form.get("full_name") or "").strip() or None
                 address = (request.form.get("address") or "").strip() or None
                 osm_url = (request.form.get("osm_url") or "").strip() or None
+                standard_day = (request.form.get("standard_day") or "").strip() or None
+                standard_open_time = (request.form.get("standard_open_time") or "").strip() or None
+                standard_close_time = (
+                    request.form.get("standard_close_time") or ""
+                ).strip() or None
                 is_recurring = bool(request.form.get("is_recurring"))
                 if not name:
                     error = "Nom court obligatoire."
@@ -535,6 +540,9 @@ def admin_locations():
                     loc.full_name = full_name
                     loc.address = address
                     loc.osm_url = osm_url
+                    loc.standard_day = standard_day
+                    loc.standard_open_time = standard_open_time
+                    loc.standard_close_time = standard_close_time
                     loc.is_recurring = is_recurring
                     db.session.commit()
                     return redirect(url_for("admin.admin_locations"))
@@ -543,6 +551,9 @@ def admin_locations():
             full_name = (request.form.get("full_name") or "").strip() or None
             address = (request.form.get("address") or "").strip() or None
             osm_url = (request.form.get("osm_url") or "").strip() or None
+            standard_day = (request.form.get("standard_day") or "").strip() or None
+            standard_open_time = (request.form.get("standard_open_time") or "").strip() or None
+            standard_close_time = (request.form.get("standard_close_time") or "").strip() or None
             is_recurring = bool(request.form.get("is_recurring"))
             if not name:
                 error = "Nom court obligatoire."
@@ -562,6 +573,9 @@ def admin_locations():
                             full_name=full_name,
                             address=address,
                             osm_url=osm_url,
+                            standard_day=standard_day,
+                            standard_open_time=standard_open_time,
+                            standard_close_time=standard_close_time,
                             is_recurring=is_recurring,
                             repaircafe=cafe,
                         )

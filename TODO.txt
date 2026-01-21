@@ -4,3 +4,4 @@ DONE - file management (Marc Moutarde)
 DONE - repairer with non active or non one year old cotisation don't display
 DONE - security improvement
 DONE - change current version to be 1.0.0-beta
+DONE - added session agenda

@@ -55,9 +55,44 @@ def open_session(db: SASession, location: str | None = None, tz=None, opened_at=
             .first()
         )
         if loc_existing:
+            planned_sessions = (
+                db.query(Session)
+                .filter(Session.repaircafe_id == cafe.id)
+                .filter(Session.location_id == loc_existing.id)
+                .filter(Session.status == "planned")
+                .order_by(Session.scheduled_at.asc())
+                .all()
+            )
+            planned_today = [
+                s
+                for s in planned_sessions
+                if s.scheduled_at and s.scheduled_at.date() == today_local
+            ]
+            if planned_today:
+                planned = planned_today[0]
+                planned.status = "open"
+                planned.opened_at = opened_at or datetime.utcnow()
+                planned.closed_at = None
+                planned.owner_id = current_user.id
+                if current_user not in planned.participants:
+                    planned.participants.append(current_user)
+                previous_session = (
+                    db.query(Session)
+                    .filter(Session.repaircafe_id == cafe.id)
+                    .filter(Session.location_id == loc_existing.id)
+                    .filter(Session.status != "planned")
+                    .order_by(Session.opened_at.desc())
+                    .first()
+                )
+                if previous_session:
+                    for participant in previous_session.participants:
+                        if participant not in planned.participants:
+                            planned.participants.append(participant)
+                return planned
             existing_same_loc = (
                 db.query(Session)
                 .filter(Session.closed_at.is_(None))
+                .filter(Session.status != "planned")
                 .filter(Session.opened_at >= datetime.combine(today_local, datetime.min.time()))
                 .filter(Session.location_id == loc_existing.id)
                 .filter(Session.repaircafe_id == cafe.id)
@@ -74,6 +109,7 @@ def open_session(db: SASession, location: str | None = None, tz=None, opened_at=
         .filter(
             Session.owner_id == current_user.id,
             Session.closed_at.is_(None),
+            Session.status != "planned",
             Session.repaircafe_id == cafe.id,
         )
         .order_by(Session.opened_at.desc())
@@ -94,7 +130,7 @@ def open_session(db: SASession, location: str | None = None, tz=None, opened_at=
         .order_by(Session.opened_at.desc())
         .first()
     )
-    s = Session(location=loc_obj, owner_id=current_user.id, repaircafe=cafe)
+    s = Session(location=loc_obj, owner_id=current_user.id, repaircafe=cafe, status="open")
     if opened_at is not None:
         s.opened_at = opened_at
     s.participants.append(current_user)
@@ -103,6 +139,70 @@ def open_session(db: SASession, location: str | None = None, tz=None, opened_at=
             if participant not in s.participants:
                 s.participants.append(participant)
     db.add(s)
+    return s
+
+
+def create_planned_session(
+    db: SASession,
+    scheduled_at: datetime,
+    scheduled_end_at: datetime,
+    location: str,
+    owner: User,
+    repaircafe,
+) -> Session:
+    """Crée une séance planifiée (status=planned)."""
+    loc_obj = _get_or_create_location(db, location.strip(), repaircafe=repaircafe)
+    s = Session(
+        location=loc_obj,
+        owner_id=owner.id,
+        repaircafe=repaircafe,
+        status="planned",
+        scheduled_at=scheduled_at,
+        scheduled_end_at=scheduled_end_at,
+    )
+    db.add(s)
+    return s
+
+
+def open_planned_session(db: SASession, session_id: int, opener: User) -> Session | None:
+    """Ouvre une séance planifiée (status=planned -> open)."""
+    s = db.query(Session).filter_by(id=session_id).first()
+    if not s or s.status != "planned":
+        return None
+    if not s.scheduled_at:
+        return None
+    cafe = get_active_repaircafe(opener)
+    if cafe and s.repaircafe_id != cafe.id:
+        return None
+    try:
+        import pytz
+
+        tz = pytz.timezone("Europe/Paris")
+        now_local = pytz.utc.localize(datetime.utcnow()).astimezone(tz).date()
+        scheduled_local = pytz.utc.localize(s.scheduled_at).astimezone(tz).date()
+        if scheduled_local != now_local:
+            return None
+    except Exception:
+        return None
+    s.status = "open"
+    s.opened_at = datetime.utcnow()
+    s.closed_at = None
+    s.owner_id = opener.id
+    if opener not in s.participants:
+        s.participants.append(opener)
+    if s.location_id:
+        previous_session = (
+            db.query(Session)
+            .filter(Session.repaircafe_id == s.repaircafe_id)
+            .filter(Session.location_id == s.location_id)
+            .filter(Session.status != "planned")
+            .order_by(Session.opened_at.desc())
+            .first()
+        )
+        if previous_session:
+            for participant in previous_session.participants:
+                if participant not in s.participants:
+                    s.participants.append(participant)
     return s
 
 

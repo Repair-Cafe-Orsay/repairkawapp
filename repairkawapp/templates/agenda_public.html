@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid">
+  <h1 class="mb-3">Agenda des séances</h1>
+  {% if active_cafe %}
+    <div class="text-muted mb-3">{{ active_cafe.name }}</div>
+  {% endif %}
+  <div class="card">
+    <div class="card-header">Séances à venir</div>
+    <div class="card-body p-0">
+      <table class="table table-striped mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Heure</th>
+            <th>Lieu</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in planned_sessions %}
+            <tr>
+              <td>{{ s.scheduled_at|local_dt if s.scheduled_at else '' }}</td>
+              <td>
+                {% if s.scheduled_at %}
+                  {{ s.scheduled_at.strftime('%H:%M') }}
+                  {% if s.scheduled_end_at %}– {{ s.scheduled_end_at.strftime('%H:%M') }}{% endif %}
+                {% endif %}
+              </td>
+              <td>
+                {% if s.location %}
+                  <div class="fw-semibold">{{ s.location.full_name or s.location.name }}</div>
+                  {% if s.location.address %}
+                    <div class="text-muted small">
+                      {% if s.location.osm_url %}
+                        <a href="{{ s.location.osm_url }}" target="_blank" rel="noopener">{{ s.location.address }}</a>
+                      {% else %}
+                        {{ s.location.address }}
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="3" class="text-muted">Aucune séance planifiée.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

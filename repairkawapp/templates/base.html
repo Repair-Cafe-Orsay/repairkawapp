@@ -116,7 +116,13 @@
                     </svg>
                   </a>
                   <a class="py-2 link-primary" href="{{ url_for('main.repairs_home') }}">Fiches</a>
-                  <a class="py-2 link-primary" href="{{ url_for('main.sessions_page') }}">Séances</a>
+                  <div class="dropdown">
+                    <a class="py-2 link-primary dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">Séances</a>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="{{ url_for('main.sessions_page') }}">Séances (actuelles)</a></li>
+                      <li><a class="dropdown-item" href="{{ url_for('main.sessions_agenda') }}">Agenda des séances</a></li>
+                    </ul>
+                  </div>
                 </div>
                 {% if current_user.is_authenticated %}
                 <div class="d-flex align-items-center flex-nowrap nav-group mx-md-0 mx-auto" style="max-width:100%;">
@@ -296,6 +302,7 @@
         </div>
         <div class="d-flex flex-column flex-sm-row align-items-center gap-3">
           <a href="{{ url_for('main.info_page') }}" class="link-secondary">Informations</a>
+          <a href="{{ url_for('main.public_agenda') }}" class="link-secondary">Agenda</a>
           <a href="https://repaircafe-orsay.org" target="_blank" rel="noopener" class="text-decoration-none">Site web</a>
         </div>
       </div>

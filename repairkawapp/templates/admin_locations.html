@@ -23,6 +23,18 @@
         <label class="form-label">Adresse</label>
         <input name="address" class="form-control" />
       </div>
+      <div class="col-md-3">
+        <label class="form-label">Jour habituel</label>
+        <input name="standard_day" class="form-control" placeholder="ex: samedi" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Heure début</label>
+        <input name="standard_open_time" type="time" class="form-control" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Heure fin</label>
+        <input name="standard_close_time" type="time" class="form-control" />
+      </div>
       <div class="col-md-4">
         <label class="form-label">Lien OpenStreetMap</label>
         <input name="osm_url" type="url" class="form-control" placeholder="https://www.openstreetmap.org/..." />
@@ -56,6 +68,18 @@
         <div class="col-md-3">
           <label class="form-label">Adresse</label>
           <input name="address" class="form-control" value="{{ loc.address or '' }}" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Jour habituel</label>
+          <input name="standard_day" class="form-control" value="{{ loc.standard_day or '' }}" />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Heure début</label>
+          <input name="standard_open_time" type="time" class="form-control" value="{{ loc.standard_open_time or '' }}" />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Heure fin</label>
+          <input name="standard_close_time" type="time" class="form-control" value="{{ loc.standard_close_time or '' }}" />
         </div>
         <div class="col-md-4">
           <label class="form-label">Lien OpenStreetMap</label>

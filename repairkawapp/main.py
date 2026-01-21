@@ -50,6 +50,7 @@ from .services.repair_service import (
     get_or_create_brand,
     update_repair,
 )
+from .services.session_service import create_planned_session
 from .services.tenant_service import (
     ensure_cafe_upload_folder,
     filter_active_membership_or_founder,
@@ -654,17 +655,34 @@ def get_update(id):
 def sessions_page():
     """Page listant les séances récentes avec filtre lieu (param ?lieu=)."""
     active_cafe = require_active_repaircafe()
-    q = db.session.query(Session).filter(Session.repaircafe_id == active_cafe.id)
+    show_future = request.args.get("show_future") == "1"
+    q = (
+        db.session.query(Session)
+        .filter(Session.repaircafe_id == active_cafe.id)
+        .filter(Session.status != "planned")
+    )
+    planned_q = None
+    if show_future:
+        planned_q = (
+            db.session.query(Session)
+            .filter(Session.repaircafe_id == active_cafe.id)
+            .filter(Session.status == "planned")
+        )
     lieu = request.args.get("lieu")
     if lieu:
         from .models import Location
 
         q = q.join(Location).filter(Location.name == lieu)
+        if planned_q is not None:
+            planned_q = planned_q.join(Location).filter(Location.name == lieu)
     # Ouvertes d'abord (closed_at NULL), puis par date d'ouverture décroissante
     from sqlalchemy import case
 
     q = q.order_by(case((Session.closed_at.is_(None), 0), else_=1), Session.opened_at.desc())
     sessions = q.limit(200).all()
+    planned_sessions = []
+    if planned_q is not None:
+        planned_sessions = planned_q.order_by(Session.scheduled_at.asc()).all()
     # Liste des lieux distincts pour filtre
     try:
         from .models import Location
@@ -684,19 +702,169 @@ def sessions_page():
             if s.location and s.location.name:
                 col = location_colors.setdefault(s.location.name, _location_color(s.location))
                 day_colors.setdefault(d, set()).add(col)
+    for s in planned_sessions:
+        if s.scheduled_at:
+            d = s.scheduled_at.date().isoformat()
+            if d not in session_days:
+                session_days.append(d)
+            if s.location and s.location.name:
+                col = location_colors.setdefault(s.location.name, _location_color(s.location))
+                day_colors.setdefault(d, set()).add(col)
     # Sérialisation couleurs
     day_colors_serializable = [
         {"date": d, "colors": sorted(list(cols))} for d, cols in day_colors.items()
     ]
+    session_rows = []
+    for s in planned_sessions:
+        if s.scheduled_at:
+            session_rows.append({"session": s, "kind": "planned", "date": s.scheduled_at})
+    for s in sessions:
+        if s.opened_at:
+            kind = "open" if not s.closed_at else "closed"
+            session_rows.append({"session": s, "kind": kind, "date": s.opened_at})
+    session_rows.sort(key=lambda r: r["date"], reverse=True)
+    max_rows = 10
+    session_rows = session_rows[:max_rows]
+    today_local = None
+    try:
+        tz = pytz.timezone("Europe/Paris")
+        today_local = pytz.utc.localize(datetime.utcnow()).astimezone(tz).date().isoformat()
+    except Exception:
+        today_local = None
     return render_template(
         "sessions.html",
         name=current_user.name,
-        sessions=sessions,
+        session_rows=session_rows,
         lieux=lieux,
         lieu_actif=lieu,
+        show_future=show_future,
+        today_local=today_local,
         session_days=session_days,
         day_colors=day_colors_serializable,
         location_colors=location_colors,
+    )
+
+
+@main.route("/sessions/agenda", methods=["GET", "POST"])
+@login_required
+def sessions_agenda():
+    """Agenda des séances planifiées (admin local pour création)."""
+    active_cafe = require_active_repaircafe()
+    can_manage = is_cafe_admin(current_user, active_cafe.id)
+    error = None
+    if request.method == "POST":
+        if not can_manage:
+            return redirect(url_for("main.sessions_agenda"))
+        action = request.form.get("action") or "create"
+        if action == "create":
+            date_raw = (request.form.get("date") or "").strip()
+            time_raw = (request.form.get("time") or "").strip()
+            end_time_raw = (request.form.get("end_time") or "").strip()
+            loc_sel = (request.form.get("location_select") or "").strip()
+            loc_new = (request.form.get("location_new") or "").strip()
+            location = loc_new if loc_sel == "__new__" else loc_sel
+            if not date_raw or not time_raw or not end_time_raw or not location:
+                error = "Date, heures et lieu obligatoires."
+            else:
+                try:
+                    scheduled_at = datetime.strptime(f"{date_raw} {time_raw}", "%Y-%m-%d %H:%M")
+                    scheduled_end_at = datetime.strptime(
+                        f"{date_raw} {end_time_raw}", "%Y-%m-%d %H:%M"
+                    )
+                    tz = pytz.timezone("Europe/Paris")
+                    scheduled_at = (
+                        tz.localize(scheduled_at).astimezone(pytz.utc).replace(tzinfo=None)
+                    )
+                    scheduled_end_at = (
+                        tz.localize(scheduled_end_at).astimezone(pytz.utc).replace(tzinfo=None)
+                    )
+                except ValueError:
+                    scheduled_at = None
+                    scheduled_end_at = None
+                if not scheduled_at or not scheduled_end_at:
+                    error = "Date/heure invalide."
+                elif scheduled_end_at <= scheduled_at:
+                    error = "L'heure de fin doit être après l'heure de début."
+                else:
+                    from .models import Location as LocModel
+
+                    loc_obj = (
+                        db.session.query(LocModel)
+                        .filter(LocModel.repaircafe_id == active_cafe.id)
+                        .filter(LocModel.name == location)
+                        .first()
+                    )
+                    if loc_obj:
+                        conflict = (
+                            db.session.query(Session)
+                            .filter(Session.repaircafe_id == active_cafe.id)
+                            .filter(Session.location_id == loc_obj.id)
+                            .filter(Session.scheduled_at == scheduled_at)
+                            .filter(Session.status == "planned")
+                            .first()
+                        )
+                    else:
+                        conflict = None
+                    if conflict:
+                        error = "Conflit: une séance planifiée existe déjà à ce lieu et horaire."
+                    else:
+                        create_planned_session(
+                            db.session,
+                            scheduled_at,
+                            scheduled_end_at,
+                            location,
+                            current_user,
+                            active_cafe,
+                        )
+                        db.session.commit()
+                        return redirect(url_for("main.sessions_agenda"))
+
+    planned_sessions = (
+        db.session.query(Session)
+        .filter(Session.repaircafe_id == active_cafe.id)
+        .filter(Session.status == "planned")
+        .order_by(Session.scheduled_at.asc())
+        .all()
+    )
+    today_local = None
+    try:
+        tz = pytz.timezone("Europe/Paris")
+        today_local = pytz.utc.localize(datetime.utcnow()).astimezone(tz).date().isoformat()
+    except Exception:
+        today_local = None
+    return render_template(
+        "sessions_agenda.html",
+        name=current_user.name,
+        planned_sessions=planned_sessions,
+        can_manage=can_manage,
+        today_local=today_local,
+        error=error,
+    )
+
+
+@main.route("/agenda")
+def public_agenda():
+    """Agenda public des séances planifiées."""
+    active_cafe = get_active_repaircafe() if current_user.is_authenticated else None
+    if not active_cafe:
+        code = request.environ.get("REPAIRCAFE_CODE")
+        if code:
+            active_cafe = RepairCafe.query.filter_by(code=code).first()
+    planned_sessions = []
+    if active_cafe:
+        planned_sessions = (
+            db.session.query(Session)
+            .filter(Session.repaircafe_id == active_cafe.id)
+            .filter(Session.status == "planned")
+            .order_by(Session.scheduled_at.asc())
+            .all()
+        )
+    return render_template(
+        "agenda_public.html",
+        planned_sessions=planned_sessions,
+        active_cafe=active_cafe,
+        active_repaircafe=active_cafe,
+        name=current_user.name if current_user.is_authenticated else None,
     )
 
 
@@ -704,7 +872,7 @@ def sessions_page():
 @login_required
 def sessions_download():
     """Export CSV des séances (mêmes filtres de lieu)."""
-    q = db.session.query(Session)
+    q = db.session.query(Session).filter(Session.status != "planned")
     lieu = request.args.get("lieu")
     if lieu:
         from .models import Location
@@ -815,6 +983,7 @@ def info_page():
         if code:
             active_cafe = RepairCafe.query.filter_by(code=code).first()
     recurring_locations = []
+    next_session_by_location = {}
     if active_cafe:
         recurring_locations = (
             db.session.query(Location)
@@ -823,6 +992,23 @@ def info_page():
             .order_by(Location.name.asc())
             .all()
         )
+        if recurring_locations:
+            now = datetime.utcnow()
+            loc_ids = [loc.id for loc in recurring_locations if loc.id]
+            if loc_ids:
+                planned_sessions = (
+                    db.session.query(Session)
+                    .filter(Session.repaircafe_id == active_cafe.id)
+                    .filter(Session.status == "planned")
+                    .filter(Session.scheduled_at.isnot(None))
+                    .filter(Session.scheduled_at >= now)
+                    .filter(Session.location_id.in_(loc_ids))
+                    .order_by(Session.scheduled_at.asc())
+                    .all()
+                )
+                for s in planned_sessions:
+                    if s.location_id and s.location_id not in next_session_by_location:
+                        next_session_by_location[s.location_id] = s
     base_query = db.session.query(User)
     if active_cafe:
         base_query = base_query.join(user_repaircafe).filter(
@@ -938,6 +1124,7 @@ def info_page():
         status_map=status_map,
         photo_map=photo_map,
         recurring_locations=recurring_locations,
+        next_session_by_location=next_session_by_location,
         active_cafe=active_cafe,
         active_repaircafe=active_cafe,
         name=current_user.name if current_user.is_authenticated else None,

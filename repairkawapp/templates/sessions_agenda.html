@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Agenda des séances</h2>
+
+{% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if can_manage %}
+  <div class="card mb-3">
+    <div class="card-header">Planifier une séance</div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('main.sessions_agenda') }}" class="row g-2 align-items-end" id="form-plan-session">
+        <input type="hidden" name="action" value="create" />
+        <div class="col-sm-5 col-md-4">
+          <label class="form-label mb-1">Lieu</label>
+          <select name="location_select" id="agenda-location-select" class="form-select" required>
+            <option value="" selected>(Choisir)</option>
+            <option value="__new__">Nouveau lieu...</option>
+          </select>
+          <input type="text" name="location_new" id="agenda-new-location" class="form-control mt-1 d-none" placeholder="Nouveau lieu" />
+        </div>
+        <div class="col-sm-4 col-md-3">
+          <label class="form-label mb-1">Date</label>
+          <input type="date" name="date" class="form-control" required />
+          <div class="form-text" id="agenda-standard-day"></div>
+        </div>
+        <div class="col-sm-3 col-md-2">
+          <label class="form-label mb-1">Heure début</label>
+          <input type="time" name="time" class="form-control" required />
+        </div>
+        <div class="col-sm-3 col-md-2">
+          <label class="form-label mb-1">Heure fin</label>
+          <input type="time" name="end_time" class="form-control" required />
+        </div>
+        <div class="col-sm-12 col-md-3">
+          <button type="submit" class="btn btn-primary w-100">Planifier</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header">Séances planifiées</div>
+  <div class="card-body p-0">
+    <table class="table table-striped mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Heure</th>
+          <th>Lieu</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in planned_sessions %}
+          <tr>
+            <td>{{ s.scheduled_at|local_dt if s.scheduled_at else '' }}</td>
+            <td>
+              {% if s.scheduled_at %}
+                {{ s.scheduled_at|local_dt('%H:%M') }}
+                {% if s.scheduled_end_at %}– {{ s.scheduled_end_at|local_dt('%H:%M') }}{% endif %}
+              {% endif %}
+            </td>
+            <td>{{ s.location.name if s.location else '' }}</td>
+            <td class="text-end">
+              {% set is_today = (today_local and s.scheduled_at and (s.scheduled_at|local_dt('%Y-%m-%d') == today_local)) %}
+              {% if is_today %}
+                <button type="button" class="btn btn-sm btn-outline-primary btn-open-planned" data-id="{{ s.id }}">Ouvrir</button>
+              {% else %}
+                <span class="text-muted small">Ouverture le jour J</span>
+              {% endif %}
+              {% if can_manage %}
+                <button type="button" class="btn btn-sm btn-outline-danger ms-2 btn-delete-planned" data-id="{{ s.id }}">Supprimer</button>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="text-muted">Aucune séance planifiée.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function(){
+  const select = document.getElementById('agenda-location-select');
+  if(select){
+    let locDetails = {};
+    $.getJSON(apiUrl('/api/locations/details'), function(data){
+      data.forEach(function(loc){
+        if(!loc || !loc.name) return;
+        locDetails[loc.name] = loc;
+        $('<option/>').attr('value', loc.name).text(loc.name).appendTo(select);
+      });
+    });
+    $(document).on('change', '#agenda-location-select', function(){
+      const name = $(this).val();
+      if(!name || name === '__new__'){
+        $('#agenda-standard-day').text('');
+        return;
+      }
+      const info = locDetails[name] || {};
+      const $day = $('#agenda-standard-day');
+      if(info.standard_day){
+        $day.text('Jour habituel : ' + info.standard_day);
+      } else {
+        $day.text('');
+      }
+      if(info.standard_open_time){
+        $('input[name="time"]').val(info.standard_open_time);
+      }
+      if(info.standard_close_time){
+        $('input[name="end_time"]').val(info.standard_close_time);
+      }
+    });
+  }
+  $(document).on('change', '#agenda-location-select', function(){
+    if($(this).val()==='__new__'){
+      $('#agenda-new-location').removeClass('d-none').val('').focus();
+    } else {
+      $('#agenda-new-location').addClass('d-none');
+    }
+  });
+  $(document).on('click', '.btn-open-planned', function(){
+    const id = $(this).data('id');
+    $.ajax({
+      type:'POST',
+      url: apiUrl('/api/session/open_planned/' + id),
+      success:function(){ window.location = pageUrl('/sessions/' + id); },
+      error:function(){ alert('Impossible d\'ouvrir la séance planifiée.'); }
+    });
+  });
+  $(document).on('click', '.btn-delete-planned', function(){
+    const id = $(this).data('id');
+    if(!confirm('Supprimer cette séance planifiée ?')) return;
+    $.ajax({
+      type:'DELETE',
+      url: apiUrl('/api/session/planned/' + id),
+      success:function(){ window.location.reload(); },
+      error:function(){ alert('Impossible de supprimer la séance planifiée.'); }
+    });
+  });
+})();
+</script>
+{% endblock %}

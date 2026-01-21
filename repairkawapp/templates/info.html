@@ -23,6 +23,9 @@
           <a href="{{ active_cafe.website_url }}" target="_blank" rel="noopener">Site web du Repair Café</a>
         </div>
       {% endif %}
+      <div class="mt-2">
+        <a href="{{ url_for('main.public_agenda') }}" class="btn btn-sm btn-outline-primary">Voir l'agenda des séances</a>
+      </div>
     </div>
   </div>
 
@@ -41,6 +44,12 @@
                   {% else %}
                     {{ loc.address }}
                   {% endif %}
+                </div>
+              {% endif %}
+              {% set next_s = next_session_by_location.get(loc.id) if next_session_by_location is defined else None %}
+              {% if next_s and next_s.scheduled_at %}
+                <div class="small text-muted mt-1">
+                  (Prochaine séance le {{ next_s.scheduled_at|local_dt('%d/%m/%Y') }} à {{ next_s.scheduled_at|local_dt('%H:%M') }})
                 </div>
               {% endif %}
             </div>

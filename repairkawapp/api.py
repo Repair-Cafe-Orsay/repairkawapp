@@ -813,6 +813,7 @@ def api_session_open():
                 existing = (
                     db.session.query(SessionModel)
                     .filter(SessionModel.closed_at.is_(None))
+                    .filter(SessionModel.status != "planned")
                     .filter(SessionModel.location_id == loc_obj.id)
                     .filter(SessionModel.repaircafe_id == active_cafe.id)
                     .order_by(SessionModel.opened_at.asc())
@@ -1103,7 +1104,11 @@ def api_sessions_list():
     opened_only = request.args.get("opened") == "1"
     from .models import Session as SessionModel  # import tardif pour éviter cycle
 
-    sessions_q = db.session.query(SessionModel).filter(SessionModel.repaircafe_id == active_cafe.id)
+    sessions_q = (
+        db.session.query(SessionModel)
+        .filter(SessionModel.repaircafe_id == active_cafe.id)
+        .filter(SessionModel.status != "planned")
+    )
     if opened_only:
         sessions_q = sessions_q.filter(SessionModel.closed_at.is_(None))
     sessions = sessions_q.order_by(SessionModel.opened_at.desc()).limit(100).all()
@@ -1123,6 +1128,39 @@ def api_sessions_list():
     )
 
 
+@api.route("/api/session/open_planned/<int:session_id>", methods=["POST"])
+@login_required
+def api_session_open_planned(session_id: int):
+    from .services.session_service import open_planned_session
+
+    s = open_planned_session(db.session, session_id, current_user)
+    if not s:
+        return jsonify({"error": "not_found_or_invalid"}), 400
+    db.session.commit()
+    return jsonify({"id": s.id, "status": s.status})
+
+
+@api.route("/api/session/planned/<int:session_id>", methods=["DELETE"])
+@login_required
+def api_session_planned_delete(session_id: int):
+    active_cafe = _active_cafe()
+    s = (
+        db.session.query(SessionModel)
+        .filter(SessionModel.id == session_id)
+        .filter(SessionModel.repaircafe_id == active_cafe.id)
+        .first()
+    )
+    if not s or s.status != "planned":
+        return jsonify({"error": "not_found_or_invalid"}), 404
+    if len(s.repairs) > 0:
+        return jsonify({"error": "has_repairs"}), 400
+    if current_user.id != s.owner_id and not is_cafe_admin(current_user, active_cafe.id):
+        return jsonify({"error": "forbidden"}), 403
+    db.session.delete(s)
+    db.session.commit()
+    return jsonify(True)
+
+
 @api.route("/api/locations", methods=["GET"])
 @login_required
 def api_locations():
@@ -1135,6 +1173,30 @@ def api_locations():
         query = query.filter(Location.name.like(like))
     names = [loc.name for loc in query.order_by(Location.name.asc()).limit(50).all()]
     return jsonify(names)
+
+
+@api.route("/api/locations/details", methods=["GET"])
+@login_required
+def api_locations_details():
+    """Détails des lieux (jour/horaires standards) pour formulaires."""
+    active_cafe = _active_cafe()
+    q = request.args.get("q")
+    query = db.session.query(Location).filter(Location.repaircafe_id == active_cafe.id)
+    if q:
+        like = f"{q}%"
+        query = query.filter(Location.name.like(like))
+    locations = query.order_by(Location.name.asc()).limit(100).all()
+    return jsonify(
+        [
+            {
+                "name": loc.name,
+                "standard_day": loc.standard_day,
+                "standard_open_time": loc.standard_open_time,
+                "standard_close_time": loc.standard_close_time,
+            }
+            for loc in locations
+        ]
+    )
 
 
 # -------------------- Object Types --------------------
